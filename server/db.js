@@ -109,10 +109,10 @@ async function initDB() {
         SELECT setval('expobai.categorias_id_seq', COALESCE((SELECT MAX(id) FROM expobai.categorias), 1));
 
         INSERT INTO expobai.produtos (id, categoria_id, nome, descricao, preco, foto_url) VALUES
-          (1, 1, 'Espetinho de Carne', 'Acompanha mandioca e farofa especial', 18.00, 'https://images.unsplash.com/photo-1529193591184-b1d58069ecdd?w=600&auto=format&fit=crop&q=80'),
+          (1, 1, 'Espetinho de Carne', 'Acompanha mandioca e farofa especial', 18.00, '/img/espetinho-carne.jpg'),
           (2, 1, 'Espetinho Frango', 'Espetinho de frango dourado na brasa', 18.00, 'https://images.unsplash.com/photo-1555939594-58d7cb561ad1?w=600&auto=format&fit=crop&q=80'),
-          (3, 1, 'Espetinho de Queijo', 'Queijo coalho tostado na brasa', 15.00, 'https://images.unsplash.com/photo-1532550907401-a500c9a57435?w=600&auto=format&fit=crop&q=80'),
-          (4, 1, 'Espetinho de coraçäo', 'Coraçãozinho de frango temperado na brasa', 18.00, 'https://images.unsplash.com/photo-1544025162-d76694265947?w=600&auto=format&fit=crop&q=80'),
+          (3, 1, 'Espetinho de Queijo', 'Queijo coalho tostado na brasa', 15.00, '/img/espetinho-queijo.jpg'),
+          (4, 1, 'Espetinho de coraçäo', 'Coraçãozinho de frango temperado na brasa', 18.00, '/img/espetinho-coracao.jpg'),
           (5, 2, 'Suco de Polpa', 'Suco natural de frutas bem gelado', 10.00, 'https://images.unsplash.com/photo-1613478223719-2ab802602423?w=600&auto=format&fit=crop&q=80'),
           (6, 2, 'Refrigerante', 'Refrigerante gelado em lata 350ml', 7.00, 'https://images.unsplash.com/photo-1622483767028-3f66f32aef97?w=600&auto=format&fit=crop&q=80'),
           (7, 2, 'Água Mineral 500ml', 'Com ou sem gás', 5.00, 'https://images.unsplash.com/photo-1560023907-5f339617ea30?w=600&auto=format&fit=crop&q=80'),
