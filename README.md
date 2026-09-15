@@ -32,3 +32,34 @@ Sistema de ERP e Ponto de Venda (PDV / Caixa) desenvolvido especialmente para ba
 - **Backend**: Node.js + Express seguindo o padrão RSC (Routes, Services, Repositories).
 - **Banco de Dados**: PostgreSQL no **Supabase** (alta performance, seguro e acessível via web).
 - **Deploy**: Arquivo `render.yaml` unificado para build e start automático no Render.
+
+---
+
+## 🚀 Roteiro de Execução Passo a Passo (Roadmap)
+
+### 📌 Etapa 1: Base de Infraestrutura e Banco (Concluído ✅)
+- [x] Repositório Git com `.gitignore`, `render.yaml` e branch `main`.
+- [x] Script SQL (`schema.sql`) PostgreSQL com schema dedicado e isolado `expobai`.
+- [x] Conexão configurada em `server/db.js` e `server/.env` com Supabase e migração automática.
+
+### 📌 Etapa 2: Backend API (Node.js + Express)
+- [ ] Instalar dependências em `server/` (`express`, `pg`, `cors`, `dotenv`, `multer`).
+- [ ] Repositórios: `categoriasRepository`, `produtosRepository`, `pedidosRepository` (com número sequencial) e `relatoriosRepository` (fechamento de caixa).
+- [ ] Rotas REST `/api/categorias`, `/api/produtos`, `/api/pedidos`, `/api/relatorios`, `/api/configuracoes`.
+- [ ] Servidor `server/server.js` com suporte estático a `uploads/` e ao build do frontend em produção.
+
+### 📌 Etapa 3: Frontend Caixa Ágil (React + Vite + Tailwind)
+- [ ] Setup do app Vite em `client/` com Tailwind CSS no tema Expobai (Verde `#1B4332`, Ouro `#D97706`, Laranja `#EA580C`).
+- [ ] Componente `Navbar` (logo Expobai, relógio, alternador Caixa/Admin).
+- [ ] Seletor rápido de Categorias em abas/botões.
+- [ ] Grade de Produtos touch-friendly com fotos e preços destacados.
+- [ ] Painel lateral do Carrinho com controle de quantidade e subtotal dinâmico.
+- [ ] Modal de Pagamento: PIX (QR Code e chave), Dinheiro (calculadora de troco), Cartão de Débito e Crédito.
+- [ ] Modal de Conclusão com número grande do pedido (ex: `#042`) e botão de impressão de ficha.
+- [ ] Painel Admin: Gestão de Produtos (preço, foto, categoria, ativar/desativar), Categorias e Relatório de Fechamento de Caixa.
+
+### 📌 Etapa 4: Integração, Render e Inicializador
+- [ ] Criar `iniciar_caixa.bat` para abertura rápida em 1 clique.
+- [ ] Teste de compilação de produção (`npm run build`).
+- [ ] Instruções de conexão no Render.com para deploy contínuo.
+- [ ] Commit e Push final no GitHub.
