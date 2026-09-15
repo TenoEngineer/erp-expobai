@@ -20,8 +20,9 @@ Sistema de ERP e Ponto de Venda (PDV / Caixa) desenvolvido especialmente para ba
   - Upload ou link para foto dos produtos e alteração rápida de preços.
   - Cadastro de categorias com cores e ícones.
   - Relatório de fechamento de caixa por forma de pagamento e total faturado.
-- **100% Funcional Offline**:
-  - Banco local SQLite que não depende da internet oscilante do parque de exposições.
+- **100% Online na Web**:
+  - Banco de dados em nuvem via **Supabase (PostgreSQL)**, permitindo múltiplos caixas e acesso de qualquer dispositivo (notebook, tablet ou celular).
+  - Pronto para deploy com 1 clique no **Render.com** (exatamente como o `erp-fran-estetica`).
 
 ---
 
@@ -29,5 +30,5 @@ Sistema de ERP e Ponto de Venda (PDV / Caixa) desenvolvido especialmente para ba
 
 - **Frontend**: React 18 + Vite + Tailwind CSS + Lucide Icons (Ultra-rápido, responsivo e touch-friendly).
 - **Backend**: Node.js + Express seguindo o padrão RSC (Routes, Services, Repositories).
-- **Banco de Dados**: SQLite3 com WAL mode (alta performance e robustez local).
-- **Upload de Fotos**: Armazenamento local servido via Express + suporte a URL.
+- **Banco de Dados**: PostgreSQL no **Supabase** (alta performance, seguro e acessível via web).
+- **Deploy**: Arquivo `render.yaml` unificado para build e start automático no Render.
