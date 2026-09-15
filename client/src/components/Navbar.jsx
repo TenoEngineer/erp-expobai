@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { ShoppingCart, Settings, Clock, Sparkles } from 'lucide-react';
+import Logo from './Logo';
 
 export default function Navbar({ activeTab, setActiveTab, config, cartCount = 0 }) {
   const [time, setTime] = useState(new Date().toLocaleTimeString('pt-BR'));
@@ -12,28 +13,15 @@ export default function Navbar({ activeTab, setActiveTab, config, cartCount = 0 
   }, []);
 
   return (
-    <header className="bg-slate-900/95 backdrop-blur border-b border-slate-800 sticky top-0 z-30 px-4 py-3 select-none">
+    <header className="bg-slate-900/95 backdrop-blur border-b border-slate-800 sticky top-0 z-30 px-4 py-2.5 select-none">
       <div className="max-w-7xl mx-auto flex items-center justify-between gap-4">
         
         {/* Logo & Info */}
-        <div className="flex items-center gap-3">
-          <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-emerald-600 via-green-700 to-amber-600 flex items-center justify-center shadow-lg shadow-emerald-950/50 border border-emerald-500/30">
-            <span className="text-2xl">🤠</span>
-          </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <h1 className="font-extrabold text-lg sm:text-xl tracking-tight bg-gradient-to-r from-emerald-400 via-amber-300 to-amber-500 bg-clip-text text-transparent">
-                EXPOBAI PDV
-              </h1>
-              <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-emerald-950/80 border border-emerald-500/40 text-emerald-400">
-                2026
-              </span>
-            </div>
-            <p className="text-xs text-slate-400 font-medium truncate max-w-[200px] sm:max-w-xs">
-              {config?.nome_estande || 'Tenda dos Müller'}
-            </p>
-          </div>
-        </div>
+        <Logo 
+          boothName={config?.nome_estande || 'Tenda dos Müller'}
+          subtitle="EXPOBAI 2026"
+          size={44}
+        />
 
         {/* Center: Live Clock & Quick Status */}
         <div className="hidden md:flex items-center gap-4 text-xs font-mono text-slate-400 bg-slate-950/60 px-3 py-1.5 rounded-lg border border-slate-800">

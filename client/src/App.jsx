@@ -50,7 +50,7 @@ export default function App() {
       {/* Footer simples de rodapé */}
       <footer className="border-t border-slate-900 py-3 px-4 text-center text-xs text-slate-500 bg-slate-950">
         <p>
-          🤠 <b>ERP Expobai 2026</b> &bull; Frente de Caixa Ágil &bull; Onde a cidade é + agro
+          🌾 <b>Tenda dos Müller</b> &bull; Expobai 2026 &bull; Frente de Caixa Ágil &bull; <i>"Onde a cidade é + agro"</i>
         </p>
       </footer>
     </div>
