@@ -30,7 +30,7 @@ export default function Navbar({ activeTab, setActiveTab, config, cartCount = 0 
               </span>
             </div>
             <p className="text-xs text-slate-400 font-medium truncate max-w-[200px] sm:max-w-xs">
-              {config?.nome_estande || 'Barraca Oficial Expobai'}
+              {config?.nome_estande || 'Tenda dos Müller'}
             </p>
           </div>
         </div>

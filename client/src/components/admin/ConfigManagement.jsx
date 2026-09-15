@@ -13,7 +13,7 @@ export default function ConfigManagement({ config = {}, onRefresh }) {
   useEffect(() => {
     if (config) {
       setFormData({
-        nome_estande: config.nome_estande || 'Barraca Oficial Expobai',
+        nome_estande: config.nome_estande || 'Tenda dos Müller',
         chave_pix: config.chave_pix || 'pix@expobai.com.br',
         prefixo_pedido: config.prefixo_pedido || 'EXP'
       });

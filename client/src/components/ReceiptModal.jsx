@@ -133,7 +133,7 @@ export default function ReceiptModal({
       <div id="thermal-receipt" className="hidden print:block text-black">
         <div style={{ textAlign: 'center', borderBottom: '1px dashed #000', paddingBottom: '8px', marginBottom: '8px' }}>
           <h2 style={{ fontSize: '18px', fontWeight: 'bold', margin: '0' }}>
-            {config?.nome_estande || 'EXPOBAI 2026'}
+            {config?.nome_estande || 'Tenda dos Müller'}
           </h2>
           <p style={{ fontSize: '11px', margin: '2px 0' }}>FICHA DE RETIRADA</p>
           <div style={{ fontSize: '32px', fontWeight: '900', margin: '8px 0', border: '2px solid #000', padding: '4px' }}>

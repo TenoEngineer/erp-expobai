@@ -92,7 +92,7 @@ ON CONFLICT (id) DO NOTHING;
 SELECT setval('expobai.produtos_id_seq', COALESCE((SELECT MAX(id) FROM expobai.produtos), 1));
 
 INSERT INTO expobai.configuracoes (chave, valor) VALUES
-  ('nome_estande', 'Barraca Oficial Expobai'),
+  ('nome_estande', 'Tenda dos Müller'),
   ('chave_pix', 'pix@expobai.com.br'),
   ('prefixo_pedido', 'EXP')
 ON CONFLICT (chave) DO NOTHING;
