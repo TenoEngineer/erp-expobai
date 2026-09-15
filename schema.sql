@@ -1,10 +1,13 @@
 -- =====================================================================
--- 🤠 ERP EXPOBAI - SCHEMA POSTGRESQL (SUPABASE)
--- Execute este script no SQL Editor do seu projeto no Supabase
+-- 🤠 ERP EXPOBAI - SCHEMA POSTGRESQL ISOLADO (SUPABASE)
+-- Cria o schema dedicado "expobai" no mesmo banco de dados da Fran
+-- Isolamento 100% seguro sem interferir nas tabelas existentes.
 -- =====================================================================
 
+CREATE SCHEMA IF NOT EXISTS expobai;
+
 -- 1. Tabela de Categorias
-CREATE TABLE IF NOT EXISTS categorias (
+CREATE TABLE IF NOT EXISTS expobai.categorias (
   id SERIAL PRIMARY KEY,
   nome VARCHAR(100) NOT NULL,
   icone VARCHAR(50) DEFAULT 'utensils',
@@ -15,9 +18,9 @@ CREATE TABLE IF NOT EXISTS categorias (
 );
 
 -- 2. Tabela de Produtos
-CREATE TABLE IF NOT EXISTS produtos (
+CREATE TABLE IF NOT EXISTS expobai.produtos (
   id SERIAL PRIMARY KEY,
-  categoria_id INTEGER NOT NULL REFERENCES categorias(id) ON DELETE CASCADE,
+  categoria_id INTEGER NOT NULL REFERENCES expobai.categorias(id) ON DELETE CASCADE,
   nome VARCHAR(150) NOT NULL,
   descricao TEXT,
   preco NUMERIC(10, 2) NOT NULL,
@@ -28,7 +31,7 @@ CREATE TABLE IF NOT EXISTS produtos (
 );
 
 -- 3. Tabela de Pedidos (Vendas no Caixa)
-CREATE TABLE IF NOT EXISTS pedidos (
+CREATE TABLE IF NOT EXISTS expobai.pedidos (
   id SERIAL PRIMARY KEY,
   numero_pedido INTEGER NOT NULL,
   codigo_identificador VARCHAR(20) NOT NULL,
@@ -42,10 +45,10 @@ CREATE TABLE IF NOT EXISTS pedidos (
 );
 
 -- 4. Tabela de Itens do Pedido
-CREATE TABLE IF NOT EXISTS pedido_itens (
+CREATE TABLE IF NOT EXISTS expobai.pedido_itens (
   id SERIAL PRIMARY KEY,
-  pedido_id INTEGER NOT NULL REFERENCES pedidos(id) ON DELETE CASCADE,
-  produto_id INTEGER REFERENCES produtos(id) ON DELETE SET NULL,
+  pedido_id INTEGER NOT NULL REFERENCES expobai.pedidos(id) ON DELETE CASCADE,
+  produto_id INTEGER REFERENCES expobai.produtos(id) ON DELETE SET NULL,
   nome_produto VARCHAR(150) NOT NULL,
   quantidade INTEGER NOT NULL,
   preco_unitario NUMERIC(10, 2) NOT NULL,
@@ -53,28 +56,27 @@ CREATE TABLE IF NOT EXISTS pedido_itens (
 );
 
 -- 5. Tabela de Configurações Gerais do Estande
-CREATE TABLE IF NOT EXISTS configuracoes (
+CREATE TABLE IF NOT EXISTS expobai.configuracoes (
   chave VARCHAR(50) PRIMARY KEY,
   valor TEXT
 );
 
--- Índices para buscas ultrarrápidas
-CREATE INDEX IF NOT EXISTS idx_produtos_categoria ON produtos(categoria_id);
-CREATE INDEX IF NOT EXISTS idx_pedidos_data ON pedidos(data_hora);
-CREATE INDEX IF NOT EXISTS idx_pedido_itens_pedido ON pedido_itens(pedido_id);
+-- Índices para performance
+CREATE INDEX IF NOT EXISTS idx_expobai_produtos_categoria ON expobai.produtos(categoria_id);
+CREATE INDEX IF NOT EXISTS idx_expobai_pedidos_data ON expobai.pedidos(data_hora);
+CREATE INDEX IF NOT EXISTS idx_expobai_pedido_itens_pedido ON expobai.pedido_itens(pedido_id);
 
 -- Inserção de Dados Iniciais de Exemplo (Seed)
-INSERT INTO categorias (id, nome, icone, cor, ordem) VALUES
+INSERT INTO expobai.categorias (id, nome, icone, cor, ordem) VALUES
   (1, 'Salgados', 'beef', '#1B4332', 1),
   (2, 'Bebidas', 'cup-soda', '#2D6A4F', 2),
   (3, 'Doces', 'cake', '#D97706', 3),
   (4, 'Porções', 'utensils', '#B45309', 4)
 ON CONFLICT (id) DO NOTHING;
 
--- Atualizar sequencial de categorias
-SELECT setval('categorias_id_seq', (SELECT MAX(id) FROM categorias));
+SELECT setval('expobai.categorias_id_seq', COALESCE((SELECT MAX(id) FROM expobai.categorias), 1));
 
-INSERT INTO produtos (id, categoria_id, nome, descricao, preco, foto_url) VALUES
+INSERT INTO expobai.produtos (id, categoria_id, nome, descricao, preco, foto_url) VALUES
   (1, 1, 'Espetinho de Carne', 'Acompanha mandioca e farofa especial', 18.00, 'https://images.unsplash.com/photo-1555939594-58d7cb561ad1?w=400'),
   (2, 1, 'Espetinho Frango c/ Bacon', 'Acompanha mandioca e farofa especial', 18.00, 'https://images.unsplash.com/photo-1529193591184-b1d58069ecdd?w=400'),
   (3, 1, 'Pastel de Carne', 'Frito na hora, massa crocante', 12.00, 'https://images.unsplash.com/photo-1608897013039-887f21d8c804?w=400'),
@@ -87,10 +89,9 @@ INSERT INTO produtos (id, categoria_id, nome, descricao, preco, foto_url) VALUES
   (10, 3, 'Churros Recheado', 'Recheado com doce de leite e canela', 12.00, 'https://images.unsplash.com/photo-1624300629298-e9de39c13be5?w=400')
 ON CONFLICT (id) DO NOTHING;
 
--- Atualizar sequencial de produtos
-SELECT setval('produtos_id_seq', (SELECT MAX(id) FROM produtos));
+SELECT setval('expobai.produtos_id_seq', COALESCE((SELECT MAX(id) FROM expobai.produtos), 1));
 
-INSERT INTO configuracoes (chave, valor) VALUES
+INSERT INTO expobai.configuracoes (chave, valor) VALUES
   ('nome_estande', 'Barraca Oficial Expobai'),
   ('chave_pix', 'pix@expobai.com.br'),
   ('prefixo_pedido', 'EXP')
