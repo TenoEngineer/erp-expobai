@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
-const pedidosRepo = require('../repositories/pedidosRepository');
+const configuracoesRepo = require('../repositories/configuracoesRepository');
+const printerService = require('../services/printerService');
 
 // Criar novo pedido / venda do caixa
 router.post('/', async (req, res) => {
@@ -20,6 +21,31 @@ router.post('/', async (req, res) => {
       troco,
       observacoes
     });
+
+    // Impressão automática instantânea se configurado Rede ou USB
+    try {
+      const config = await configuracoesRepo.getAll();
+      const autoImprimir = config.impressora_auto_imprimir !== 'false';
+      const tipo = (config.impressora_tipo || 'usb').toLowerCase();
+
+      if (autoImprimir && (tipo === 'rede' || tipo === 'usb')) {
+        console.log(`🖨️ Disparando impressão automática do pedido #${novoPedido.numero_pedido} via ${tipo.toUpperCase()}...`);
+        const printResult = await printerService.printOrder(novoPedido, config);
+        novoPedido.impressao = printResult;
+      } else {
+        novoPedido.impressao = {
+          success: true,
+          mode: tipo,
+          message: tipo === 'navegador' ? 'Impressão automática via navegador' : 'Impressão física inativa'
+        };
+      }
+    } catch (printErr) {
+      console.error(`⚠️ Falha na impressão automática do pedido #${novoPedido.numero_pedido}:`, printErr.message);
+      novoPedido.impressao = {
+        success: false,
+        error: printErr.message
+      };
+    }
 
     res.status(201).json(novoPedido);
   } catch (err) {

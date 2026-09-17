@@ -11,6 +11,7 @@ const produtosRouter = require('./routes/produtos');
 const pedidosRouter = require('./routes/pedidos');
 const relatoriosRouter = require('./routes/relatorios');
 const configuracoesRouter = require('./routes/configuracoes');
+const impressaoRouter = require('./routes/impressao');
 
 const app = express();
 const PORT = process.env.PORT || 5002;
@@ -56,6 +57,7 @@ app.use('/api/produtos', produtosRouter);
 app.use('/api/pedidos', pedidosRouter);
 app.use('/api/relatorios', relatoriosRouter);
 app.use('/api/configuracoes', configuracoesRouter);
+app.use('/api/impressao', impressaoRouter);
 
 // 5. Servir build do React em Produção (Render.com)
 const clientDistPath = path.resolve(__dirname, '../client/dist');

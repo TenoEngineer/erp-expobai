@@ -19,10 +19,7 @@ const pool = new Pool({
   connectionString,
   max: Number(process.env.DB_POOL_MAX || 10),
   idleTimeoutMillis: 30000,
-  connectionTimeoutMillis: 10000,
-  ssl: {
-    rejectUnauthorized: false
-  }
+  ssl: connectionString.includes('sslmode=require') || connectionString.includes('supabase') ? { rejectUnauthorized: false } : false
 });
 
 let _resolveReady;
@@ -126,7 +123,14 @@ async function initDB() {
         INSERT INTO expobai.configuracoes (chave, valor) VALUES
           ('nome_estande', 'Tenda dos Müller'),
           ('chave_pix', 'pix@expobai.com.br'),
-          ('prefixo_pedido', 'EXP')
+          ('prefixo_pedido', 'EXP'),
+          ('impressora_tipo', 'usb'),
+          ('impressora_ip', '192.168.1.200'),
+          ('impressora_porta', '9100'),
+          ('impressora_auto_imprimir', 'true'),
+          ('impressora_vias', 'ambas'),
+          ('impressora_largura', '80mm'),
+          ('impressora_cortar_papel', 'true')
         ON CONFLICT (chave) DO NOTHING;
       `);
     }

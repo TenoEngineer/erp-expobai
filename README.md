@@ -14,7 +14,16 @@ Sistema de ERP e Ponto de Venda (PDV / Caixa) desenvolvido especialmente para ba
   - Carrinho lateral em tempo real com controle ágil de quantidade.
   - Número de pedido sequencial automático para entrega de comanda/ficha ao cliente.
   - Formas de pagamento: **PIX**, **Dinheiro** (com cálculo automático de troco), **Cartão de Débito** e **Cartão de Crédito**.
-  - Impressão ou visualização de ficha/ticket de retirada.
+- **Automação de Impressão Térmica (Rede & USB)**:
+  - **Disparo 100% Automático**: imprime instantaneamente ao concluir a venda sem necessidade de clicar em botões.
+  - **2 Vias Separadas com Corte de Papel (Guilhotina)**:
+    - **Via 1 (Cliente)**: Apenas o número da comanda/senha em tamanho gigante para retirada rápida.
+    - **Via 2 (Cozinha/Preparo)**: Número da comanda + lista detalhada dos produtos e quantidades pedidos para organização interna.
+  - **Compatibilidade Ampla**:
+    - **Rede / Wi-Fi / Ethernet**: Conexão direta TCP/IP Socket (porta padrão 9100) via protocolo ESC/POS.
+    - **USB / Windows Spooler**: Envio direto RAW para qualquer impressora USB térmica configurada no Windows (POS-80, Elgin, Epson, Bematech).
+    - **Navegador**: Modo de impressão automática com quebra de página `@media print`.
+  - Painel de teste e diagnóstico da impressora em tempo real no menu de Configurações.
 - **Gestão & Retaguarda**:
   - Cadastro, edição e desativação de produtos.
   - Upload ou link para foto dos produtos e alteração rápida de preços.

@@ -103,4 +103,19 @@ export const saveConfig = async (config) => {
   return data;
 };
 
+export const getPrinters = async () => {
+  const { data } = await api.get('/impressao/printers');
+  return data.printers || [];
+};
+
+export const testPrinter = async (config) => {
+  const { data } = await api.post('/impressao/teste', config);
+  return data;
+};
+
+export const printOrderDirect = async (order) => {
+  const { data } = await api.post('/impressao/imprimir', { pedido: order });
+  return data;
+};
+
 export default api;
