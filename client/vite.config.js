@@ -4,6 +4,7 @@ import react from '@vitejs/plugin-react';
 export default defineConfig({
   plugins: [react()],
   server: {
+    host: true, // Permite acesso pelo Tablet e celular na mesma rede Wi-Fi
     port: 5173,
     proxy: {
       '/api': {

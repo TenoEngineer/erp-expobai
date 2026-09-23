@@ -35,10 +35,16 @@ if [ -e /dev/usb/lp0 ]; then
     fi
 fi
 
-# 3. Iniciar Backend e Frontend simultaneamente
+# 3. Identificar IP na rede Wi-Fi para conexão do Tablet
+LOCAL_IP=$(hostname -I 2>/dev/null | awk '{print $1}')
+
+# 4. Iniciar Backend e Frontend simultaneamente
 echo ""
 echo "🚀 Iniciando servidor backend e frente de caixa..."
-echo "Acesse no navegador: http://localhost:5173"
+echo "💻 Acesso no computador local: http://localhost:5173"
+if [ -n "$LOCAL_IP" ]; then
+    echo "📱 Acesso pelo TABLET / CELULAR no mesmo Wi-Fi: http://$LOCAL_IP:5173"
+fi
 echo "Pressione Ctrl+C para encerrar."
 echo "======================================================"
 
