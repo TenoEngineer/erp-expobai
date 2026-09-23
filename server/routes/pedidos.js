@@ -1,5 +1,6 @@
 const express = require('express');
 const router = express.Router();
+const pedidosRepo = require('../repositories/pedidosRepository');
 const configuracoesRepo = require('../repositories/configuracoesRepository');
 const printerService = require('../services/printerService');
 
