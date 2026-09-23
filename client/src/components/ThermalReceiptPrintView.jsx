@@ -85,12 +85,6 @@ export default function ThermalReceiptPrintView({ order, config }) {
           </table>
         </div>
 
-        {order.observacoes && (
-          <div style={{ fontSize: '12px', fontWeight: 'bold', border: '1px solid #000', padding: '6px', marginBottom: '8px' }}>
-            OBS: {order.observacoes}
-          </div>
-        )}
-
         <div style={{ fontSize: '11px', textAlign: 'right', borderTop: '1px dashed #000', paddingTop: '6px' }}>
           TOTAL: {formatPrice(order.total)} ({order.forma_pagamento?.toUpperCase()})
         </div>

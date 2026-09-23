@@ -227,16 +227,6 @@ function buildTicketProducao(order, config = {}, largura = '80mm', cortar = true
 
   b.divider('-', largura);
 
-  // Observações (se houver)
-  if (order.observacoes && order.observacoes.trim() !== '') {
-    b.bold(true);
-    b.size('double_h');
-    b.line(`OBS: ${order.observacoes.trim()}`);
-    b.size('normal');
-    b.bold(false);
-    b.divider('-', largura);
-  }
-
   // Informações Financeiras para conferência
   b.align('left');
   const formaPag = (order.forma_pagamento || 'PIX').toUpperCase();

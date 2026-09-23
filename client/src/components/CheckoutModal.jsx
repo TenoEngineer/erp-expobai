@@ -23,7 +23,6 @@ export default function CheckoutModal({
   const [paymentMethod, setPaymentMethod] = useState('pix'); // 'pix', 'dinheiro', 'debito', 'credito'
   const [cashReceived, setCashReceived] = useState('');
   const [copiedPix, setCopiedPix] = useState(false);
-  const [observacoes, setObservacoes] = useState('');
 
   const pixKey = config?.chave_pix || 'pix@expobai.com.br';
 
@@ -31,7 +30,6 @@ export default function CheckoutModal({
     if (isOpen) {
       setPaymentMethod('pix');
       setCashReceived('');
-      setObservacoes('');
       setCopiedPix(false);
     }
   }, [isOpen, total]);
@@ -68,8 +66,7 @@ export default function CheckoutModal({
       itens: cartItems,
       forma_pagamento: paymentMethod,
       valor_pago: paymentMethod === 'dinheiro' ? cashNum : totalNum,
-      troco: troco,
-      observacoes
+      troco: troco
     });
   };
 
@@ -269,20 +266,6 @@ export default function CheckoutModal({
               </div>
             </div>
           )}
-
-          {/* Campo de Observações do Pedido */}
-          <div>
-            <label className="block text-xs text-slate-400 mb-1">
-              Observações (opcional):
-            </label>
-            <input
-              type="text"
-              placeholder="Ex: Mandioca extra, sem gelo..."
-              value={observacoes}
-              onChange={(e) => setObservacoes(e.target.value)}
-              className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-200 placeholder-slate-600 focus:outline-none focus:border-amber-500"
-            />
-          </div>
 
           {/* Botão de Confirmação */}
           <div className="pt-2">

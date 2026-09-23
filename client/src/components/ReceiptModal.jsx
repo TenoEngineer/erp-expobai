@@ -218,12 +218,6 @@ export default function ReceiptModal({
                 ))}
               </div>
 
-              {order.observacoes && (
-                <div className="p-2 bg-amber-950/30 border border-amber-800/40 rounded-lg text-xs text-amber-300">
-                  <b>Obs Cozinha:</b> {order.observacoes}
-                </div>
-              )}
-
               <div className="pt-2 border-t border-slate-800 flex justify-between items-center text-sm font-bold">
                 <span className="text-slate-300">Total Pago ({order.forma_pagamento?.toUpperCase()}):</span>
                 <span className="text-emerald-400 font-mono font-black text-base">
@@ -332,12 +326,6 @@ export default function ReceiptModal({
               </tbody>
             </table>
           </div>
-
-          {order.observacoes && (
-            <div style={{ fontSize: '12px', fontWeight: 'bold', border: '1px solid #000', padding: '6px', marginBottom: '8px' }}>
-              OBS: {order.observacoes}
-            </div>
-          )}
 
           <div style={{ fontSize: '11px', textAlign: 'right', borderTop: '1px dashed #000', paddingTop: '6px' }}>
             TOTAL: {formatPrice(order.total)} ({order.forma_pagamento?.toUpperCase()})
