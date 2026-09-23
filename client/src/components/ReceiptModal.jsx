@@ -274,34 +274,22 @@ export default function ReceiptModal({
         {/* ============================================== */}
         {/* TICKET 1: SOMENTE O NÚMERO / FICHA DO CLIENTE */}
         {/* ============================================== */}
-        <div className="ticket-wrapper" style={{ textAlign: 'center', paddingBottom: '10px' }}>
-          <h2 style={{ fontSize: '16px', fontWeight: 'bold', margin: '0', textTransform: 'uppercase' }}>
+        <div className="ticket-wrapper" style={{ textAlign: 'center', paddingBottom: '12px', paddingTop: '6px' }}>
+          <h2 style={{ fontSize: '20px', fontWeight: 'bold', margin: '0', textTransform: 'uppercase' }}>
             {nomeEstande}
           </h2>
-          <p style={{ fontSize: '11px', margin: '2px 0 6px 0' }}>EXPOBAI 2026 - AMAMBAI</p>
-          <div style={{ borderTop: '1px dashed #000', borderBottom: '1px dashed #000', padding: '4px 0', margin: '6px 0', fontWeight: 'bold', fontSize: '13px' }}>
-            FICHA DE RETIRADA / SENHA
-          </div>
           
           {/* NÚMERO GIGANTE DA SENHA */}
           <div style={{ 
-            fontSize: '48px', 
+            fontSize: '56px', 
             fontWeight: '900', 
-            margin: '12px 0', 
+            margin: '14px 0', 
             letterSpacing: '2px', 
-            border: '2px solid #000', 
-            padding: '6px 0',
+            border: '3px solid #000', 
+            padding: '8px 0',
             fontFamily: 'monospace'
           }}>
             #{numeroFormatado}
-          </div>
-
-          <p style={{ fontSize: '12px', fontWeight: 'bold', margin: '8px 0 4px 0' }}>
-            Aguarde sua senha ser chamada no balcão!
-          </p>
-          <p style={{ fontSize: '10px', color: '#333' }}>{dataHora}</p>
-          <div style={{ borderTop: '1px dashed #000', margin: '10px 0 4px 0', paddingTop: '6px', fontSize: '10px' }}>
-            Obrigado pela preferência!
           </div>
         </div>
 

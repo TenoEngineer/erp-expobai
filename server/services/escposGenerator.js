@@ -152,21 +152,11 @@ function buildTicketCliente(order, config = {}, largura = '80mm', cortar = true)
   const b = new EscposBuilder();
   const nomeEstande = config.nome_estande || 'TENDA DOS MULLER';
   const numStr = String(order.numero_pedido).padStart(3, '0');
-  const codigo = order.codigo_identificador || `EXP-${numStr}`;
-  const dataHora = order.data_hora 
-    ? new Date(order.data_hora).toLocaleString('pt-BR') 
-    : new Date().toLocaleString('pt-BR');
 
   b.align('center');
   b.bold(true);
   b.size('double');
   b.line(nomeEstande.toUpperCase());
-  b.size('normal');
-  b.line('EXPOBAI 2026 - AMAMBAI/MS');
-  b.divider('=', largura);
-
-  b.bold(true);
-  b.line('FICHA DE RETIRADA / SENHA');
   b.line();
 
   // NÚMERO GIGANTE DA SENHA
@@ -176,17 +166,6 @@ function buildTicketCliente(order, config = {}, largura = '80mm', cortar = true)
 
   b.size('normal');
   b.bold(false);
-  b.line();
-  b.line('Aguarde ser chamado no balcao!');
-  b.divider('-', largura);
-
-  b.align('left');
-  b.line(`Codigo: ${codigo}`);
-  b.line(`Data/Hora: ${dataHora}`);
-
-  b.divider('=', largura);
-  b.align('center');
-  b.line('Obrigado pela preferencia!');
 
   b.feed(3);
   if (cortar) {
