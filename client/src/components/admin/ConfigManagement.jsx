@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Save, Check, Printer, RefreshCw, AlertCircle, Wifi, Usb, Monitor, Scissors } from 'lucide-react';
+import { Save, Check, Printer, RefreshCw, AlertCircle, Wifi, Usb, Monitor, Scissors, Tablet, Smartphone } from 'lucide-react';
 import { saveConfig, getPrinters, testPrinter } from '../../services/api';
+import { isWebUsbSupported, requestWebUsbPrinter, printDirectWebUsb, printViaRawBT, getTicketBuffer } from '../../services/tabletPrinter';
 
 export default function ConfigManagement({ config = {}, onRefresh }) {
   const [formData, setFormData] = useState({
@@ -85,15 +86,50 @@ export default function ConfigManagement({ config = {}, onRefresh }) {
     }
   };
 
+  const [usbConnectedName, setUsbConnectedName] = useState('');
+
+  const handlePairWebUsb = async () => {
+    try {
+      const dev = await requestWebUsbPrinter();
+      const name = dev.productName || 'Impressora Bematech/Elgin USB';
+      setUsbConnectedName(name);
+      setTestResult({
+        success: true,
+        message: `Impressora "${name}" conectada com sucesso ao Tablet via cabo USB!`
+      });
+    } catch (err) {
+      setTestResult({
+        success: false,
+        message: `Erro ao parear USB no Tablet: ${err.message}`
+      });
+    }
+  };
+
   const handleTestPrinter = async () => {
     setTesting(true);
     setTestResult(null);
     try {
-      const res = await testPrinter(formData);
-      setTestResult({
-        success: true,
-        message: res.message || 'Comando enviado! Verifique o papel na impressora.'
-      });
+      if (formData.impressora_tipo === 'tablet_usb') {
+        const base64 = await getTicketBuffer(null, true);
+        const res = await printDirectWebUsb(base64);
+        setTestResult({
+          success: true,
+          message: res.message || 'Ticket de teste impresso com sucesso via cabo USB no Tablet!'
+        });
+      } else if (formData.impressora_tipo === 'rawbt') {
+        const base64 = await getTicketBuffer(null, true);
+        printViaRawBT(base64);
+        setTestResult({
+          success: true,
+          message: 'Enviado para o RawBT no Tablet!'
+        });
+      } else {
+        const res = await testPrinter(formData);
+        setTestResult({
+          success: true,
+          message: res.message || 'Comando enviado! Verifique o papel na impressora.'
+        });
+      }
     } catch (err) {
       setTestResult({
         success: false,
@@ -171,9 +207,55 @@ export default function ConfigManagement({ config = {}, onRefresh }) {
             <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-2">
               Tipo de Conexão com a Impressora
             </label>
-            <div className="grid grid-cols-1 sm:grid-cols-4 gap-2.5">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
               
-              {/* Opção USB */}
+              {/* Opção Tablet USB Direto (Cabo OTG) */}
+              <label className={`flex flex-col p-3 rounded-xl border cursor-pointer transition-all ${
+                formData.impressora_tipo === 'tablet_usb'
+                  ? 'bg-emerald-950/40 border-emerald-500 text-white shadow-md'
+                  : 'bg-slate-950/60 border-slate-800 text-slate-400 hover:bg-slate-800/60'
+              }`}>
+                <div className="flex items-center gap-2 font-bold text-sm mb-1">
+                  <input
+                    type="radio"
+                    name="impressora_tipo"
+                    value="tablet_usb"
+                    checked={formData.impressora_tipo === 'tablet_usb'}
+                    onChange={(e) => setFormData({ ...formData, impressora_tipo: e.target.value })}
+                    className="accent-emerald-500"
+                  />
+                  <Tablet className="w-4 h-4 text-emerald-400" />
+                  <span>📱 Tablet USB (Cabo OTG)</span>
+                </div>
+                <span className="text-[11px] text-slate-400">
+                  Impressora ligada direto no cabo do Tablet via USB-C / OTG (WebUSB no Chrome)
+                </span>
+              </label>
+
+              {/* Opção RawBT (App Android) */}
+              <label className={`flex flex-col p-3 rounded-xl border cursor-pointer transition-all ${
+                formData.impressora_tipo === 'rawbt'
+                  ? 'bg-emerald-950/40 border-emerald-500 text-white shadow-md'
+                  : 'bg-slate-950/60 border-slate-800 text-slate-400 hover:bg-slate-800/60'
+              }`}>
+                <div className="flex items-center gap-2 font-bold text-sm mb-1">
+                  <input
+                    type="radio"
+                    name="impressora_tipo"
+                    value="rawbt"
+                    checked={formData.impressora_tipo === 'rawbt'}
+                    onChange={(e) => setFormData({ ...formData, impressora_tipo: e.target.value })}
+                    className="accent-emerald-500"
+                  />
+                  <Smartphone className="w-4 h-4 text-emerald-400" />
+                  <span>📲 Tablet RawBT (App)</span>
+                </div>
+                <span className="text-[11px] text-slate-400">
+                  Usa o aplicativo RawBT no Tablet Android para imprimir direto na USB
+                </span>
+              </label>
+
+              {/* Opção USB PC (Linux / Windows) */}
               <label className={`flex flex-col p-3 rounded-xl border cursor-pointer transition-all ${
                 formData.impressora_tipo === 'usb'
                   ? 'bg-emerald-950/40 border-emerald-500 text-white shadow-md'
@@ -189,10 +271,10 @@ export default function ConfigManagement({ config = {}, onRefresh }) {
                     className="accent-emerald-500"
                   />
                   <Usb className="w-4 h-4 text-emerald-400" />
-                  <span>USB Direto</span>
+                  <span>💻 Computador USB</span>
                 </div>
                 <span className="text-[11px] text-slate-400">
-                  Impressora USB conectada ao computador (Spooler do Windows)
+                  Impressora USB conectada no computador Linux (/dev/usb/lp0) ou Windows
                 </span>
               </label>
 
@@ -212,7 +294,7 @@ export default function ConfigManagement({ config = {}, onRefresh }) {
                     className="accent-emerald-500"
                   />
                   <Wifi className="w-4 h-4 text-emerald-400" />
-                  <span>Rede / Wi-Fi</span>
+                  <span>🌐 Rede / Wi-Fi</span>
                 </div>
                 <span className="text-[11px] text-slate-400">
                   Impressora com cabo de rede Ethernet ou Wi-Fi (IP:9100)
@@ -235,10 +317,10 @@ export default function ConfigManagement({ config = {}, onRefresh }) {
                     className="accent-emerald-500"
                   />
                   <Monitor className="w-4 h-4 text-emerald-400" />
-                  <span>Navegador</span>
+                  <span>🖨️ Navegador</span>
                 </div>
                 <span className="text-[11px] text-slate-400">
-                  Auto-print do navegador / modo Kiosk
+                  Auto-print do navegador / diálogo de impressão
                 </span>
               </label>
 
@@ -257,7 +339,7 @@ export default function ConfigManagement({ config = {}, onRefresh }) {
                     onChange={(e) => setFormData({ ...formData, impressora_tipo: e.target.value })}
                     className="accent-slate-500"
                   />
-                  <span>Desativado</span>
+                  <span>🚫 Desativado</span>
                 </div>
                 <span className="text-[11px] text-slate-500">
                   Não imprimir tickets físicos
@@ -267,7 +349,59 @@ export default function ConfigManagement({ config = {}, onRefresh }) {
             </div>
           </div>
 
-          {/* Configuração Específica de USB */}
+          {/* Configuração Específica de Tablet USB Direto (WebUSB) */}
+          {formData.impressora_tipo === 'tablet_usb' && (
+            <div className="bg-slate-950/70 p-4 rounded-xl border border-emerald-500/50 space-y-3 animate-in fade-in">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div>
+                  <h5 className="font-bold text-sm text-emerald-400 flex items-center gap-1.5">
+                    <Tablet className="w-4 h-4" />
+                    <span>Conexão Direta Tablet ➔ Impressora via Cabo USB (WebUSB)</span>
+                  </h5>
+                  <p className="text-xs text-slate-300 mt-0.5">
+                    Conecte o cabo USB da Bematech / Elgin no Tablet usando um adaptador USB-C / OTG.
+                  </p>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={handlePairWebUsb}
+                  className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs uppercase tracking-wider rounded-xl shadow-lg flex items-center gap-2 shrink-0 transition-all active:scale-[0.98]"
+                >
+                  <Usb className="w-4 h-4" />
+                  <span>{usbConnectedName ? 'Reconectar Impressora USB' : 'Conectar Impressora USB no Tablet'}</span>
+                </button>
+              </div>
+
+              {usbConnectedName && (
+                <div className="text-xs text-emerald-300 bg-emerald-950/40 p-2 rounded-lg border border-emerald-500/30 flex items-center gap-2">
+                  <Check className="w-3.5 h-3.5 text-emerald-400" />
+                  <span>Impressora conectada: <b>{usbConnectedName}</b></span>
+                </div>
+              )}
+
+              <p className="text-[11px] text-slate-400">
+                💡 No Google Chrome do Tablet, ao clicar em "Conectar", selecione a Bematech ou Elgin na lista que aparecer. A partir daí, qualquer venda imprimirá os 2 tickets diretamente pelo cabo!
+              </p>
+            </div>
+          )}
+
+          {/* Configuração Específica de Tablet RawBT */}
+          {formData.impressora_tipo === 'rawbt' && (
+            <div className="bg-slate-950/70 p-4 rounded-xl border border-slate-800 space-y-2 animate-in fade-in">
+              <h5 className="font-bold text-sm text-amber-400 flex items-center gap-1.5">
+                <Smartphone className="w-4 h-4" />
+                <span>Impressão no Tablet Android via App RawBT</span>
+              </h5>
+              <div className="text-xs text-slate-300 space-y-1">
+                <p>1. Instale o app gratuito <b>RawBT Print Service</b> da Google Play Store no seu Tablet Android.</p>
+                <p>2. Conecte o cabo USB da Bematech / Elgin no Tablet com o adaptador OTG e selecione-a no RawBT.</p>
+                <p>3. Pronto! Ao confirmar vendas no ERP pelo Tablet, os 2 tickets são enviados direto para o RawBT imprimir e cortar na hora.</p>
+              </div>
+            </div>
+          )}
+
+          {/* Configuração Específica de USB PC */}
           {formData.impressora_tipo === 'usb' && (
             <div className="bg-slate-950/70 p-4 rounded-xl border border-slate-800 space-y-3">
               <div className="flex items-center justify-between">
