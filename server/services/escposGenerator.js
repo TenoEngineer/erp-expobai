@@ -24,7 +24,12 @@ const CMD_SIZE_TRIPLE = Buffer.from([GS, 0x21, 0x22]); // 3x Largura e Altura
 const CMD_SIZE_QUAD = Buffer.from([GS, 0x21, 0x33]);   // 4x Largura e Altura (GIGANTE)
 
 // Comando de corte parcial (Guilhotina) com avanço de papel
-const CMD_CUT_PARTIAL = Buffer.from([ESC, 0x64, 0x04, GS, 0x56, 0x42, 0x00]);
+// Compatível com Elgin (ESC/POS GS V 66 0) e Bematech (ESC m)
+const CMD_CUT_PARTIAL = Buffer.from([
+  ESC, 0x64, 0x04,      // Avanço de 4 linhas
+  GS, 0x56, 0x42, 0x00, // Corte ESC/POS (Elgin i9/i7/i8, Epson, Bematech modo ESC/POS)
+  ESC, 0x6D             // Corte nativo Bematech (modo ESC/Bema)
+]);
 const CMD_FEED_LINES = (lines = 3) => Buffer.from([ESC, 0x64, lines]);
 
 /**

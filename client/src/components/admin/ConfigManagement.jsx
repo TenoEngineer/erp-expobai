@@ -23,6 +23,8 @@ export default function ConfigManagement({ config = {}, onRefresh }) {
   const [testing, setTesting] = useState(false);
   const [testResult, setTestResult] = useState(null); // { success: boolean, message: string }
 
+  const [platform, setPlatform] = useState('unknown');
+
   // Carregar configurações existentes
   useEffect(() => {
     if (config) {
@@ -42,23 +44,26 @@ export default function ConfigManagement({ config = {}, onRefresh }) {
     }
   }, [config]);
 
-  // Carregar lista de impressoras do Windows
+  // Carregar lista de impressoras (Linux ou Windows)
   const loadPrinters = async () => {
     try {
       setLoadingPrinters(true);
-      const list = await getPrinters();
+      const res = await getPrinters();
+      const list = Array.isArray(res) ? res : (res.printers || []);
+      const plat = res.platform || 'unknown';
+      setPlatform(plat);
       setPrintersList(list);
 
       // Se não tiver selecionado nenhuma ainda, seleciona a primeira ou a que parecer térmica
       if (list.length > 0 && !formData.impressora_nome_usb) {
-        const thermal = list.find(p => /pos|thermal|elgin|epson|bema|daruma|receipt|printer/i.test(p));
+        const thermal = list.find(p => /pos|thermal|elgin|epson|bema|daruma|receipt|lp0/i.test(p));
         setFormData(prev => ({
           ...prev,
           impressora_nome_usb: thermal || list[0]
         }));
       }
     } catch (err) {
-      console.warn('Erro ao carregar impressoras do Windows:', err);
+      console.warn('Erro ao carregar impressoras do sistema:', err);
     } finally {
       setLoadingPrinters(false);
     }
@@ -266,44 +271,60 @@ export default function ConfigManagement({ config = {}, onRefresh }) {
           {formData.impressora_tipo === 'usb' && (
             <div className="bg-slate-950/70 p-4 rounded-xl border border-slate-800 space-y-3">
               <div className="flex items-center justify-between">
-                <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider">
-                  Impressora USB Selecionada (Windows)
-                </label>
+                <div>
+                  <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider">
+                    {platform === 'linux' ? 'Dispositivo USB / Fila CUPS (Linux)' : 'Impressora USB Selecionada (Windows / Linux)'}
+                  </label>
+                  {platform === 'linux' && (
+                    <span className="text-[11px] text-emerald-400 font-medium block">
+                      🐧 Linux detectado: Use a porta direta <b>/dev/usb/lp0</b> ou a fila CUPS
+                    </span>
+                  )}
+                </div>
                 <button
                   type="button"
                   onClick={loadPrinters}
                   disabled={loadingPrinters}
-                  className="text-xs text-amber-400 hover:text-amber-300 font-bold flex items-center gap-1.5"
+                  className="text-xs text-amber-400 hover:text-amber-300 font-bold flex items-center gap-1.5 shrink-0"
                 >
                   <RefreshCw className={`w-3.5 h-3.5 ${loadingPrinters ? 'animate-spin' : ''}`} />
-                  <span>Atualizar Lista de Impressoras</span>
+                  <span>Atualizar Portas/Impressoras</span>
                 </button>
               </div>
 
               {printersList.length > 0 ? (
-                <select
-                  value={formData.impressora_nome_usb}
-                  onChange={(e) => setFormData({ ...formData, impressora_nome_usb: e.target.value })}
-                  className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3.5 py-2.5 text-sm text-white font-mono focus:outline-none focus:border-amber-500"
-                >
-                  <option value="">Selecione uma impressora...</option>
-                  {printersList.map((prn) => (
-                    <option key={prn} value={prn}>
-                      {prn}
-                    </option>
-                  ))}
-                </select>
+                <div className="space-y-1.5">
+                  <select
+                    value={formData.impressora_nome_usb}
+                    onChange={(e) => setFormData({ ...formData, impressora_nome_usb: e.target.value })}
+                    className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3.5 py-2.5 text-sm text-white font-mono focus:outline-none focus:border-amber-500"
+                  >
+                    <option value="">Selecione uma porta/impressora...</option>
+                    {printersList.map((prn) => (
+                      <option key={prn} value={prn}>
+                        {prn === '/dev/usb/lp0' ? '🔌 /dev/usb/lp0 (Porta USB Padrão Linux)' : prn}
+                      </option>
+                    ))}
+                  </select>
+                  <p className="text-[11px] text-slate-500">
+                    {platform === 'linux'
+                      ? 'Ao conectar a Bematech / Elgin via cabo USB no Linux, o sistema cria o dispositivo /dev/usb/lp0 automaticamente.'
+                      : 'Detecta automaticamente impressoras térmicas conectadas.'}
+                  </p>
+                </div>
               ) : (
                 <div className="space-y-2">
                   <input
                     type="text"
-                    placeholder="Ex: POS-80 ou Epson TM-T20"
+                    placeholder={platform === 'linux' ? '/dev/usb/lp0 ou Nome_Impressora_CUPS' : 'Ex: POS-80 ou Epson TM-T20'}
                     value={formData.impressora_nome_usb}
                     onChange={(e) => setFormData({ ...formData, impressora_nome_usb: e.target.value })}
                     className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3.5 py-2.5 text-sm text-white font-mono focus:outline-none focus:border-amber-500"
                   />
                   <p className="text-[11px] text-slate-500">
-                    Digite o nome exato da impressora instalada no Painel de Controle do Windows.
+                    {platform === 'linux'
+                      ? 'Digite /dev/usb/lp0 para comunicação USB direta ou o nome da impressora no CUPS.'
+                      : 'Digite o nome exato da impressora instalada no Painel de Controle do Windows.'}
                   </p>
                 </div>
               )}

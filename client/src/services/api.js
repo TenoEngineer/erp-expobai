@@ -105,7 +105,10 @@ export const saveConfig = async (config) => {
 
 export const getPrinters = async () => {
   const { data } = await api.get('/impressao/printers');
-  return data.printers || [];
+  return {
+    printers: data.printers || [],
+    platform: data.platform || 'unknown'
+  };
 };
 
 export const testPrinter = async (config) => {

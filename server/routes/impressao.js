@@ -5,12 +5,12 @@ const configuracoesRepo = require('../repositories/configuracoesRepository');
 const pedidosRepo = require('../repositories/pedidosRepository');
 
 /**
- * Listar impressoras instaladas no Windows (USB e Spooler)
+ * Listar impressoras instaladas no sistema (Windows .NET ou Linux /dev/usb/lp* / CUPS)
  */
 router.get('/printers', async (req, res) => {
   try {
-    const printers = await printerService.getWindowsPrinters();
-    res.json({ printers });
+    const printers = await printerService.getAvailablePrinters();
+    res.json({ printers, platform: printerService.platform });
   } catch (err) {
     console.error('Erro ao listar impressoras:', err);
     res.status(500).json({ error: 'Erro ao listar impressoras do sistema' });
