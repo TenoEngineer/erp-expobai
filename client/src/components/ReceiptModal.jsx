@@ -2,7 +2,6 @@ import React, { useEffect, useState } from 'react';
 import { CheckCircle, Printer, ArrowRight, X, AlertCircle, RefreshCw } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { printOrderDirect } from '../services/api';
-import { getTicketBuffer, printDirectWebUsb, printViaRawBT } from '../services/tabletPrinter';
 
 export default function ReceiptModal({
   isOpen,
@@ -29,41 +28,7 @@ export default function ReceiptModal({
 
       // 2. Avaliar status de impressão automática retornado pelo backend
       const autoPrintEnabled = config?.impressora_auto_imprimir !== 'false';
-      const tipo = (config?.impressora_tipo || 'usb').toLowerCase();
-
-      // Caso A: Tablet com cabo USB direto (WebUSB)
-      if (tipo === 'tablet_usb' && autoPrintEnabled) {
-        setPrintStatus('printing_usb');
-        setStatusMessage('Enviando via cabo USB do Tablet...');
-        getTicketBuffer(order)
-          .then((base64) => printDirectWebUsb(base64))
-          .then(() => {
-            setPrintStatus('printed');
-            setStatusMessage('Tickets impressos via cabo USB no Tablet!');
-          })
-          .catch((err) => {
-            setPrintStatus('error');
-            setStatusMessage(`Erro USB: ${err.message}. Você pode reimprimir.`);
-          });
-        return;
-      }
-
-      // Caso B: Tablet Android com app RawBT
-      if (tipo === 'rawbt' && autoPrintEnabled) {
-        setPrintStatus('printing_usb');
-        setStatusMessage('Enviando para o RawBT no Tablet...');
-        getTicketBuffer(order)
-          .then((base64) => printViaRawBT(base64))
-          .then(() => {
-            setPrintStatus('printed');
-            setStatusMessage('Enviado para o RawBT no Tablet!');
-          })
-          .catch((err) => {
-            setPrintStatus('error');
-            setStatusMessage(`Erro RawBT: ${err.message}`);
-          });
-        return;
-      }
+      const tipo = (config?.impressora_tipo || 'navegador').toLowerCase();
 
       if (order.impressao) {
         if (order.impressao.success && (order.impressao.mode === 'usb' || order.impressao.mode === 'rede')) {
@@ -115,18 +80,8 @@ export default function ReceiptModal({
   const handleReimprimir = async () => {
     setIsReimprimindo(true);
     try {
-      const tipo = (config?.impressora_tipo || 'usb').toLowerCase();
-      if (tipo === 'tablet_usb') {
-        const base64 = await getTicketBuffer(order);
-        await printDirectWebUsb(base64);
-        setPrintStatus('printed');
-        setStatusMessage('Tickets reimpressos com sucesso via cabo USB no Tablet!');
-      } else if (tipo === 'rawbt') {
-        const base64 = await getTicketBuffer(order);
-        printViaRawBT(base64);
-        setPrintStatus('printed');
-        setStatusMessage('Reenviado para o RawBT no Tablet!');
-      } else if (tipo === 'rede' || tipo === 'usb') {
+      const tipo = (config?.impressora_tipo || 'navegador').toLowerCase();
+      if (tipo === 'rede' || tipo === 'usb') {
         const res = await printOrderDirect(order);
         setPrintStatus('printed');
         setStatusMessage('Tickets reimpressos com sucesso na impressora térmica!');

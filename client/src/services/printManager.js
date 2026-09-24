@@ -1,4 +1,3 @@
-import { getTicketBuffer, printDirectWebUsb, printViaRawBT } from './tabletPrinter';
 import { printOrderDirect } from './api';
 
 /**
@@ -9,37 +8,11 @@ export async function executeOrderPrint(order, config) {
   if (!order) return { success: false, message: 'Nenhum pedido selecionado' };
 
   const autoPrintEnabled = config?.impressora_auto_imprimir !== 'false';
-  const tipo = (config?.impressora_tipo || 'usb').toLowerCase();
+  const tipo = (config?.impressora_tipo || 'navegador').toLowerCase();
 
   // Se desativado explicitamente nas configurações
   if (!autoPrintEnabled || tipo === 'desativado') {
     return { success: true, message: 'Impressão desativada nas configurações' };
-  }
-
-  // 1. Caso: Tablet Android com cabo USB (WebUSB)
-  if (tipo === 'tablet_usb') {
-    try {
-      const base64 = await getTicketBuffer(order);
-      await printDirectWebUsb(base64);
-      return { success: true, message: 'Comandas impressas via cabo USB no Tablet!' };
-    } catch (err) {
-      console.warn('Falha WebUSB, acionando impressão do navegador como fallback:', err);
-      triggerBrowserPrint();
-      return { success: false, message: `Erro USB (${err.message}). Impressão enviada ao navegador.` };
-    }
-  }
-
-  // 2. Caso: Tablet Android com app RawBT
-  if (tipo === 'rawbt') {
-    try {
-      const base64 = await getTicketBuffer(order);
-      printViaRawBT(base64);
-      return { success: true, message: 'Enviado para o RawBT no Tablet!' };
-    } catch (err) {
-      console.warn('Falha RawBT, acionando impressão do navegador como fallback:', err);
-      triggerBrowserPrint();
-      return { success: false, message: `Erro RawBT (${err.message}). Impressão enviada ao navegador.` };
-    }
   }
 
   // 3. Caso: Impressora Térmica física (USB ou Rede) via Backend
