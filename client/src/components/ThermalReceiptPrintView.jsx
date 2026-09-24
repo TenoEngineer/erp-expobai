@@ -26,43 +26,44 @@ export default function ThermalReceiptPrintView({ order, config }) {
       {/* ============================================== */}
       {/* TICKET 1: SOMENTE O NÚMERO / FICHA DO CLIENTE */}
       {/* ============================================== */}
-      <div className="ticket-wrapper" style={{ textAlign: 'center', paddingBottom: '12px', paddingTop: '6px' }}>
-        <h2 style={{ fontSize: '20px', fontWeight: 'bold', margin: '0', textTransform: 'uppercase' }}>
+      <div className="ticket-wrapper" style={{ textAlign: 'center', paddingBottom: '2px', paddingTop: '0px' }}>
+        <h2 style={{ fontSize: '18px', fontWeight: 'bold', margin: '0', textTransform: 'uppercase', lineHeight: '1.2' }}>
           {nomeEstande}
         </h2>
         
         {/* NÚMERO GIGANTE DA SENHA */}
         <div style={{ 
-          fontSize: '56px', 
+          fontSize: '52px', 
           fontWeight: '900', 
-          margin: '14px 0', 
+          margin: '4px 0', 
           letterSpacing: '2px', 
-          border: '3px solid #000', 
-          padding: '8px 0',
-          fontFamily: 'monospace'
+          border: '2px solid #000', 
+          padding: '4px 0',
+          fontFamily: 'monospace',
+          lineHeight: '1'
         }}>
           #{numeroFormatado}
         </div>
       </div>
 
       {/* Quebra de Página / Corte entre Ticket 1 e Ticket 2 */}
-      <div className="page-break-ticket" style={{ pageBreakAfter: 'always', margin: '20px 0', borderTop: '2px dashed #999' }}></div>
+      <div className="page-break-ticket" style={{ pageBreakAfter: 'always', margin: '0', borderTop: '1px dashed #999' }}></div>
 
       {/* ======================================================== */}
       {/* TICKET 2: COMANDA DA COZINHA / PRODUÇÃO (NÚMERO + ITENS) */}
       {/* ======================================================== */}
-      <div className="ticket-wrapper" style={{ paddingTop: '8px' }}>
-        <div style={{ textAlign: 'center', borderBottom: '2px solid #000', paddingBottom: '6px', marginBottom: '8px' }}>
-          <h3 style={{ fontSize: '15px', fontWeight: 'bold', margin: '0' }}>
+      <div className="ticket-wrapper" style={{ paddingTop: '0px' }}>
+        <div style={{ textAlign: 'center', borderBottom: '2px solid #000', paddingBottom: '3px', marginBottom: '4px' }}>
+          <h3 style={{ fontSize: '14px', fontWeight: 'bold', margin: '0', lineHeight: '1.2' }}>
             *** VIA DA COZINHA ***
           </h3>
-          <p style={{ fontSize: '11px', margin: '2px 0', fontWeight: 'bold' }}>
+          <p style={{ fontSize: '10px', margin: '1px 0', fontWeight: 'bold' }}>
             CONTROLE DE PRODUÇÃO E PREPARO
           </p>
-          <div style={{ fontSize: '26px', fontWeight: '900', margin: '6px 0', fontFamily: 'monospace' }}>
+          <div style={{ fontSize: '24px', fontWeight: '900', margin: '3px 0', fontFamily: 'monospace', lineHeight: '1' }}>
             PEDIDO #{numeroFormatado}
           </div>
-          <p style={{ fontSize: '10px' }}>{dataHora}</p>
+          <p style={{ fontSize: '10px', margin: '0' }}>{dataHora}</p>
         </div>
 
         <div style={{ borderBottom: '1px dashed #000', paddingBottom: '8px', marginBottom: '8px' }}>

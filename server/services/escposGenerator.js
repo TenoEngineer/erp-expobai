@@ -23,14 +23,14 @@ const CMD_SIZE_DOUBLE = Buffer.from([GS, 0x21, 0x11]); // 2x Largura e Altura
 const CMD_SIZE_TRIPLE = Buffer.from([GS, 0x21, 0x22]); // 3x Largura e Altura
 const CMD_SIZE_QUAD = Buffer.from([GS, 0x21, 0x33]);   // 4x Largura e Altura (GIGANTE)
 
-// Comando de corte parcial (Guilhotina) com avanço de papel
+// Comando de corte parcial (Guilhotina) com avanço de papel reduzido
 // Compatível com Elgin (ESC/POS GS V 66 0) e Bematech (ESC m)
 const CMD_CUT_PARTIAL = Buffer.from([
-  ESC, 0x64, 0x04,      // Avanço de 4 linhas
+  ESC, 0x64, 0x02,      // Avanço de 2 linhas
   GS, 0x56, 0x42, 0x00, // Corte ESC/POS (Elgin i9/i7/i8, Epson, Bematech modo ESC/POS)
   ESC, 0x6D             // Corte nativo Bematech (modo ESC/Bema)
 ]);
-const CMD_FEED_LINES = (lines = 3) => Buffer.from([ESC, 0x64, lines]);
+const CMD_FEED_LINES = (lines = 1) => Buffer.from([ESC, 0x64, lines]);
 
 /**
  * Remove acentos e caracteres especiais para evitar conflitos de codepage na impressora
@@ -157,7 +157,6 @@ function buildTicketCliente(order, config = {}, largura = '80mm', cortar = true)
   b.bold(true);
   b.size('double');
   b.line(nomeEstande.toUpperCase());
-  b.line();
 
   // NÚMERO GIGANTE DA SENHA
   b.size('quad'); // 4x tamanho
@@ -167,7 +166,7 @@ function buildTicketCliente(order, config = {}, largura = '80mm', cortar = true)
   b.size('normal');
   b.bold(false);
 
-  b.feed(3);
+  b.feed(1);
   if (cortar) {
     b.cut();
   }
@@ -240,7 +239,7 @@ function buildTicketProducao(order, config = {}, largura = '80mm', cortar = true
   b.align('center');
   b.line('*** EXPEDICAO E PREPARO ***');
 
-  b.feed(3);
+  b.feed(1);
   if (cortar) {
     b.cut();
   }

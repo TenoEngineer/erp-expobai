@@ -50,20 +50,20 @@
     top: 0;
     width: 78mm;
     margin: 0;
-    padding: 3mm 2mm;
+    padding: 0 1mm;
     color: #000;
     background: #fff;
     font-family: 'Courier New', Courier, monospace;
   }
   .ticket-wrapper {
     width: 100%;
-    margin-bottom: 5mm;
+    margin-bottom: 1mm;
   }
   .page-break-ticket {
     page-break-after: always;
     break-after: page;
     height: 1px;
-    margin: 6mm 0;
+    margin: 0;
     border-top: 1px dashed #000;
     display: block;
   }
