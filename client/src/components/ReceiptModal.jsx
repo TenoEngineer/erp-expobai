@@ -70,10 +70,17 @@ export default function ReceiptModal({
           setPrintStatus('printed');
           setStatusMessage(order.impressao.message || 'Tickets impressos automaticamente na impressora térmica!');
           return;
-        } else if (order.impressao.error) {
-          setPrintStatus('error');
-          setStatusMessage(`Falha na impressora (${order.impressao.error}). Você pode reimprimir.`);
-          return;
+        }
+        // Se houve falha no backend físico (ex: site na nuvem sem acesso à USB física do notebook local),
+        // faz fallback imediato para a impressão pelo navegador do notebook!
+        if (order.impressao.error && autoPrintEnabled && tipo !== 'desativado') {
+          console.warn('Backend remoto sem impressora física local. Acionando navegador:', order.impressao.error);
+          setPrintStatus('printing_browser');
+          setStatusMessage('Imprimindo pelo navegador...');
+          const timer = setTimeout(() => {
+            window.print();
+          }, 350);
+          return () => clearTimeout(timer);
         }
       }
 
