@@ -562,6 +562,41 @@ export default function ConfigManagement({ config = {}, onRefresh }) {
         </div>
 
       </form>
+
+      {/* Ticket de Teste Térmico para impressão via Navegador */}
+      <div id="thermal-receipt" className="hidden print:block text-black">
+        <div className="ticket-wrapper" style={{ textAlign: 'center', paddingBottom: '10px' }}>
+          <h2 style={{ fontSize: '16px', fontWeight: 'bold', margin: '0', textTransform: 'uppercase' }}>
+            {formData.nome_estande || 'TENDA DOS MÜLLER'}
+          </h2>
+          <p style={{ fontSize: '11px', margin: '2px 0 6px 0' }}>EXPOBAI 2026 - AMAMBAI</p>
+          <div style={{ borderTop: '1px dashed #000', borderBottom: '1px dashed #000', padding: '4px 0', margin: '6px 0', fontWeight: 'bold', fontSize: '13px' }}>
+            TESTE DE IMPRESSORA TÉRMICA
+          </div>
+          
+          <div style={{ 
+            fontSize: '44px', 
+            fontWeight: '900', 
+            margin: '10px 0', 
+            letterSpacing: '2px', 
+            border: '2px solid #000', 
+            padding: '6px 0',
+            fontFamily: 'monospace'
+          }}>
+            #999
+          </div>
+
+          <p style={{ fontSize: '12px', fontWeight: 'bold', margin: '6px 0 2px 0' }}>
+            IMPRESSORA OPERACIONAL!
+          </p>
+          <p style={{ fontSize: '10px', color: '#333' }}>
+            {new Date().toLocaleString('pt-BR')}
+          </p>
+          <div style={{ borderTop: '1px dashed #000', margin: '8px 0 4px 0', paddingTop: '6px', fontSize: '10px' }}>
+            Sistema 100% Configurado para as Vendas
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
