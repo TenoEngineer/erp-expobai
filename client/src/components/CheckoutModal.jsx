@@ -38,8 +38,12 @@ export default function CheckoutModal({
 
   const totalNum = parseFloat(total) || 0;
   const cashNum = parseFloat(cashReceived) || 0;
-  const troco = paymentMethod === 'dinheiro' && cashNum > totalNum ? cashNum - totalNum : 0;
-  const isCashValid = paymentMethod !== 'dinheiro' || cashNum >= totalNum;
+  const hasCashInput = Boolean(cashReceived && cashReceived.trim() !== '');
+  const troco = paymentMethod === 'dinheiro' && hasCashInput && cashNum > totalNum ? cashNum - totalNum : 0;
+  
+  // No pagamento em dinheiro, inserir o valor entregue é 100% opcional (apenas para ajudar no troco).
+  // Se estiver vazio, assume valor exato e permite confirmar normalmente.
+  const isCashValid = paymentMethod !== 'dinheiro' || !hasCashInput || cashNum >= totalNum;
 
   const formatPrice = (value) => {
     return Number(value).toLocaleString('pt-BR', {
@@ -65,7 +69,7 @@ export default function CheckoutModal({
     onConfirmOrder({
       itens: cartItems,
       forma_pagamento: paymentMethod,
-      valor_pago: paymentMethod === 'dinheiro' ? cashNum : totalNum,
+      valor_pago: paymentMethod === 'dinheiro' ? (hasCashInput ? cashNum : totalNum) : totalNum,
       troco: troco
     });
   };
@@ -202,13 +206,18 @@ export default function CheckoutModal({
             </div>
           )}
 
-          {/* Painel Específico para DINHEIRO (Cálculo de Troco) */}
+          {/* Painel Específico para DINHEIRO (Cálculo de Troco Opcional) */}
           {paymentMethod === 'dinheiro' && (
             <div className="bg-slate-950/70 p-4 rounded-2xl border border-slate-800 space-y-3">
               <div>
-                <label className="block text-xs text-slate-400 mb-1">
-                  Valor Entregue pelo Cliente:
-                </label>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="block text-xs text-slate-400 font-medium">
+                    Valor Entregue pelo Cliente:
+                  </label>
+                  <span className="text-[10px] text-amber-400 font-semibold uppercase tracking-wider bg-amber-950/50 px-2 py-0.5 rounded border border-amber-500/30">
+                    Opcional
+                  </span>
+                </div>
                 <div className="relative">
                   <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-sm font-bold text-slate-400 font-mono">
                     R$
@@ -216,17 +225,17 @@ export default function CheckoutModal({
                   <input
                     type="number"
                     step="0.01"
-                    autoFocus
-                    placeholder="0,00"
+                    placeholder={`Valor exato (${totalNum.toFixed(2)}) ou digite o valor recebido`}
                     value={cashReceived}
                     onChange={(e) => setCashReceived(e.target.value)}
-                    className="w-full bg-slate-900 border border-slate-700 rounded-xl pl-10 pr-4 py-2.5 text-lg font-black text-slate-100 font-mono focus:outline-none focus:border-amber-500"
+                    className="w-full bg-slate-900 border border-slate-700 rounded-xl pl-10 pr-4 py-2.5 text-base sm:text-lg font-black text-slate-100 font-mono focus:outline-none focus:border-amber-500 placeholder:text-slate-500 placeholder:font-normal placeholder:text-xs sm:placeholder:text-sm"
                   />
                 </div>
               </div>
 
               {/* Botões de Valores Rápidos */}
-              <div className="flex flex-wrap gap-1.5">
+              <div className="flex flex-wrap gap-1.5 items-center">
+                <span className="text-[11px] text-slate-500 font-medium mr-1">Atalhos:</span>
                 <button
                   type="button"
                   onClick={() => handleQuickCash(totalNum)}
@@ -244,26 +253,48 @@ export default function CheckoutModal({
                     R$ {val}
                   </button>
                 ))}
+                {hasCashInput && (
+                  <button
+                    type="button"
+                    onClick={() => setCashReceived('')}
+                    className="px-2 py-1 bg-slate-900 hover:bg-slate-800 text-[11px] text-slate-400 hover:text-slate-200 rounded-lg border border-slate-700"
+                    title="Limpar cálculo de troco"
+                  >
+                    Limpar
+                  </button>
+                )}
               </div>
 
               {/* Exibição do Troco em Destaque */}
-              <div className={`p-3 rounded-xl border flex items-center justify-between ${
-                cashNum >= totalNum
-                  ? 'bg-emerald-950/50 border-emerald-500/40'
-                  : 'bg-rose-950/40 border-rose-500/30'
-              }`}>
-                <div className="flex items-center gap-2">
-                  <Calculator className="w-4 h-4 text-slate-400" />
-                  <span className="text-xs font-bold text-slate-300 uppercase">
-                    {cashNum >= totalNum ? 'Troco a Devolver:' : 'Valor Insuficiente:'}
+              {hasCashInput ? (
+                <div className={`p-3 rounded-xl border flex items-center justify-between animate-in fade-in duration-150 ${
+                  cashNum >= totalNum
+                    ? 'bg-emerald-950/50 border-emerald-500/40'
+                    : 'bg-rose-950/40 border-rose-500/30'
+                }`}>
+                  <div className="flex items-center gap-2">
+                    <Calculator className="w-4 h-4 text-slate-400" />
+                    <span className="text-xs font-bold text-slate-300 uppercase">
+                      {cashNum >= totalNum ? 'Troco a Devolver:' : 'Valor Insuficiente:'}
+                    </span>
+                  </div>
+                  <span className={`font-black text-xl font-mono ${
+                    cashNum >= totalNum ? 'text-emerald-400' : 'text-rose-400'
+                  }`}>
+                    {formatPrice(Math.abs(cashNum - totalNum))}
                   </span>
                 </div>
-                <span className={`font-black text-xl font-mono ${
-                  cashNum >= totalNum ? 'text-emerald-400' : 'text-rose-400'
-                }`}>
-                  {formatPrice(Math.abs(cashNum - totalNum))}
-                </span>
-              </div>
+              ) : (
+                <div className="p-2.5 rounded-xl border border-slate-800 bg-slate-900/60 flex items-center justify-between text-xs text-slate-400">
+                  <span className="flex items-center gap-1.5">
+                    <Calculator className="w-3.5 h-3.5 text-amber-400" />
+                    Troco opcional — pode confirmar direto
+                  </span>
+                  <span className="text-amber-400 font-semibold font-mono text-[11px]">
+                    Recebimento exato ({formatPrice(totalNum)})
+                  </span>
+                </div>
+              )}
             </div>
           )}
 
