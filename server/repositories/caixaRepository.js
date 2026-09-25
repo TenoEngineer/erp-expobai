@@ -3,13 +3,25 @@ const { query } = require('../db');
 const caixaRepository = {
   // Obter sessão de caixa aberta atual com métricas em tempo real
   async getSessaoAberta() {
-    const res = await query(`
+    let res = await query(`
       SELECT * FROM expobai.sessoes_caixa 
       WHERE status = 'aberto' 
       ORDER BY id DESC 
       LIMIT 1
     `);
-    if (res.rows.length === 0) return null;
+    
+    // Se não houver caixa aberto, cria um automaticamente desde o primeiro pedido (ou NOW)
+    if (res.rows.length === 0) {
+      const minPedidoRes = await query('SELECT MIN(data_hora) as primeiro_pedido FROM expobai.pedidos');
+      const dataInicio = minPedidoRes.rows[0]?.primeiro_pedido || new Date();
+      
+      const newSessao = await query(`
+        INSERT INTO expobai.sessoes_caixa (operador, valor_abertura, status, aberto_em, observacoes)
+        VALUES ('Caixa Principal', 0, 'aberto', $1, 'Abertura inicial do caixa')
+        RETURNING *
+      `, [dataInicio]);
+      res = newSessao;
+    }
 
     const sessao = res.rows[0];
     
@@ -37,8 +49,6 @@ const caixaRepository = {
     const faturamentoTotal = parseFloat(t.faturamento_total) || 0;
     const totalPedidos = parseInt(t.total_pedidos, 10) || 0;
 
-    // Dinheiro que deve estar fisicamente na gaveta:
-    // Fundo de troco inicial + Total vendido em dinheiro
     const saldoEsperadoGaveta = valorAbertura + totalDinheiro;
 
     return {
@@ -56,8 +66,8 @@ const caixaRepository = {
     };
   },
 
-  async abrirCaixa({ operador = 'Operador Caixa', valor_abertura = 0, observacoes = '' }) {
-    // Se já houver caixa aberto, fecha o anterior para evitar sessões órfãs
+  async abrirCaixa({ operador = 'Caixa Principal', valor_abertura = 0, observacoes = '' }) {
+    // Fecha qualquer caixa aberto anteriormente para manter integridade
     await query(`
       UPDATE expobai.sessoes_caixa 
       SET status = 'fechado', fechado_em = CURRENT_TIMESTAMP 
@@ -65,8 +75,8 @@ const caixaRepository = {
     `);
 
     const res = await query(`
-      INSERT INTO expobai.sessoes_caixa (operador, valor_abertura, status, observacoes)
-      VALUES ($1, $2, 'aberto', $3)
+      INSERT INTO expobai.sessoes_caixa (operador, valor_abertura, status, aberto_em, observacoes)
+      VALUES ($1, $2, 'aberto', CURRENT_TIMESTAMP, $3)
       RETURNING *
     `, [operador, parseFloat(valor_abertura) || 0, observacoes || null]);
 
@@ -83,6 +93,7 @@ const caixaRepository = {
     const saldoEsperado = aberta.totais.saldo_esperado_gaveta;
     const diferenca = valorContado !== null ? (valorContado - saldoEsperado) : 0;
 
+    // 1. Encerra o caixa atual
     const res = await query(`
       UPDATE expobai.sessoes_caixa 
       SET 
@@ -94,8 +105,16 @@ const caixaRepository = {
       RETURNING *
     `, [valorContado, observacoes ? `[Fechamento: ${observacoes}]` : '', aberta.id]);
 
+    // 2. Abre imediatamente um novo caixa para as próximas vendas continuarem livremente
+    const novoCaixa = await query(`
+      INSERT INTO expobai.sessoes_caixa (operador, valor_abertura, status, aberto_em, observacoes)
+      VALUES ($1, 0, 'aberto', CURRENT_TIMESTAMP, 'Aberto automaticamente após fechamento do Caixa #' || $2)
+      RETURNING *
+    `, [aberta.operador || 'Caixa Principal', aberta.id]);
+
     return {
-      sessao: res.rows[0],
+      sessao_fechada: res.rows[0],
+      nova_sessao: novoCaixa.rows[0],
       resumo: {
         ...aberta.totais,
         valor_contado: valorContado,
@@ -104,10 +123,20 @@ const caixaRepository = {
     };
   },
 
-  async listarHistorico(limit = 10) {
+  async listarHistorico(limit = 30) {
     const res = await query(`
-      SELECT * FROM expobai.sessoes_caixa 
-      ORDER BY id DESC 
+      SELECT 
+        s.*,
+        to_char(s.aberto_em AT TIME ZONE 'America/Campo_Grande', 'DD/MM/YYYY HH24:MI') as aberto_em_ms,
+        to_char(s.fechado_em AT TIME ZONE 'America/Campo_Grande', 'DD/MM/YYYY HH24:MI') as fechado_em_ms,
+        COUNT(p.id) as total_pedidos,
+        COALESCE(SUM(p.total), 0) as faturamento_total
+      FROM expobai.sessoes_caixa s
+      LEFT JOIN expobai.pedidos p ON p.status = 'concluido' 
+        AND p.data_hora >= s.aberto_em 
+        AND (s.fechado_em IS NULL OR p.data_hora <= s.fechado_em)
+      GROUP BY s.id
+      ORDER BY s.id DESC 
       LIMIT $1
     `, [limit]);
     return res.rows;
