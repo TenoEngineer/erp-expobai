@@ -59,6 +59,12 @@ app.use('/api/relatorios', relatoriosRouter);
 app.use('/api/configuracoes', configuracoesRouter);
 app.use('/api/impressao', impressaoRouter);
 
+// Middleware global de tratamento de erros para rotas da API
+app.use('/api', (err, req, res, next) => {
+  console.error('⚠️ Erro na requisição API:', err);
+  res.status(err.status || 500).json({ error: err.message || 'Erro interno no servidor' });
+});
+
 // 5. Servir build do React em Produção (Render.com)
 const clientDistPath = path.resolve(__dirname, '../client/dist');
 if (fs.existsSync(clientDistPath)) {

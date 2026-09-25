@@ -3,10 +3,9 @@ import CategoryTabs from '../components/CategoryTabs';
 import ProductGrid from '../components/ProductGrid';
 import CartPanel from '../components/CartPanel';
 import CheckoutModal from '../components/CheckoutModal';
-import ThermalReceiptPrintView from '../components/ThermalReceiptPrintView';
+import ReceiptModal from '../components/ReceiptModal';
 import { getCategorias, getProdutos, createPedido } from '../services/api';
-import { executeOrderPrint } from '../services/printManager';
-import { RefreshCw, CheckCircle2, Printer, X, Sparkles } from 'lucide-react';
+import { CheckCircle2, Printer, X, Sparkles } from 'lucide-react';
 import confetti from 'canvas-confetti';
 
 export default function PosPage({ config, onCartCountChange }) {
@@ -18,10 +17,10 @@ export default function PosPage({ config, onCartCountChange }) {
 
   // Estados do checkout e último pedido
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
+  const [isReceiptOpen, setIsReceiptOpen] = useState(false);
   const [lastOrder, setLastOrder] = useState(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [orderNotification, setOrderNotification] = useState(null);
-  const [isReimprimindo, setIsReimprimindo] = useState(false);
 
   // Carregar Categorias e Produtos
   const loadData = async () => {
@@ -128,43 +127,24 @@ export default function PosPage({ config, onCartCountChange }) {
   };
 
   // =========================================================================
-  // FINALIZAR VENDA COM FLUXO ULTRA-RÁPIDO (SEM TELAS DE CONFIRMAÇÃO)
-  // Imprime automaticamente e libera o caixa imediatamente para o próximo cliente
+  // FINALIZAR VENDA
+  // Abre o modal de recibo para conferência e impressão sob demanda (clicar para imprimir)
   // =========================================================================
   const handleConfirmOrder = async (orderPayload) => {
     try {
       setIsProcessing(true);
       const savedOrder = await createPedido(orderPayload);
       
-      // 1. Atualiza último pedido e fecha o modal de checkout imediatamente
+      // 1. Atualiza último pedido e fecha o modal de checkout
       setLastOrder(savedOrder);
       setIsCheckoutOpen(false);
       setIsProcessing(false);
 
-      // 2. Limpa o carrinho instantaneamente para o próximo cliente da fila
+      // 2. Limpa o carrinho instantaneamente
       setCart([]);
 
-      // 3. Efeito visual rápido e sutil
-      try {
-        confetti({
-          particleCount: 45,
-          spread: 50,
-          origin: { y: 0.2, x: 0.85 }
-        });
-      } catch (e) {
-        // ignore
-      }
-
-      // 4. Dispara a impressão das comandas (2 vias) automaticamente em segundo plano
-      executeOrderPrint(savedOrder, config).then((printRes) => {
-        setOrderNotification({
-          numero_pedido: savedOrder.numero_pedido,
-          total: savedOrder.total,
-          forma_pagamento: savedOrder.forma_pagamento?.toUpperCase(),
-          printMessage: printRes.message,
-          isError: !printRes.success
-        });
-      });
+      // 3. Abre o modal com os dados do pedido para imprimir se necessário (ou Enter para avançar)
+      setIsReceiptOpen(true);
 
     } catch (err) {
       setIsProcessing(false);
@@ -172,21 +152,22 @@ export default function PosPage({ config, onCartCountChange }) {
     }
   };
 
-  // Reimprimir comandas do último pedido caso a bobina trave
-  const handleReimprimirUltimo = async () => {
-    if (!lastOrder) return;
-    setIsReimprimindo(true);
-    try {
-      const res = await executeOrderPrint(lastOrder, config);
-      setOrderNotification((prev) => ({
-        ...prev,
-        printMessage: `Reimpresso: ${res.message}`
-      }));
-    } catch (err) {
-      alert('Erro ao reimprimir: ' + err.message);
-    } finally {
-      setIsReimprimindo(false);
+  const handleCloseReceipt = () => {
+    setIsReceiptOpen(false);
+    if (lastOrder) {
+      setOrderNotification({
+        numero_pedido: lastOrder.numero_pedido,
+        total: lastOrder.total,
+        forma_pagamento: lastOrder.forma_pagamento?.toUpperCase(),
+        printMessage: 'Pedido salvo com sucesso'
+      });
     }
+  };
+
+  // Reimprimir comandas do último pedido reabrindo a tela de recibo
+  const handleReimprimirUltimo = () => {
+    if (!lastOrder) return;
+    setIsReceiptOpen(true);
   };
 
   // Filtro de produtos por categoria
@@ -267,12 +248,11 @@ export default function PosPage({ config, onCartCountChange }) {
 
             <button
               onClick={handleReimprimirUltimo}
-              disabled={isReimprimindo}
-              className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg font-bold flex items-center gap-1 border border-slate-700 hover:border-amber-500/50 text-[11px] transition-colors disabled:opacity-50"
+              className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg font-bold flex items-center gap-1 border border-slate-700 hover:border-amber-500/50 text-[11px] transition-colors"
               title="Reimprimir comanda do último pedido"
             >
               <Printer className="w-3 h-3 text-amber-400" />
-              <span>{isReimprimindo ? 'Enviando...' : 'Reimprimir'}</span>
+              <span>Reimprimir</span>
             </button>
           </div>
         </div>
@@ -317,8 +297,10 @@ export default function PosPage({ config, onCartCountChange }) {
         isProcessing={isProcessing}
       />
 
-      {/* Componente Invisível que formata os tickets para impressão térmica quando window.print() roda */}
-      <ThermalReceiptPrintView
+      {/* Modal de Recibo / Sucesso com botão para imprimir sob demanda */}
+      <ReceiptModal
+        isOpen={isReceiptOpen}
+        onClose={handleCloseReceipt}
         order={lastOrder}
         config={config}
       />

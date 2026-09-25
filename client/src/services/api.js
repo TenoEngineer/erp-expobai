@@ -67,9 +67,8 @@ export const deleteProduto = async (id) => {
 export const uploadFotoProduto = async (file) => {
   const formData = new FormData();
   formData.append('foto', file);
-  const { data } = await api.post('/produtos/upload', formData, {
-    headers: { 'Content-Type': 'multipart/form-data' }
-  });
+  // Não passar 'Content-Type': 'multipart/form-data' manualmente para deixar o Axios/browser gerar o boundary correto
+  const { data } = await api.post('/produtos/upload', formData);
   return data;
 };
 
@@ -88,8 +87,8 @@ export const cancelPedido = async (id) => {
   return data;
 };
 
-export const getFechamento = async () => {
-  const { data } = await api.get('/relatorios/fechamento');
+export const getFechamento = async (params = {}) => {
+  const { data } = await api.get('/relatorios/fechamento', { params });
   return data;
 };
 

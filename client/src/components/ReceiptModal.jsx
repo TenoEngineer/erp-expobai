@@ -9,57 +9,72 @@ export default function ReceiptModal({
   order,
   config
 }) {
-  const [printStatus, setPrintStatus] = useState('idle'); // 'idle', 'printed', 'printing_browser', 'printing_usb', 'error'
+  const [printStatus, setPrintStatus] = useState('idle'); // 'idle', 'printed', 'error'
   const [statusMessage, setStatusMessage] = useState('');
-  const [isReimprimindo, setIsReimprimindo] = useState(false);
+  const [isImprimindo, setIsImprimindo] = useState(false);
 
   useEffect(() => {
     if (isOpen && order) {
-      // 1. Efeito visual comemorativo
+      setPrintStatus('idle');
+      setStatusMessage('');
+      setIsImprimindo(false);
+
+      // Efeito visual comemorativo
       try {
         confetti({
-          particleCount: 70,
+          particleCount: 50,
           spread: 60,
           origin: { y: 0.6 }
         });
       } catch (e) {
         // ignore
       }
-
-      // 2. Avaliar status de impressão automática retornado pelo backend
-      const autoPrintEnabled = config?.impressora_auto_imprimir !== 'false';
-      const tipo = (config?.impressora_tipo || 'navegador').toLowerCase();
-
-      if (order.impressao) {
-        if (order.impressao.success && (order.impressao.mode === 'usb' || order.impressao.mode === 'rede')) {
-          setPrintStatus('printed');
-          setStatusMessage(order.impressao.message || 'Tickets impressos automaticamente na impressora térmica!');
-          return;
-        }
-        // Se houve falha no backend físico (ex: site na nuvem sem acesso à USB física do notebook local),
-        // faz fallback imediato para a impressão pelo navegador do notebook!
-        if (order.impressao.error && autoPrintEnabled && tipo !== 'desativado') {
-          console.warn('Backend remoto sem impressora física local. Acionando navegador:', order.impressao.error);
-          setPrintStatus('printing_browser');
-          setStatusMessage('Imprimindo pelo navegador...');
-          const timer = setTimeout(() => {
-            window.print();
-          }, 350);
-          return () => clearTimeout(timer);
-        }
-      }
-
-      // Se configurado para navegador ou se não foi impresso fisicamente e o auto-print estiver ligado
-      if (autoPrintEnabled && (tipo === 'navegador' || (!order.impressao?.success && tipo !== 'desativado'))) {
-        setPrintStatus('printing_browser');
-        setStatusMessage('Enviando para a impressora do navegador...');
-        const timer = setTimeout(() => {
-          window.print();
-        }, 350);
-        return () => clearTimeout(timer);
-      }
     }
-  }, [isOpen, order, config]);
+  }, [isOpen, order]);
+
+  // Ação manual de imprimir sob demanda
+  const handleImprimir = async () => {
+    setIsImprimindo(true);
+    try {
+      const tipo = (config?.impressora_tipo || 'navegador').toLowerCase();
+      if (tipo === 'rede' || tipo === 'usb') {
+        try {
+          await printOrderDirect(order);
+          setPrintStatus('printed');
+          setStatusMessage('Comandas enviadas para a impressora física!');
+          return;
+        } catch (e) {
+          console.warn('Impressão direta falhou, acionando navegador:', e);
+        }
+      }
+      window.print();
+      setPrintStatus('printed');
+      setStatusMessage('Comandas enviadas para impressão!');
+    } catch (err) {
+      console.warn('Erro ao imprimir:', err);
+      setPrintStatus('error');
+      setStatusMessage(`Falha ao imprimir: ${err.message}`);
+    } finally {
+      setIsImprimindo(false);
+    }
+  };
+
+  // Atalhos de teclado: Enter fecha / P imprime
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (!isOpen) return;
+      if (e.key === 'Enter' || e.key === 'Escape') {
+        e.preventDefault();
+        onClose();
+      } else if (e.key === 'p' || e.key === 'P') {
+        e.preventDefault();
+        handleImprimir();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, order]);
 
   if (!isOpen || !order) return null;
 
@@ -75,26 +90,6 @@ export default function ReceiptModal({
   const dataHora = order.data_hora
     ? new Date(order.data_hora).toLocaleString('pt-BR')
     : new Date().toLocaleString('pt-BR');
-
-  // Ação de reimprimir sob demanda
-  const handleReimprimir = async () => {
-    setIsReimprimindo(true);
-    try {
-      const tipo = (config?.impressora_tipo || 'navegador').toLowerCase();
-      if (tipo === 'rede' || tipo === 'usb') {
-        const res = await printOrderDirect(order);
-        setPrintStatus('printed');
-        setStatusMessage('Tickets reimpressos com sucesso na impressora térmica!');
-      } else {
-        window.print();
-      }
-    } catch (err) {
-      console.warn('Reimpressão direta falhou, acionando impressão pelo navegador...', err);
-      window.print();
-    } finally {
-      setIsReimprimindo(false);
-    }
-  };
 
   return (
     <>
@@ -196,28 +191,28 @@ export default function ReceiptModal({
             </div>
           </div>
 
-          {/* Ações */}
-          <div className="p-4 bg-slate-950/80 border-t border-slate-800 flex flex-col gap-2">
+          {/* Ações: Imprimir se necessário ou Próximo Pedido */}
+          <div className="p-4 bg-slate-950/90 border-t border-slate-800 flex flex-col gap-2.5">
             <button
-              onClick={handleReimprimir}
-              disabled={isReimprimindo}
-              className="w-full py-2.5 px-4 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 border border-slate-700 transition-colors disabled:opacity-50"
+              onClick={handleImprimir}
+              disabled={isImprimindo}
+              className="w-full py-3.5 px-4 bg-amber-500 hover:bg-amber-400 active:scale-[0.98] text-slate-950 rounded-xl font-black text-sm uppercase tracking-wider flex items-center justify-center gap-2 shadow-lg shadow-amber-950/40 border border-amber-400 transition-all cursor-pointer disabled:opacity-50"
             >
-              {isReimprimindo ? (
-                <RefreshCw className="w-4 h-4 animate-spin text-amber-400" />
+              {isImprimindo ? (
+                <RefreshCw className="w-5 h-5 animate-spin text-slate-950" />
               ) : (
-                <Printer className="w-4 h-4 text-amber-400" />
+                <Printer className="w-5 h-5 text-slate-950" />
               )}
-              <span>Reimprimir Comandas (2 Vias)</span>
+              <span>{printStatus === 'printed' ? 'Reimprimir Comandas (P)' : '🖨️ Imprimir Comandas (P)'}</span>
             </button>
 
             <button
               onClick={onClose}
               autoFocus
-              className="w-full py-3.5 px-4 bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-500 hover:to-green-500 text-white rounded-xl font-black text-sm uppercase tracking-wider flex items-center justify-center gap-2 shadow-lg shadow-emerald-950 transition-all active:scale-[0.98]"
+              className="w-full py-3 px-4 bg-slate-800 hover:bg-slate-700 active:scale-[0.98] text-slate-100 rounded-xl font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 border border-slate-700 transition-all cursor-pointer"
             >
-              <span>NOVO PEDIDO (ENTER)</span>
-              <ArrowRight className="w-4 h-4" />
+              <span>Próximo Pedido (Enter)</span>
+              <ArrowRight className="w-4 h-4 text-emerald-400" />
             </button>
           </div>
 

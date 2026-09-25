@@ -24,25 +24,34 @@ const storage = multer.diskStorage({
 
 const upload = multer({
   storage,
-  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB
+  limits: { fileSize: 15 * 1024 * 1024 }, // 15MB
   fileFilter: (req, file, cb) => {
-    const allowed = /jpeg|jpg|png|webp|gif/;
+    const allowed = /jpeg|jpg|png|webp|gif|jfif|heic|avif/i;
     const ext = allowed.test(path.extname(file.originalname).toLowerCase());
-    const mime = allowed.test(file.mimetype);
-    if (ext && mime) {
+    const isImageMime = file.mimetype && file.mimetype.startsWith('image/');
+    if (ext || isImageMime) {
       return cb(null, true);
     }
-    cb(new Error('Apenas imagens (jpg, png, webp, gif) são permitidas!'));
+    cb(new Error('Apenas arquivos de imagem (jpg, png, webp, gif) são permitidos!'));
   }
 });
 
 // Endpoint avulso para upload de imagem
-router.post('/upload', upload.single('foto'), (req, res) => {
-  if (!req.file) {
-    return res.status(400).json({ error: 'Nenhum arquivo enviado' });
-  }
-  const fileUrl = `/uploads/${req.file.filename}`;
-  res.json({ url: fileUrl, filename: req.file.filename });
+router.post('/upload', (req, res) => {
+  upload.single('foto')(req, res, (err) => {
+    if (err) {
+      console.error('Erro no upload de foto do produto:', err);
+      if (err.code === 'LIMIT_FILE_SIZE') {
+        return res.status(400).json({ error: 'A foto deve ter no máximo 15MB.' });
+      }
+      return res.status(400).json({ error: err.message || 'Erro ao processar imagem' });
+    }
+    if (!req.file) {
+      return res.status(400).json({ error: 'Nenhum arquivo de imagem foi enviado' });
+    }
+    const fileUrl = `/uploads/${req.file.filename}`;
+    res.json({ url: fileUrl, filename: req.file.filename });
+  });
 });
 
 // Listar produtos ativos (para o PDV)
