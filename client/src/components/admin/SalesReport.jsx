@@ -10,13 +10,21 @@ import {
   RefreshCw,
   Ban,
   Calendar,
-  Filter
+  Filter,
+  FileText,
+  Clock,
+  Layers,
+  Award,
+  Eye,
+  LayoutDashboard
 } from 'lucide-react';
 import { getFechamento, cancelPedido } from '../../services/api';
+import ExecutiveReportPrintView from './ExecutiveReportPrintView';
 
-export default function SalesReport() {
+export default function SalesReport({ config }) {
   const [report, setReport] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [viewMode, setViewMode] = useState('dashboard'); // 'dashboard' ou 'relatorio_executivo'
   
   // Filtros de Período
   const [periodo, setPeriodo] = useState('hoje'); // 'hoje', 'ontem', '7dias', 'mes', 'todos', 'personalizado'
@@ -74,6 +82,15 @@ export default function SalesReport() {
     }
   };
 
+  // Disparo da Impressão em Formato A4 / PDF do Relatório Executivo
+  const handlePrintExecutiveReport = () => {
+    document.body.classList.add('printing-report');
+    window.print();
+    setTimeout(() => {
+      document.body.classList.remove('printing-report');
+    }, 1500);
+  };
+
   const formatPrice = (value) => {
     return Number(value || 0).toLocaleString('pt-BR', {
       style: 'currency',
@@ -94,40 +111,73 @@ export default function SalesReport() {
     return 'Geral';
   };
 
+  const ind = report?.indicadores || {};
   const pag = report?.por_forma_pagamento || {};
+  const ranking = report?.ranking_produtos || [];
+  const vendasPorHora = report?.vendas_por_hora || [];
+  const categorias = report?.categorias || [];
 
   return (
     <div className="space-y-6">
       
-      {/* Header do Relatório */}
+      {/* Header do Relatório & Ações de Impressão */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h3 className="font-bold text-lg text-slate-100 flex items-center gap-2">
-            <span>Fechamento de Caixa & Vendas</span>
-            <span className="text-xs bg-emerald-950 text-emerald-400 border border-emerald-500/30 px-2.5 py-0.5 rounded-full font-mono font-medium">
+          <h3 className="font-extrabold text-xl text-slate-100 flex items-center gap-2">
+            <span>Relatório Analítico & Fechamento de Caixa</span>
+            <span className="text-xs bg-emerald-950 text-emerald-400 border border-emerald-500/30 px-2.5 py-0.5 rounded-full font-mono font-bold">
               {getPeriodoDescricao()}
             </span>
           </h3>
-          <p className="text-xs text-slate-400">
-            Resumo financeiro, conciliação por método de pagamento e itens vendidos
+          <p className="text-xs text-slate-400 mt-0.5">
+            Análise aprofundada de vendas, conciliação financeira de tesouraria, horários de pico e curva ABC
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
+        {/* Botões de Ação & Visualização */}
+        <div className="flex items-center gap-2 flex-wrap">
+          {/* Alternar Visualização: Painel vs Documento A4 */}
+          <div className="bg-slate-900 border border-slate-800 p-1 rounded-xl flex items-center gap-1">
+            <button
+              onClick={() => setViewMode('dashboard')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-all ${
+                viewMode === 'dashboard'
+                  ? 'bg-slate-800 text-white shadow'
+                  : 'text-slate-400 hover:text-slate-200'
+              }`}
+            >
+              <LayoutDashboard className="w-3.5 h-3.5" />
+              <span>Painel</span>
+            </button>
+            <button
+              onClick={() => setViewMode('relatorio_executivo')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-all ${
+                viewMode === 'relatorio_executivo'
+                  ? 'bg-slate-800 text-amber-300 shadow'
+                  : 'text-slate-400 hover:text-slate-200'
+              }`}
+            >
+              <Eye className="w-3.5 h-3.5" />
+              <span>Ver Relatório A4</span>
+            </button>
+          </div>
+
           <button
             onClick={() => fetchReport()}
             disabled={loading}
-            className="p-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl transition-colors disabled:opacity-50"
+            className="p-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl transition-colors disabled:opacity-50 border border-slate-700"
             title="Atualizar dados"
           >
             <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin text-amber-400' : ''}`} />
           </button>
+
+          {/* BOTÃO PRINCIPAL DE IMPRESSÃO / PDF */}
           <button
-            onClick={() => window.print()}
-            className="flex items-center gap-2 px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs rounded-xl border border-slate-700 transition-colors"
+            onClick={handlePrintExecutiveReport}
+            className="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-black text-xs uppercase tracking-wider rounded-xl shadow-lg shadow-amber-950/40 border border-amber-400 transition-all active:scale-95 cursor-pointer"
           >
-            <Printer className="w-4 h-4 text-amber-400" />
-            <span>Imprimir Fechamento</span>
+            <FileText className="w-4 h-4 text-slate-950" />
+            <span>📄 Gerar Relatório PDF / Imprimir</span>
           </button>
         </div>
       </div>
@@ -137,10 +187,10 @@ export default function SalesReport() {
         <div className="flex items-center justify-between flex-wrap gap-2 pb-2 border-b border-slate-800/80">
           <span className="text-xs font-bold text-slate-300 flex items-center gap-1.5 uppercase tracking-wider">
             <Filter className="w-3.5 h-3.5 text-amber-400" />
-            <span>Filtrar Período do Caixa</span>
+            <span>Filtrar Período de Análise</span>
           </span>
           <span className="text-[11px] text-slate-400">
-            Filtre por hoje, ontem, mês ou selecione o dia específico desejado
+            Filtre por hoje, ontem, últimos 7 dias, mês ou escolha uma data específica
           </span>
         </div>
 
@@ -247,7 +297,7 @@ export default function SalesReport() {
               disabled={loading}
               className="px-4 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs uppercase tracking-wider rounded-xl shadow transition-all active:scale-[0.98]"
             >
-              Filtrar
+              Aplicar Filtro
             </button>
           </form>
         )}
@@ -256,199 +306,341 @@ export default function SalesReport() {
       {loading && (
         <div className="p-8 text-center text-slate-400 bg-slate-900/50 rounded-2xl border border-slate-800">
           <RefreshCw className="w-6 h-6 animate-spin mx-auto mb-2 text-amber-500" />
-          <p className="text-xs">Atualizando dados do período selecionado...</p>
+          <p className="text-xs">Processando dados e métricas analíticas...</p>
         </div>
       )}
 
-      {/* Cards de Métricas Principais */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-        <div className="bg-gradient-to-br from-emerald-950/80 to-slate-900 border border-emerald-500/40 p-4 rounded-2xl shadow-lg">
-          <span className="text-xs font-bold text-emerald-400 uppercase tracking-wider block">
-            Faturamento Total
-          </span>
-          <span className="font-black text-3xl text-white font-mono mt-1 block">
-            {formatPrice(report?.faturamento_total)}
-          </span>
-          <span className="text-[11px] text-slate-400 mt-1 block">
-            Vendas confirmadas
-          </span>
-        </div>
+      {/* ========================================================================= */}
+      {/* VISUALIZAÇÃO 1: MODO DOCUMENTO A4 (PRÉ-VISUALIZAÇÃO DO RELATÓRIO)        */}
+      {/* ========================================================================= */}
+      {viewMode === 'relatorio_executivo' && !loading && (
+        <div className="bg-slate-950 border border-slate-800 p-4 sm:p-8 rounded-3xl shadow-2xl animate-in fade-in duration-200 overflow-x-auto">
+          <div className="max-w-4xl mx-auto bg-white p-6 sm:p-10 rounded-2xl shadow-2xl text-slate-900 border border-slate-200">
+            <div className="flex items-center justify-between pb-4 mb-4 border-b border-slate-200 text-xs text-slate-500 no-print">
+              <span>👁️ <b>Pré-visualização do Relatório:</b> Exatamente como será gerado em PDF ou impresso na folha A4.</span>
+              <button
+                onClick={handlePrintExecutiveReport}
+                className="px-3 py-1.5 bg-slate-900 text-white rounded-lg font-bold text-xs flex items-center gap-1.5 hover:bg-slate-800 cursor-pointer"
+              >
+                <Printer className="w-3.5 h-3.5 text-amber-400" />
+                <span>Imprimir / Salvar PDF</span>
+              </button>
+            </div>
 
-        <div className="bg-slate-900 border border-slate-800 p-4 rounded-2xl shadow-lg">
-          <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block">
-            Total de Pedidos
-          </span>
-          <span className="font-black text-3xl text-amber-400 font-mono mt-1 block">
-            {report?.total_pedidos || 0}
-          </span>
-          <span className="text-[11px] text-slate-400 mt-1 block">
-            Comandas emitidas
-          </span>
+            <ExecutiveReportPrintView
+              report={report}
+              periodoDescricao={getPeriodoDescricao()}
+              config={config}
+            />
+          </div>
         </div>
+      )}
 
-        <div className="bg-slate-900 border border-slate-800 p-4 rounded-2xl shadow-lg">
-          <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block">
-            Ticket Médio
-          </span>
-          <span className="font-black text-3xl text-slate-100 font-mono mt-1 block">
-            {formatPrice(report?.ticket_medio)}
-          </span>
-          <span className="text-[11px] text-slate-400 mt-1 block">
-            Por cliente
-          </span>
-        </div>
-      </div>
-
-      {/* Divisão por Forma de Pagamento */}
-      <div>
-        <h4 className="font-bold text-xs text-slate-400 uppercase tracking-wider mb-3">
-          Conciliação por Forma de Pagamento
-        </h4>
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+      {/* ========================================================================= */}
+      {/* VISUALIZAÇÃO 2: MODO PAINEL INTERATIVO (DASHBOARD EM MODO DARK)          */}
+      {/* ========================================================================= */}
+      {viewMode === 'dashboard' && (
+        <div className="space-y-6">
           
-          {/* PIX */}
-          <div className="bg-slate-900 border border-slate-800 p-3.5 rounded-2xl flex flex-col justify-between shadow">
-            <div className="flex items-center justify-between text-xs text-slate-400 font-bold">
-              <span>PIX</span>
-              <QrCode className="w-4 h-4 text-emerald-400" />
-            </div>
-            <div className="mt-2">
-              <span className="font-black text-lg text-emerald-400 font-mono block">
-                {formatPrice(pag.pix?.valor)}
+          {/* Cards de Métricas Principais (KPIs) */}
+          <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
+            <div className="bg-gradient-to-br from-emerald-950/80 via-slate-900 to-slate-950 border border-emerald-500/40 p-4 rounded-2xl shadow-lg">
+              <span className="text-xs font-bold text-emerald-400 uppercase tracking-wider block">
+                Faturamento Total
               </span>
-              <span className="text-[11px] text-slate-500">
-                {pag.pix?.quantidade || 0} transações
+              <span className="font-black text-3xl text-white font-mono mt-1 block">
+                {formatPrice(report?.faturamento_total)}
+              </span>
+              <span className="text-[11px] text-slate-400 mt-1 block">
+                Receita bruta liquidada
+              </span>
+            </div>
+
+            <div className="bg-slate-900 border border-slate-800 p-4 rounded-2xl shadow-lg">
+              <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block">
+                Total de Pedidos
+              </span>
+              <span className="font-black text-3xl text-amber-400 font-mono mt-1 block">
+                {report?.total_pedidos || 0}
+              </span>
+              <span className="text-[11px] text-slate-400 mt-1 block">
+                Comandas geradas no PDV
+              </span>
+            </div>
+
+            <div className="bg-slate-900 border border-slate-800 p-4 rounded-2xl shadow-lg">
+              <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block">
+                Ticket Médio
+              </span>
+              <span className="font-black text-3xl text-slate-100 font-mono mt-1 block">
+                {formatPrice(report?.ticket_medio)}
+              </span>
+              <span className="text-[11px] text-slate-400 mt-1 block">
+                Média gasta por cliente
+              </span>
+            </div>
+
+            <div className="bg-slate-900 border border-slate-800 p-4 rounded-2xl shadow-lg">
+              <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block">
+                Volume de Itens
+              </span>
+              <span className="font-black text-3xl text-cyan-400 font-mono mt-1 block">
+                {ind.total_itens_vendidos || 0}
+              </span>
+              <span className="text-[11px] text-slate-400 mt-1 block">
+                {ind.media_itens_por_pedido ? `${ind.media_itens_por_pedido.toFixed(1)} itens/pedido` : 'Densidade de cesta'}
               </span>
             </div>
           </div>
 
-          {/* Dinheiro */}
-          <div className="bg-slate-900 border border-slate-800 p-3.5 rounded-2xl flex flex-col justify-between shadow">
-            <div className="flex items-center justify-between text-xs text-slate-400 font-bold">
-              <span>Dinheiro</span>
-              <Banknote className="w-4 h-4 text-amber-400" />
+          {/* Destaque de Liquidez e Troco */}
+          <div className="bg-slate-900/90 border border-slate-800 p-4 rounded-2xl shadow grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center text-emerald-400 shrink-0 font-bold">
+                ⚡
+              </div>
+              <div>
+                <span className="text-xs text-slate-400 block font-medium">Liquidez Imediata (À Vista):</span>
+                <span className="font-extrabold text-base text-emerald-400 font-mono">
+                  {formatPrice(ind.faturamento_a_vista)} <span className="text-xs text-slate-400">({ind.pct_a_vista}%)</span>
+                </span>
+              </div>
             </div>
-            <div className="mt-2">
-              <span className="font-black text-lg text-amber-400 font-mono block">
-                {formatPrice(pag.dinheiro?.valor)}
-              </span>
-              <span className="text-[11px] text-slate-500">
-                {pag.dinheiro?.quantidade || 0} transações
-              </span>
+
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-cyan-500/20 border border-cyan-500/40 flex items-center justify-center text-cyan-400 shrink-0 font-bold">
+                💳
+              </div>
+              <div>
+                <span className="text-xs text-slate-400 block font-medium">Cartões (Débito + Crédito):</span>
+                <span className="font-extrabold text-base text-cyan-400 font-mono">
+                  {formatPrice(ind.faturamento_cartao)} <span className="text-xs text-slate-400">({ind.pct_cartao}%)</span>
+                </span>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-amber-400 shrink-0 font-bold">
+                💵
+              </div>
+              <div>
+                <span className="text-xs text-slate-400 block font-medium">Troco Total Devolvido:</span>
+                <span className="font-extrabold text-base text-amber-400 font-mono">
+                  {formatPrice(ind.total_troco_entregue)}
+                </span>
+              </div>
             </div>
           </div>
 
-          {/* Débito */}
-          <div className="bg-slate-900 border border-slate-800 p-3.5 rounded-2xl flex flex-col justify-between shadow">
-            <div className="flex items-center justify-between text-xs text-slate-400 font-bold">
-              <span>Débito</span>
-              <CreditCard className="w-4 h-4 text-cyan-400" />
-            </div>
-            <div className="mt-2">
-              <span className="font-black text-lg text-cyan-400 font-mono block">
-                {formatPrice(pag.debito?.valor)}
-              </span>
-              <span className="text-[11px] text-slate-500">
-                {pag.debito?.quantidade || 0} transações
-              </span>
-            </div>
-          </div>
-
-          {/* Crédito */}
-          <div className="bg-slate-900 border border-slate-800 p-3.5 rounded-2xl flex flex-col justify-between shadow">
-            <div className="flex items-center justify-between text-xs text-slate-400 font-bold">
-              <span>Crédito</span>
-              <CreditCard className="w-4 h-4 text-purple-400" />
-            </div>
-            <div className="mt-2">
-              <span className="font-black text-lg text-purple-400 font-mono block">
-                {formatPrice(pag.credito?.valor)}
-              </span>
-              <span className="text-[11px] text-slate-500">
-                {pag.credito?.quantidade || 0} transações
-              </span>
-            </div>
-          </div>
-
-        </div>
-      </div>
-
-      {/* Duas Colunas: Produtos Mais Vendidos & Últimos Pedidos */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        
-        {/* Top Produtos */}
-        <div className="bg-slate-900 border border-slate-800 p-4 rounded-2xl shadow-xl">
-          <h4 className="font-bold text-sm text-slate-100 mb-3 flex items-center gap-2">
-            <TrendingUp className="w-4 h-4 text-amber-400" />
-            <span>Mais Vendidos</span>
-          </h4>
-
-          {(report?.top_produtos || []).length === 0 ? (
-            <p className="text-xs text-slate-500 text-center py-6">Nenhuma venda registrada ainda.</p>
-          ) : (
-            <div className="space-y-2">
-              {(report?.top_produtos || []).map((p, idx) => (
-                <div key={idx} className="flex items-center justify-between p-2.5 bg-slate-950/60 rounded-xl text-xs">
-                  <div className="flex items-center gap-2">
-                    <span className="w-5 h-5 rounded-full bg-slate-800 text-amber-400 font-bold flex items-center justify-center text-[10px]">
-                      {idx + 1}
-                    </span>
-                    <span className="font-bold text-slate-200">{p.nome_produto}</span>
-                  </div>
-                  <div className="text-right">
-                    <span className="font-black text-amber-400 font-mono">{p.total_vendido} un.</span>
-                    <span className="text-slate-500 text-[10px] block">{formatPrice(p.total_faturado)}</span>
+          {/* Divisão por Forma de Pagamento */}
+          <div>
+            <h4 className="font-bold text-xs text-slate-400 uppercase tracking-wider mb-3 flex items-center gap-1.5">
+              <DollarSign className="w-4 h-4 text-emerald-400" />
+              <span>Conciliação Financeira por Método de Pagamento</span>
+            </h4>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              
+              {/* PIX */}
+              <div className="bg-slate-900 border border-slate-800 p-4 rounded-2xl flex flex-col justify-between shadow hover:border-emerald-500/50 transition-colors">
+                <div className="flex items-center justify-between text-xs text-slate-300 font-bold">
+                  <span>PIX</span>
+                  <QrCode className="w-4 h-4 text-emerald-400" />
+                </div>
+                <div className="mt-3">
+                  <span className="font-black text-xl text-emerald-400 font-mono block">
+                    {formatPrice(pag.pix?.valor)}
+                  </span>
+                  <div className="flex items-center justify-between text-[11px] text-slate-400 mt-1">
+                    <span>{pag.pix?.quantidade || 0} transações</span>
+                    <span className="font-bold text-emerald-500">{pag.pix?.pct_valor || 0}%</span>
                   </div>
                 </div>
-              ))}
-            </div>
-          )}
-        </div>
+              </div>
 
-        {/* Últimos Pedidos */}
-        <div className="bg-slate-900 border border-slate-800 p-4 rounded-2xl shadow-xl">
-          <h4 className="font-bold text-sm text-slate-100 mb-3 flex items-center gap-2">
-            <ShoppingBag className="w-4 h-4 text-emerald-400" />
-            <span>Últimos Pedidos Emitidos</span>
-          </h4>
-
-          {(report?.ultimos_pedidos || []).length === 0 ? (
-            <p className="text-xs text-slate-500 text-center py-6">Nenhum pedido recente.</p>
-          ) : (
-            <div className="space-y-2 max-h-80 overflow-y-auto pr-1">
-              {(report?.ultimos_pedidos || []).map((ped) => (
-                <div key={ped.id} className="flex items-center justify-between p-2.5 bg-slate-950/60 rounded-xl text-xs">
-                  <div>
-                    <span className="font-black text-amber-400 font-mono text-sm">
-                      #{String(ped.numero_pedido).padStart(3, '0')}
-                    </span>
-                    <span className="ml-2 px-2 py-0.5 rounded-md bg-slate-800 text-[10px] font-bold text-slate-300 uppercase">
-                      {ped.forma_pagamento}
-                    </span>
-                    <span className="text-[10px] text-slate-500 block mt-0.5">
-                      {new Date(ped.data_hora).toLocaleTimeString('pt-BR')}
-                    </span>
-                  </div>
-
-                  <div className="flex items-center gap-3">
-                    <span className="font-black text-sm text-emerald-400 font-mono">
-                      {formatPrice(ped.total)}
-                    </span>
-                    <button
-                      onClick={() => handleCancel(ped.id, ped.numero_pedido)}
-                      className="p-1 text-slate-500 hover:text-rose-400 hover:bg-rose-950/40 rounded transition-colors"
-                      title="Cancelar pedido"
-                    >
-                      <Ban className="w-3.5 h-3.5" />
-                    </button>
+              {/* Dinheiro */}
+              <div className="bg-slate-900 border border-slate-800 p-4 rounded-2xl flex flex-col justify-between shadow hover:border-amber-500/50 transition-colors">
+                <div className="flex items-center justify-between text-xs text-slate-300 font-bold">
+                  <span>Dinheiro</span>
+                  <Banknote className="w-4 h-4 text-amber-400" />
+                </div>
+                <div className="mt-3">
+                  <span className="font-black text-xl text-amber-400 font-mono block">
+                    {formatPrice(pag.dinheiro?.valor)}
+                  </span>
+                  <div className="flex items-center justify-between text-[11px] text-slate-400 mt-1">
+                    <span>{pag.dinheiro?.quantidade || 0} transações</span>
+                    <span className="font-bold text-amber-500">{pag.dinheiro?.pct_valor || 0}%</span>
                   </div>
                 </div>
-              ))}
+              </div>
+
+              {/* Débito */}
+              <div className="bg-slate-900 border border-slate-800 p-4 rounded-2xl flex flex-col justify-between shadow hover:border-cyan-500/50 transition-colors">
+                <div className="flex items-center justify-between text-xs text-slate-300 font-bold">
+                  <span>Débito</span>
+                  <CreditCard className="w-4 h-4 text-cyan-400" />
+                </div>
+                <div className="mt-3">
+                  <span className="font-black text-xl text-cyan-400 font-mono block">
+                    {formatPrice(pag.debito?.valor)}
+                  </span>
+                  <div className="flex items-center justify-between text-[11px] text-slate-400 mt-1">
+                    <span>{pag.debito?.quantidade || 0} transações</span>
+                    <span className="font-bold text-cyan-500">{pag.debito?.pct_valor || 0}%</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Crédito */}
+              <div className="bg-slate-900 border border-slate-800 p-4 rounded-2xl flex flex-col justify-between shadow hover:border-purple-500/50 transition-colors">
+                <div className="flex items-center justify-between text-xs text-slate-300 font-bold">
+                  <span>Crédito</span>
+                  <CreditCard className="w-4 h-4 text-purple-400" />
+                </div>
+                <div className="mt-3">
+                  <span className="font-black text-xl text-purple-400 font-mono block">
+                    {formatPrice(pag.credito?.valor)}
+                  </span>
+                  <div className="flex items-center justify-between text-[11px] text-slate-400 mt-1">
+                    <span>{pag.credito?.quantidade || 0} transações</span>
+                    <span className="font-bold text-purple-500">{pag.credito?.pct_valor || 0}%</span>
+                  </div>
+                </div>
+              </div>
+
+            </div>
+          </div>
+
+          {/* Horários de Pico & Distribuição Temporal */}
+          {vendasPorHora.length > 0 && (
+            <div className="bg-slate-900 border border-slate-800 p-4 rounded-2xl shadow-xl">
+              <h4 className="font-bold text-sm text-slate-100 mb-3 flex items-center gap-2">
+                <Clock className="w-4 h-4 text-amber-400" />
+                <span>Horários de Pico & Ritmo de Vendas (Por Hora)</span>
+              </h4>
+
+              <div className="grid grid-cols-2 sm:grid-cols-6 gap-2">
+                {vendasPorHora.map((h, i) => (
+                  <div key={i} className="bg-slate-950/80 border border-slate-800/80 p-2.5 rounded-xl text-center">
+                    <span className="text-xs font-mono font-bold text-amber-400 block">{h.hora}</span>
+                    <span className="text-sm font-mono font-black text-slate-100 block mt-0.5">{formatPrice(h.total_faturado)}</span>
+                    <span className="text-[10px] text-slate-500 font-mono block mt-0.5">{h.qtd_pedidos} ped. ({h.pct}%)</span>
+                  </div>
+                ))}
+              </div>
             </div>
           )}
-        </div>
 
-      </div>
+          {/* Duas Colunas: Curva ABC de Produtos & Auditoria de Pedidos */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            
+            {/* Curva ABC & Ranking Completo de Produtos */}
+            <div className="bg-slate-900 border border-slate-800 p-4 rounded-2xl shadow-xl">
+              <h4 className="font-bold text-sm text-slate-100 mb-3 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Award className="w-4 h-4 text-amber-400" />
+                  <span>Curva ABC & Mix de Produtos</span>
+                </div>
+                <span className="text-[10px] font-mono text-slate-400 font-normal">
+                  Ranking por faturamento
+                </span>
+              </h4>
+
+              {ranking.length === 0 ? (
+                <p className="text-xs text-slate-500 text-center py-6">Nenhuma venda registrada ainda.</p>
+              ) : (
+                <div className="space-y-2 max-h-96 overflow-y-auto pr-1">
+                  {ranking.map((p, idx) => (
+                    <div key={idx} className="flex items-center justify-between p-2.5 bg-slate-950/60 rounded-xl text-xs border border-slate-800/60">
+                      <div className="flex items-center gap-2.5">
+                        <span className="w-6 h-6 rounded-lg bg-slate-800 text-amber-400 font-black flex items-center justify-center text-xs font-mono">
+                          {idx + 1}
+                        </span>
+                        <div>
+                          <span className="font-bold text-slate-200 block">{p.nome_produto}</span>
+                          <span className="text-[10px] text-slate-500">{p.categoria} &bull; Médio: {formatPrice(p.preco_medio)}</span>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <span className="font-black text-slate-100 font-mono block">{formatPrice(p.total_faturado)}</span>
+                        <span className="text-amber-400 text-[11px] font-bold font-mono">{p.total_vendido} un. ({p.pct_share}%)</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Auditoria de Pedidos com Itens Detalhados */}
+            <div className="bg-slate-900 border border-slate-800 p-4 rounded-2xl shadow-xl">
+              <h4 className="font-bold text-sm text-slate-100 mb-3 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <ShoppingBag className="w-4 h-4 text-emerald-400" />
+                  <span>Auditoria de Comandas Emitidas</span>
+                </div>
+                <span className="text-[10px] font-mono text-slate-400 font-normal">
+                  {report?.ultimos_pedidos?.length || 0} pedidos listados
+                </span>
+              </h4>
+
+              {(report?.ultimos_pedidos || []).length === 0 ? (
+                <p className="text-xs text-slate-500 text-center py-6">Nenhum pedido recente.</p>
+              ) : (
+                <div className="space-y-2 max-h-96 overflow-y-auto pr-1">
+                  {(report?.ultimos_pedidos || []).map((ped) => (
+                    <div key={ped.id} className="p-2.5 bg-slate-950/60 rounded-xl text-xs border border-slate-800/60 space-y-1">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <span className="font-black text-amber-400 font-mono text-sm">
+                            #{String(ped.numero_pedido).padStart(3, '0')}
+                          </span>
+                          <span className="px-2 py-0.5 rounded-md bg-slate-800 text-[10px] font-bold text-slate-300 uppercase font-mono">
+                            {ped.forma_pagamento}
+                          </span>
+                          <span className="text-[10px] text-slate-500 font-mono">
+                            {new Date(ped.data_hora).toLocaleTimeString('pt-BR')}
+                          </span>
+                        </div>
+
+                        <div className="flex items-center gap-2.5">
+                          <span className="font-black text-sm text-emerald-400 font-mono">
+                            {formatPrice(ped.total)}
+                          </span>
+                          <button
+                            onClick={() => handleCancel(ped.id, ped.numero_pedido)}
+                            className="p-1 text-slate-500 hover:text-rose-400 hover:bg-rose-950/40 rounded transition-colors"
+                            title="Cancelar comanda"
+                          >
+                            <Ban className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Resumo dos Itens Consumidos */}
+                      <p className="text-[11px] text-slate-400 font-sans truncate">
+                        🍽️ {ped.itens_resumo}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+          </div>
+
+        </div>
+      )}
+
+      {/* Componente Oculto na tela normal, mas ativo durante window.print() */}
+      {viewMode !== 'relatorio_executivo' && (
+        <div className="hidden print:block">
+          <ExecutiveReportPrintView
+            report={report}
+            periodoDescricao={getPeriodoDescricao()}
+            config={config}
+          />
+        </div>
+      )}
 
     </div>
   );

@@ -47,10 +47,15 @@ export default function ReceiptModal({
           console.warn('Impressão direta falhou, acionando navegador:', e);
         }
       }
+      document.body.classList.add('printing-receipt');
       window.print();
+      setTimeout(() => {
+        document.body.classList.remove('printing-receipt');
+      }, 1500);
       setPrintStatus('printed');
       setStatusMessage('Comandas enviadas para impressão!');
     } catch (err) {
+      document.body.classList.remove('printing-receipt');
       console.warn('Erro ao imprimir:', err);
       setPrintStatus('error');
       setStatusMessage(`Falha ao imprimir: ${err.message}`);

@@ -27,23 +27,44 @@
   background: #475569;
 }
 
-/* Print Styles for thermal tickets */
+/* =========================================================================
+   PRINT STYLES: Suporte a Comanda Térmica 80mm e Relatório Executivo A4 / PDF
+   ========================================================================= */
 @media print {
   @page {
-    margin: 0;
+    margin: 8mm 10mm;
     size: auto;
   }
+
   html, body {
     margin: 0 !important;
     padding: 0 !important;
-    background: #fff !important;
+    background: #ffffff !important;
+    color: #0f172a !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
   }
-  body * {
+
+  /* Oculta barras de navegação, rodapé, botões interativos e inputs */
+  nav, footer, .no-print, button, input, select {
+    display: none !important;
+  }
+
+  /* -------------------------------------------------------------------------
+     MODO 1: COMANDA TÉRMICA DO PDV (80mm)
+     ------------------------------------------------------------------------- */
+  body.printing-receipt *,
+  body:has(#thermal-receipt) * {
     visibility: hidden;
   }
-  #thermal-receipt, #thermal-receipt * {
+
+  body.printing-receipt #thermal-receipt,
+  body.printing-receipt #thermal-receipt *,
+  body:has(#thermal-receipt) #thermal-receipt,
+  body:has(#thermal-receipt) #thermal-receipt * {
     visibility: visible;
   }
+
   #thermal-receipt {
     position: absolute;
     left: 0;
@@ -51,14 +72,16 @@
     width: 78mm;
     margin: 0;
     padding: 0 1mm;
-    color: #000;
-    background: #fff;
+    color: #000 !important;
+    background: #fff !important;
     font-family: 'Courier New', Courier, monospace;
   }
+
   .ticket-wrapper {
     width: 100%;
     margin-bottom: 1mm;
   }
+
   .page-break-ticket {
     page-break-after: always;
     break-after: page;
@@ -66,5 +89,43 @@
     margin: 0;
     border-top: 1px dashed #000;
     display: block;
+  }
+
+  /* -------------------------------------------------------------------------
+     MODO 2: RELATÓRIO EXECUTIVO DE FECHAMENTO & ANALYTICS (A4 / PDF)
+     ------------------------------------------------------------------------- */
+  body.printing-report *,
+  body:has(#relatorio-executivo-print) * {
+    visibility: hidden;
+  }
+
+  body.printing-report #relatorio-executivo-print,
+  body.printing-report #relatorio-executivo-print *,
+  body:has(#relatorio-executivo-print) #relatorio-executivo-print,
+  body:has(#relatorio-executivo-print) #relatorio-executivo-print * {
+    visibility: visible;
+  }
+
+  #relatorio-executivo-print {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #ffffff !important;
+    color: #0f172a !important;
+    display: block !important;
+    font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif !important;
+  }
+
+  .page-break-inside-avoid {
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+
+  .page-break-after-always {
+    page-break-after: always;
+    break-after: page;
   }
 }

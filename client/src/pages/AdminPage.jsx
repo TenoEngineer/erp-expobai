@@ -116,7 +116,7 @@ export default function AdminPage({ config, onRefreshConfig }) {
           )}
 
           {activeSubTab === 'relatorios' && (
-            <SalesReport />
+            <SalesReport config={config} />
           )}
 
           {activeSubTab === 'config' && (
