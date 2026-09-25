@@ -17,26 +17,23 @@ import {
   Award,
   Eye,
   LayoutDashboard,
-  Trash2,
-  Moon,
-  Sun
+  Trash2
 } from 'lucide-react';
 import { getFechamento, cancelPedido, deletePedido } from '../../services/api';
 import ExecutiveReportPrintView from './ExecutiveReportPrintView';
-import CaixaSessionManager from './CaixaSessionManager';
 
 export default function SalesReport({ config }) {
   const [report, setReport] = useState(null);
   const [loading, setLoading] = useState(true);
   const [viewMode, setViewMode] = useState('dashboard'); // 'dashboard' ou 'relatorio_executivo'
   
-  // Filtros de Período (Padrão: Turno da Madrugada Atual)
-  const [periodo, setPeriodo] = useState('turno_atual'); 
+  // Filtros de Período
+  const [periodo, setPeriodo] = useState('hoje'); 
   const todayStr = new Date().toISOString().split('T')[0];
   const [dataInicio, setDataInicio] = useState(todayStr);
-  const [horaInicio, setHoraInicio] = useState('17:00');
+  const [horaInicio, setHoraInicio] = useState('');
   const [dataFim, setDataFim] = useState(todayStr);
-  const [horaFim, setHoraFim] = useState('06:00');
+  const [horaFim, setHoraFim] = useState('');
 
   const fetchReport = async (overridePeriodo, overrideInicio, overrideFim) => {
     try {
@@ -45,8 +42,8 @@ export default function SalesReport({ config }) {
       const params = {};
 
       if (activePeriodo === 'personalizado') {
-        const start = overrideInicio || `${dataInicio} ${horaInicio}:00`;
-        const end = overrideFim || `${dataFim} ${horaFim}:59`;
+        const start = overrideInicio || (horaInicio ? `${dataInicio} ${horaInicio}:00` : dataInicio);
+        const end = overrideFim || (horaFim ? `${dataFim} ${horaFim}:59` : dataFim);
         params.data_inicio = start;
         params.data_fim = end;
       } else {
@@ -63,7 +60,7 @@ export default function SalesReport({ config }) {
   };
 
   useEffect(() => {
-    fetchReport('turno_atual');
+    fetchReport('hoje');
   }, []);
 
   const handleSelectPeriodo = (p) => {
@@ -122,15 +119,16 @@ export default function SalesReport({ config }) {
   };
 
   const getPeriodoDescricao = () => {
-    if (periodo === 'turno_atual') return '🌙 Turno Atual da Madrugada (17h até agora)';
-    if (periodo === 'turno_anterior') return '⏪ Madrugada Anterior';
-    if (periodo === 'hoje') return 'Hoje (00h às 23h59)';
-    if (periodo === 'ontem') return 'Ontem (00h às 23h59)';
+    if (periodo === 'hoje') return 'Hoje';
+    if (periodo === 'ontem') return 'Ontem';
     if (periodo === '7dias') return 'Últimos 7 Dias';
     if (periodo === 'mes') return 'Este Mês';
-    if (periodo === 'todos') return 'Todos os Dias (Histórico Completo)';
+    if (periodo === 'todos') return 'Histórico Completo';
     if (periodo === 'personalizado') {
-      return `${dataInicio.split('-').reverse().join('/')} ${horaInicio} até ${dataFim.split('-').reverse().join('/')} ${horaFim}`;
+      if (dataInicio === dataFim && !horaInicio && !horaFim) {
+        return `Dia ${dataInicio.split('-').reverse().join('/')}`;
+      }
+      return `${dataInicio.split('-').reverse().join('/')} ${horaInicio} até ${dataFim.split('-').reverse().join('/')} ${horaFim}`.trim();
     }
     return 'Geral';
   };
@@ -206,9 +204,6 @@ export default function SalesReport({ config }) {
         </div>
       </div>
 
-      {/* GESTÃO DE SESSÃO / TURNO DE CAIXA E FUNDO DE TROCO */}
-      <CaixaSessionManager onSessionUpdated={() => fetchReport()} />
-
       {/* BARRA DE FILTROS DE DATA / PERÍODO */}
       <div className="bg-slate-900 border border-slate-800 p-3 sm:p-4 rounded-2xl shadow-lg space-y-3">
         <div className="flex items-center justify-between flex-wrap gap-2 pb-2 border-b border-slate-800/80">
@@ -223,33 +218,6 @@ export default function SalesReport({ config }) {
 
         {/* Botões Rápidos de Período */}
         <div className="flex flex-wrap items-center gap-1.5">
-          {/* Turno Noturno / Madrugada Atual */}
-          <button
-            type="button"
-            onClick={() => handleSelectPeriodo('turno_atual')}
-            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${
-              periodo === 'turno_atual'
-                ? 'bg-amber-500 text-slate-950 font-black shadow-lg shadow-amber-950/60 border border-amber-400'
-                : 'bg-slate-950 text-slate-300 hover:bg-slate-800 hover:text-white border border-slate-800'
-            }`}
-          >
-            <Moon className="w-3.5 h-3.5 text-amber-400" />
-            <span>🌙 Turno Madrugada (Atual)</span>
-          </button>
-
-          {/* Turno Noturno Anterior */}
-          <button
-            type="button"
-            onClick={() => handleSelectPeriodo('turno_anterior')}
-            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${
-              periodo === 'turno_anterior'
-                ? 'bg-amber-600 text-white shadow-md shadow-amber-950 border border-amber-500'
-                : 'bg-slate-950 text-slate-400 hover:bg-slate-800 hover:text-slate-200 border border-slate-800'
-            }`}
-          >
-            <span>⏪ Madrugada Anterior</span>
-          </button>
-
           <button
             type="button"
             onClick={() => handleSelectPeriodo('hoje')}
@@ -259,7 +227,7 @@ export default function SalesReport({ config }) {
                 : 'bg-slate-950 text-slate-400 hover:bg-slate-800 hover:text-slate-200 border border-slate-800'
             }`}
           >
-            📅 Hoje (00h-23h59)
+            📅 Hoje
           </button>
 
           <button
@@ -319,7 +287,7 @@ export default function SalesReport({ config }) {
                 : 'bg-slate-950 text-slate-400 hover:bg-slate-800 hover:text-slate-200 border border-slate-800'
             }`}
           >
-            🔍 Escolher Data & Hora
+            🔍 Escolher Data / Período
           </button>
         </div>
 

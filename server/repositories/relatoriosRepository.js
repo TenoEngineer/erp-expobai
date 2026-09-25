@@ -20,52 +20,34 @@ const relatoriosRepository = {
     }
     // 2. Filtragem por Período / Datas (Timezone oficial Amambai/MS: America/Campo_Grande)
     else if (data_inicio && data_fim) {
-      const start = data_inicio.includes(':') ? data_inicio.replace('T', ' ') : `${data_inicio} 00:00:00`;
-      const end = data_fim.includes(':') ? data_fim.replace('T', ' ') : `${data_fim} 23:59:59.999`;
-      params.push(start);
-      params.push(end);
-      whereConditions.push(`(p.data_hora AT TIME ZONE 'America/Campo_Grande') >= $${params.length - 1}::timestamp AND (p.data_hora AT TIME ZONE 'America/Campo_Grande') <= $${params.length}::timestamp`);
+      if (data_inicio.includes(':') || data_fim.includes(':')) {
+        const start = data_inicio.includes(':') ? data_inicio.replace('T', ' ') : `${data_inicio} 00:00:00`;
+        const end = data_fim.includes(':') ? data_fim.replace('T', ' ') : `${data_fim} 23:59:59.999`;
+        params.push(start);
+        params.push(end);
+        whereConditions.push(`(p.data_hora AT TIME ZONE 'America/Campo_Grande') >= $${params.length - 1}::timestamp AND (p.data_hora AT TIME ZONE 'America/Campo_Grande') <= $${params.length}::timestamp`);
+      } else {
+        // Agrupamento por dia de evento (inclui vendas da noite e madrugada até 06h00)
+        params.push(data_inicio);
+        params.push(data_fim);
+        whereConditions.push(`((p.data_hora AT TIME ZONE 'America/Campo_Grande') - INTERVAL '6 hours')::date >= $${params.length - 1}::date AND ((p.data_hora AT TIME ZONE 'America/Campo_Grande') - INTERVAL '6 hours')::date <= $${params.length}::date`);
+      }
     } else if (data_inicio) {
-      const start = data_inicio.includes(':') ? data_inicio.replace('T', ' ') : `${data_inicio} 00:00:00`;
-      const end = data_inicio.includes(':') ? data_inicio.replace('T', ' ') : `${data_inicio} 23:59:59.999`;
-      params.push(start);
-      params.push(end);
-      whereConditions.push(`(p.data_hora AT TIME ZONE 'America/Campo_Grande') >= $${params.length - 1}::timestamp AND (p.data_hora AT TIME ZONE 'America/Campo_Grande') <= $${params.length}::timestamp`);
+      if (data_inicio.includes(':')) {
+        params.push(data_inicio.replace('T', ' '));
+        whereConditions.push(`(p.data_hora AT TIME ZONE 'America/Campo_Grande') >= $${params.length}::timestamp`);
+      } else {
+        params.push(data_inicio);
+        whereConditions.push(`((p.data_hora AT TIME ZONE 'America/Campo_Grande') - INTERVAL '6 hours')::date = $${params.length}::date`);
+      }
     } else if (periodo) {
-      if (periodo === 'turno_atual' || periodo === 'madrugada_atual') {
-        // Operação da feira: turno começa às 17h e vai pela madrugada adentro até 12h do dia seguinte.
-        // Se a hora atual em MS for < 12:00, o turno atual começou ontem às 17h.
-        // Se for >= 12:00, o turno atual começou hoje às 17h.
-        whereConditions.push(`
-          (p.data_hora AT TIME ZONE 'America/Campo_Grande') >= 
-            CASE 
-              WHEN EXTRACT(HOUR FROM (NOW() AT TIME ZONE 'America/Campo_Grande')) < 12 
-                THEN ((NOW() AT TIME ZONE 'America/Campo_Grande')::date - INTERVAL '1 day' + TIME '17:00:00')
-              ELSE ((NOW() AT TIME ZONE 'America/Campo_Grande')::date + TIME '17:00:00')
-            END
-        `);
-      } else if (periodo === 'turno_anterior' || periodo === 'madrugada_ontem') {
-        // Turno anterior (ontem à noite / madrugada passada)
-        whereConditions.push(`
-          (p.data_hora AT TIME ZONE 'America/Campo_Grande') >= 
-            CASE 
-              WHEN EXTRACT(HOUR FROM (NOW() AT TIME ZONE 'America/Campo_Grande')) < 12 
-                THEN ((NOW() AT TIME ZONE 'America/Campo_Grande')::date - INTERVAL '2 days' + TIME '17:00:00')
-              ELSE ((NOW() AT TIME ZONE 'America/Campo_Grande')::date - INTERVAL '1 day' + TIME '17:00:00')
-            END
-          AND (p.data_hora AT TIME ZONE 'America/Campo_Grande') < 
-            CASE 
-              WHEN EXTRACT(HOUR FROM (NOW() AT TIME ZONE 'America/Campo_Grande')) < 12 
-                THEN ((NOW() AT TIME ZONE 'America/Campo_Grande')::date - INTERVAL '1 day' + TIME '12:00:00')
-              ELSE ((NOW() AT TIME ZONE 'America/Campo_Grande')::date + TIME '12:00:00')
-            END
-        `);
-      } else if (periodo === 'hoje') {
-        whereConditions.push("(p.data_hora AT TIME ZONE 'America/Campo_Grande')::date = (NOW() AT TIME ZONE 'America/Campo_Grande')::date");
+      if (periodo === 'hoje') {
+        // Agrupa as vendas da noite e madrugada atual sem quebrar à meia-noite (corte às 06h00)
+        whereConditions.push("((p.data_hora AT TIME ZONE 'America/Campo_Grande') - INTERVAL '6 hours')::date = ((NOW() AT TIME ZONE 'America/Campo_Grande') - INTERVAL '6 hours')::date");
       } else if (periodo === 'ontem') {
-        whereConditions.push("(p.data_hora AT TIME ZONE 'America/Campo_Grande')::date = ((NOW() AT TIME ZONE 'America/Campo_Grande') - INTERVAL '1 day')::date");
+        whereConditions.push("((p.data_hora AT TIME ZONE 'America/Campo_Grande') - INTERVAL '6 hours')::date = (((NOW() AT TIME ZONE 'America/Campo_Grande') - INTERVAL '6 hours') - INTERVAL '1 day')::date");
       } else if (periodo === '7dias') {
-        whereConditions.push("(p.data_hora AT TIME ZONE 'America/Campo_Grande')::date >= ((NOW() AT TIME ZONE 'America/Campo_Grande') - INTERVAL '7 days')::date");
+        whereConditions.push("((p.data_hora AT TIME ZONE 'America/Campo_Grande') - INTERVAL '6 hours')::date >= (((NOW() AT TIME ZONE 'America/Campo_Grande') - INTERVAL '6 hours') - INTERVAL '7 days')::date");
       } else if (periodo === 'mes') {
         whereConditions.push("(p.data_hora AT TIME ZONE 'America/Campo_Grande') >= date_trunc('month', NOW() AT TIME ZONE 'America/Campo_Grande')");
       }
