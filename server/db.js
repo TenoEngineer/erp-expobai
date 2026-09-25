@@ -86,9 +86,21 @@ async function initDB() {
         valor TEXT
       );
 
+      CREATE TABLE IF NOT EXISTS expobai.sessoes_caixa (
+        id SERIAL PRIMARY KEY,
+        operador VARCHAR(100) DEFAULT 'Operador Caixa',
+        valor_abertura NUMERIC(10, 2) DEFAULT 0,
+        valor_fechamento_dinheiro NUMERIC(10, 2),
+        status VARCHAR(20) DEFAULT 'aberto',
+        aberto_em TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+        fechado_em TIMESTAMP WITH TIME ZONE,
+        observacoes TEXT
+      );
+
       CREATE INDEX IF NOT EXISTS idx_expobai_produtos_categoria ON expobai.produtos(categoria_id);
       CREATE INDEX IF NOT EXISTS idx_expobai_pedidos_data ON expobai.pedidos(data_hora);
       CREATE INDEX IF NOT EXISTS idx_expobai_pedido_itens_pedido ON expobai.pedido_itens(pedido_id);
+      CREATE INDEX IF NOT EXISTS idx_expobai_sessoes_status ON expobai.sessoes_caixa(status);
     `);
 
     // 3. Seed inicial de categorias se estiver vazio

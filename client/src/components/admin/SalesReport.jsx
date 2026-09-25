@@ -16,21 +16,27 @@ import {
   Layers,
   Award,
   Eye,
-  LayoutDashboard
+  LayoutDashboard,
+  Trash2,
+  Moon,
+  Sun
 } from 'lucide-react';
-import { getFechamento, cancelPedido } from '../../services/api';
+import { getFechamento, cancelPedido, deletePedido } from '../../services/api';
 import ExecutiveReportPrintView from './ExecutiveReportPrintView';
+import CaixaSessionManager from './CaixaSessionManager';
 
 export default function SalesReport({ config }) {
   const [report, setReport] = useState(null);
   const [loading, setLoading] = useState(true);
   const [viewMode, setViewMode] = useState('dashboard'); // 'dashboard' ou 'relatorio_executivo'
   
-  // Filtros de Período
-  const [periodo, setPeriodo] = useState('hoje'); // 'hoje', 'ontem', '7dias', 'mes', 'todos', 'personalizado'
+  // Filtros de Período (Padrão: Turno da Madrugada Atual)
+  const [periodo, setPeriodo] = useState('turno_atual'); 
   const todayStr = new Date().toISOString().split('T')[0];
   const [dataInicio, setDataInicio] = useState(todayStr);
+  const [horaInicio, setHoraInicio] = useState('17:00');
   const [dataFim, setDataFim] = useState(todayStr);
+  const [horaFim, setHoraFim] = useState('06:00');
 
   const fetchReport = async (overridePeriodo, overrideInicio, overrideFim) => {
     try {
@@ -39,8 +45,10 @@ export default function SalesReport({ config }) {
       const params = {};
 
       if (activePeriodo === 'personalizado') {
-        params.data_inicio = overrideInicio || dataInicio;
-        params.data_fim = overrideFim || dataFim;
+        const start = overrideInicio || `${dataInicio} ${horaInicio}:00`;
+        const end = overrideFim || `${dataFim} ${horaFim}:59`;
+        params.data_inicio = start;
+        params.data_fim = end;
       } else {
         params.periodo = activePeriodo;
       }
@@ -55,7 +63,7 @@ export default function SalesReport({ config }) {
   };
 
   useEffect(() => {
-    fetchReport('hoje');
+    fetchReport('turno_atual');
   }, []);
 
   const handleSelectPeriodo = (p) => {
@@ -68,16 +76,31 @@ export default function SalesReport({ config }) {
   const handleApplyCustomDates = (e) => {
     if (e) e.preventDefault();
     setPeriodo('personalizado');
-    fetchReport('personalizado', dataInicio, dataFim);
+    const start = `${dataInicio} ${horaInicio}:00`;
+    const end = `${dataFim} ${horaFim}:59`;
+    fetchReport('personalizado', start, end);
   };
 
   const handleCancel = async (id, num) => {
-    if (confirm(`Deseja cancelar o pedido #${String(num).padStart(3, '0')}?`)) {
+    if (confirm(`Deseja marcar como CANCELADO o pedido #${String(num).padStart(3, '0')}?`)) {
       try {
         await cancelPedido(id);
         fetchReport();
       } catch (err) {
-        alert('Erro ao cancelar pedido: ' + err.message);
+        alert('Erro ao cancelar pedido: ' + (err.response?.data?.error || err.message));
+      }
+    }
+  };
+
+  const handleDelete = async (id, num) => {
+    const confirmMsg = `⚠️ ATENÇÃO: Deseja EXCLUIR DEFINITIVAMENTE o lançamento do pedido #${String(num).padStart(3, '0')}?\n\nEsta venda foi feita errada e será apagada do banco de dados, estornando os valores do caixa e relatórios imediatamente.`;
+    if (confirm(confirmMsg)) {
+      try {
+        await deletePedido(id);
+        alert(`✅ Pedido #${String(num).padStart(3, '0')} excluído com sucesso!`);
+        fetchReport();
+      } catch (err) {
+        alert('Erro ao excluir pedido: ' + (err.response?.data?.error || err.message));
       }
     }
   };
@@ -99,14 +122,15 @@ export default function SalesReport({ config }) {
   };
 
   const getPeriodoDescricao = () => {
-    if (periodo === 'hoje') return 'Hoje';
-    if (periodo === 'ontem') return 'Ontem';
+    if (periodo === 'turno_atual') return '🌙 Turno Atual da Madrugada (17h até agora)';
+    if (periodo === 'turno_anterior') return '⏪ Madrugada Anterior';
+    if (periodo === 'hoje') return 'Hoje (00h às 23h59)';
+    if (periodo === 'ontem') return 'Ontem (00h às 23h59)';
     if (periodo === '7dias') return 'Últimos 7 Dias';
     if (periodo === 'mes') return 'Este Mês';
     if (periodo === 'todos') return 'Todos os Dias (Histórico Completo)';
     if (periodo === 'personalizado') {
-      if (dataInicio === dataFim) return `Dia ${dataInicio.split('-').reverse().join('/')}`;
-      return `${dataInicio.split('-').reverse().join('/')} até ${dataFim.split('-').reverse().join('/')}`;
+      return `${dataInicio.split('-').reverse().join('/')} ${horaInicio} até ${dataFim.split('-').reverse().join('/')} ${horaFim}`;
     }
     return 'Geral';
   };
@@ -182,6 +206,9 @@ export default function SalesReport({ config }) {
         </div>
       </div>
 
+      {/* GESTÃO DE SESSÃO / TURNO DE CAIXA E FUNDO DE TROCO */}
+      <CaixaSessionManager onSessionUpdated={() => fetchReport()} />
+
       {/* BARRA DE FILTROS DE DATA / PERÍODO */}
       <div className="bg-slate-900 border border-slate-800 p-3 sm:p-4 rounded-2xl shadow-lg space-y-3">
         <div className="flex items-center justify-between flex-wrap gap-2 pb-2 border-b border-slate-800/80">
@@ -190,12 +217,39 @@ export default function SalesReport({ config }) {
             <span>Filtrar Período de Análise</span>
           </span>
           <span className="text-[11px] text-slate-400">
-            Filtre por hoje, ontem, últimos 7 dias, mês ou escolha uma data específica
+            Fuso horário oficial: <b>America/Campo_Grande (MS, -1h de Brasília)</b>
           </span>
         </div>
 
         {/* Botões Rápidos de Período */}
         <div className="flex flex-wrap items-center gap-1.5">
+          {/* Turno Noturno / Madrugada Atual */}
+          <button
+            type="button"
+            onClick={() => handleSelectPeriodo('turno_atual')}
+            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${
+              periodo === 'turno_atual'
+                ? 'bg-amber-500 text-slate-950 font-black shadow-lg shadow-amber-950/60 border border-amber-400'
+                : 'bg-slate-950 text-slate-300 hover:bg-slate-800 hover:text-white border border-slate-800'
+            }`}
+          >
+            <Moon className="w-3.5 h-3.5 text-amber-400" />
+            <span>🌙 Turno Madrugada (Atual)</span>
+          </button>
+
+          {/* Turno Noturno Anterior */}
+          <button
+            type="button"
+            onClick={() => handleSelectPeriodo('turno_anterior')}
+            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${
+              periodo === 'turno_anterior'
+                ? 'bg-amber-600 text-white shadow-md shadow-amber-950 border border-amber-500'
+                : 'bg-slate-950 text-slate-400 hover:bg-slate-800 hover:text-slate-200 border border-slate-800'
+            }`}
+          >
+            <span>⏪ Madrugada Anterior</span>
+          </button>
+
           <button
             type="button"
             onClick={() => handleSelectPeriodo('hoje')}
@@ -205,7 +259,7 @@ export default function SalesReport({ config }) {
                 : 'bg-slate-950 text-slate-400 hover:bg-slate-800 hover:text-slate-200 border border-slate-800'
             }`}
           >
-            📅 Hoje
+            📅 Hoje (00h-23h59)
           </button>
 
           <button
@@ -253,7 +307,7 @@ export default function SalesReport({ config }) {
                 : 'bg-slate-950 text-slate-400 hover:bg-slate-800 hover:text-slate-200 border border-slate-800'
             }`}
           >
-            🌐 Todos os Dias (Geral)
+            🌐 Histórico Completo
           </button>
 
           <button
@@ -265,37 +319,49 @@ export default function SalesReport({ config }) {
                 : 'bg-slate-950 text-slate-400 hover:bg-slate-800 hover:text-slate-200 border border-slate-800'
             }`}
           >
-            🔍 Escolher Data / Período
+            🔍 Escolher Data & Hora
           </button>
         </div>
 
-        {/* Inputs de Data quando Personalizado */}
+        {/* Inputs de Data e Hora quando Personalizado */}
         {periodo === 'personalizado' && (
           <form onSubmit={handleApplyCustomDates} className="pt-2 flex flex-wrap items-center gap-3 animate-in fade-in">
-            <div className="flex items-center gap-2">
-              <label className="text-xs text-slate-400 font-bold">De:</label>
+            <div className="flex items-center gap-1.5 bg-slate-950 p-1.5 rounded-xl border border-slate-800">
+              <label className="text-[11px] text-slate-400 font-bold px-1">De:</label>
               <input
                 type="date"
                 value={dataInicio}
                 onChange={(e) => setDataInicio(e.target.value)}
-                className="bg-slate-950 border border-slate-700 rounded-xl px-3 py-1.5 text-xs text-white focus:outline-none focus:border-amber-500 font-mono"
+                className="bg-transparent text-xs text-white focus:outline-none font-mono"
+              />
+              <input
+                type="time"
+                value={horaInicio}
+                onChange={(e) => setHoraInicio(e.target.value)}
+                className="bg-slate-900 border border-slate-700 rounded-lg px-1.5 py-0.5 text-xs text-amber-300 font-mono focus:outline-none"
               />
             </div>
 
-            <div className="flex items-center gap-2">
-              <label className="text-xs text-slate-400 font-bold">Até:</label>
+            <div className="flex items-center gap-1.5 bg-slate-950 p-1.5 rounded-xl border border-slate-800">
+              <label className="text-[11px] text-slate-400 font-bold px-1">Até:</label>
               <input
                 type="date"
                 value={dataFim}
                 onChange={(e) => setDataFim(e.target.value)}
-                className="bg-slate-950 border border-slate-700 rounded-xl px-3 py-1.5 text-xs text-white focus:outline-none focus:border-amber-500 font-mono"
+                className="bg-transparent text-xs text-white focus:outline-none font-mono"
+              />
+              <input
+                type="time"
+                value={horaFim}
+                onChange={(e) => setHoraFim(e.target.value)}
+                className="bg-slate-900 border border-slate-700 rounded-lg px-1.5 py-0.5 text-xs text-amber-300 font-mono focus:outline-none"
               />
             </div>
 
             <button
               type="submit"
               disabled={loading}
-              className="px-4 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs uppercase tracking-wider rounded-xl shadow transition-all active:scale-[0.98]"
+              className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs uppercase tracking-wider rounded-xl shadow transition-all active:scale-[0.98]"
             >
               Aplicar Filtro
             </button>
@@ -579,7 +645,7 @@ export default function SalesReport({ config }) {
                   <span>Auditoria de Comandas Emitidas</span>
                 </div>
                 <span className="text-[10px] font-mono text-slate-400 font-normal">
-                  {report?.ultimos_pedidos?.length || 0} pedidos listados
+                  {report?.ultimos_pedidos?.length || 0} pedidos listados &bull; Horário MS
                 </span>
               </h4>
 
@@ -597,21 +663,28 @@ export default function SalesReport({ config }) {
                           <span className="px-2 py-0.5 rounded-md bg-slate-800 text-[10px] font-bold text-slate-300 uppercase font-mono">
                             {ped.forma_pagamento}
                           </span>
-                          <span className="text-[10px] text-slate-500 font-mono">
-                            {new Date(ped.data_hora).toLocaleTimeString('pt-BR')}
+                          <span className="text-[10px] text-slate-400 font-mono">
+                            🕒 {ped.hora_ms || (ped.data_hora_ms ? ped.data_hora_ms.split(' ')[1] : new Date(ped.data_hora).toLocaleTimeString('pt-BR', { timeZone: 'America/Campo_Grande' }))} (MS)
                           </span>
                         </div>
 
-                        <div className="flex items-center gap-2.5">
+                        <div className="flex items-center gap-2">
                           <span className="font-black text-sm text-emerald-400 font-mono">
                             {formatPrice(ped.total)}
                           </span>
                           <button
                             onClick={() => handleCancel(ped.id, ped.numero_pedido)}
-                            className="p-1 text-slate-500 hover:text-rose-400 hover:bg-rose-950/40 rounded transition-colors"
-                            title="Cancelar comanda"
+                            className="p-1.5 text-slate-400 hover:text-amber-400 hover:bg-slate-800 rounded transition-colors"
+                            title="Marcar como cancelado"
                           >
                             <Ban className="w-3.5 h-3.5" />
+                          </button>
+                          <button
+                            onClick={() => handleDelete(ped.id, ped.numero_pedido)}
+                            className="p-1.5 text-slate-400 hover:text-rose-400 hover:bg-rose-950/40 rounded transition-colors"
+                            title="Excluir lançamento errado definitivamente"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
                           </button>
                         </div>
                       </div>

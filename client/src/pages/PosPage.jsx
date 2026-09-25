@@ -4,8 +4,9 @@ import ProductGrid from '../components/ProductGrid';
 import CartPanel from '../components/CartPanel';
 import CheckoutModal from '../components/CheckoutModal';
 import ReceiptModal from '../components/ReceiptModal';
+import RecentOrdersModal from '../components/RecentOrdersModal';
 import { getCategorias, getProdutos, createPedido } from '../services/api';
-import { RefreshCw, CheckCircle2, Printer, X, Sparkles } from 'lucide-react';
+import { RefreshCw, CheckCircle2, Printer, X, Sparkles, Receipt, Trash2, Clock } from 'lucide-react';
 import confetti from 'canvas-confetti';
 
 export default function PosPage({ config, onCartCountChange }) {
@@ -18,6 +19,7 @@ export default function PosPage({ config, onCartCountChange }) {
   // Estados do checkout e último pedido
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
   const [isReceiptOpen, setIsReceiptOpen] = useState(false);
+  const [isRecentOrdersOpen, setIsRecentOrdersOpen] = useState(false);
   const [lastOrder, setLastOrder] = useState(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [orderNotification, setOrderNotification] = useState(null);
@@ -259,8 +261,28 @@ export default function PosPage({ config, onCartCountChange }) {
       )}
 
       {/* Coluna Esquerda: Categorias & Grade de Produtos */}
-      <div className="flex-1 flex flex-col gap-4 min-w-0">
+      <div className="flex-1 flex flex-col gap-3 min-w-0">
         
+        {/* Barra Rápida de Ações do PDV & Horário Oficial MS */}
+        <div className="flex items-center justify-between gap-2 bg-slate-900 border border-slate-800 px-3.5 py-2 rounded-2xl shadow">
+          <button
+            type="button"
+            onClick={() => setIsRecentOrdersOpen(true)}
+            className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-amber-300 border border-amber-500/40 rounded-xl font-bold text-xs flex items-center gap-1.5 transition-all active:scale-95 shadow"
+            title="Ver histórico de vendas para reimprimir ou excluir vendas lançadas erradas"
+          >
+            <Receipt className="w-3.5 h-3.5 text-amber-400" />
+            <span>📋 Vendas Recentes / Corrigir Venda</span>
+          </button>
+
+          <div className="flex items-center gap-2 text-[11px] text-slate-400 font-mono">
+            <span className="flex items-center gap-1">
+              <Clock className="w-3.5 h-3.5 text-slate-500" />
+              <span>Horário MS (-1h BSB)</span>
+            </span>
+          </div>
+        </div>
+
         {/* Barra de Categorias */}
         <CategoryTabs
           categories={categories}
@@ -303,6 +325,12 @@ export default function PosPage({ config, onCartCountChange }) {
         onClose={handleCloseReceipt}
         order={lastOrder}
         config={config}
+      />
+
+      {/* Modal de Correção de Vendas Recentes (Excluir lançamentos errados) */}
+      <RecentOrdersModal
+        isOpen={isRecentOrdersOpen}
+        onClose={() => setIsRecentOrdersOpen(false)}
       />
 
     </div>

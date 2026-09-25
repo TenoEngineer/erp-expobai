@@ -97,4 +97,19 @@ router.patch('/:id/cancelar', async (req, res) => {
   }
 });
 
+// Excluir pedido definitivamente do banco de dados (ex: lançamento feito errado)
+router.delete('/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const excluido = await pedidosRepo.deleteOrder(id);
+    if (!excluido) {
+      return res.status(404).json({ error: 'Pedido não encontrado' });
+    }
+    res.json({ message: 'Pedido excluído definitivamente com sucesso', pedido: excluido });
+  } catch (err) {
+    console.error('Erro ao excluir pedido:', err);
+    res.status(500).json({ error: 'Erro ao excluir pedido' });
+  }
+});
+
 module.exports = router;

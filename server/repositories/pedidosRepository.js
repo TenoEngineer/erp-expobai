@@ -129,6 +129,14 @@ const pedidosRepository = {
       [id]
     );
     return res.rows[0] || null;
+  },
+
+  async deleteOrder(id) {
+    const res = await query(
+      `DELETE FROM expobai.pedidos WHERE id = $1 RETURNING *`,
+      [id]
+    );
+    return res.rows[0] || null;
   }
 };
 

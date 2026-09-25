@@ -87,6 +87,31 @@ export const cancelPedido = async (id) => {
   return data;
 };
 
+export const deletePedido = async (id) => {
+  const { data } = await api.delete(`/pedidos/${id}`);
+  return data;
+};
+
+export const getCaixaStatus = async () => {
+  const { data } = await api.get('/caixa/status');
+  return data;
+};
+
+export const abrirCaixa = async (payload) => {
+  const { data } = await api.post('/caixa/abrir', payload);
+  return data;
+};
+
+export const fecharCaixa = async (payload) => {
+  const { data } = await api.post('/caixa/fechar', payload);
+  return data;
+};
+
+export const getCaixaHistorico = async (limit = 10) => {
+  const { data } = await api.get(`/caixa/historico?limit=${limit}`);
+  return data;
+};
+
 export const getFechamento = async (params = {}) => {
   const { data } = await api.get('/relatorios/fechamento', { params });
   return data;

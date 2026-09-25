@@ -1,21 +1,66 @@
 const { query } = require('../db');
 
 const relatoriosRepository = {
-  async getFechamentoCaixa({ data_inicio, data_fim, periodo } = {}) {
+  async getFechamentoCaixa({ data_inicio, data_fim, periodo, sessao_id } = {}) {
     let whereConditions = ["p.status = 'concluido'"];
     const params = [];
 
-    // 1. Filtragem por Período / Datas (Timezone oficial Amambai/MS: America/Campo_Grande)
-    if (data_inicio && data_fim) {
-      params.push(`${data_inicio} 00:00:00`);
-      params.push(`${data_fim} 23:59:59.999`);
-      whereConditions.push(`(p.data_hora AT TIME ZONE 'America/Campo_Grande') >= $1::timestamp AND (p.data_hora AT TIME ZONE 'America/Campo_Grande') <= $2::timestamp`);
+    // 1. Filtragem por Sessão de Caixa específica
+    if (sessao_id) {
+      const sessRes = await query('SELECT * FROM expobai.sessoes_caixa WHERE id = $1', [sessao_id]);
+      if (sessRes.rows.length > 0) {
+        const sessao = sessRes.rows[0];
+        params.push(sessao.aberto_em);
+        whereConditions.push(`p.data_hora >= $${params.length}`);
+        if (sessao.fechado_em) {
+          params.push(sessao.fechado_em);
+          whereConditions.push(`p.data_hora <= $${params.length}`);
+        }
+      }
+    }
+    // 2. Filtragem por Período / Datas (Timezone oficial Amambai/MS: America/Campo_Grande)
+    else if (data_inicio && data_fim) {
+      const start = data_inicio.includes(':') ? data_inicio.replace('T', ' ') : `${data_inicio} 00:00:00`;
+      const end = data_fim.includes(':') ? data_fim.replace('T', ' ') : `${data_fim} 23:59:59.999`;
+      params.push(start);
+      params.push(end);
+      whereConditions.push(`(p.data_hora AT TIME ZONE 'America/Campo_Grande') >= $${params.length - 1}::timestamp AND (p.data_hora AT TIME ZONE 'America/Campo_Grande') <= $${params.length}::timestamp`);
     } else if (data_inicio) {
-      params.push(`${data_inicio} 00:00:00`);
-      params.push(`${data_inicio} 23:59:59.999`);
-      whereConditions.push(`(p.data_hora AT TIME ZONE 'America/Campo_Grande') >= $1::timestamp AND (p.data_hora AT TIME ZONE 'America/Campo_Grande') <= $2::timestamp`);
+      const start = data_inicio.includes(':') ? data_inicio.replace('T', ' ') : `${data_inicio} 00:00:00`;
+      const end = data_inicio.includes(':') ? data_inicio.replace('T', ' ') : `${data_inicio} 23:59:59.999`;
+      params.push(start);
+      params.push(end);
+      whereConditions.push(`(p.data_hora AT TIME ZONE 'America/Campo_Grande') >= $${params.length - 1}::timestamp AND (p.data_hora AT TIME ZONE 'America/Campo_Grande') <= $${params.length}::timestamp`);
     } else if (periodo) {
-      if (periodo === 'hoje') {
+      if (periodo === 'turno_atual' || periodo === 'madrugada_atual') {
+        // Operação da feira: turno começa às 17h e vai pela madrugada adentro até 12h do dia seguinte.
+        // Se a hora atual em MS for < 12:00, o turno atual começou ontem às 17h.
+        // Se for >= 12:00, o turno atual começou hoje às 17h.
+        whereConditions.push(`
+          (p.data_hora AT TIME ZONE 'America/Campo_Grande') >= 
+            CASE 
+              WHEN EXTRACT(HOUR FROM (NOW() AT TIME ZONE 'America/Campo_Grande')) < 12 
+                THEN ((NOW() AT TIME ZONE 'America/Campo_Grande')::date - INTERVAL '1 day' + TIME '17:00:00')
+              ELSE ((NOW() AT TIME ZONE 'America/Campo_Grande')::date + TIME '17:00:00')
+            END
+        `);
+      } else if (periodo === 'turno_anterior' || periodo === 'madrugada_ontem') {
+        // Turno anterior (ontem à noite / madrugada passada)
+        whereConditions.push(`
+          (p.data_hora AT TIME ZONE 'America/Campo_Grande') >= 
+            CASE 
+              WHEN EXTRACT(HOUR FROM (NOW() AT TIME ZONE 'America/Campo_Grande')) < 12 
+                THEN ((NOW() AT TIME ZONE 'America/Campo_Grande')::date - INTERVAL '2 days' + TIME '17:00:00')
+              ELSE ((NOW() AT TIME ZONE 'America/Campo_Grande')::date - INTERVAL '1 day' + TIME '17:00:00')
+            END
+          AND (p.data_hora AT TIME ZONE 'America/Campo_Grande') < 
+            CASE 
+              WHEN EXTRACT(HOUR FROM (NOW() AT TIME ZONE 'America/Campo_Grande')) < 12 
+                THEN ((NOW() AT TIME ZONE 'America/Campo_Grande')::date - INTERVAL '1 day' + TIME '12:00:00')
+              ELSE ((NOW() AT TIME ZONE 'America/Campo_Grande')::date + TIME '12:00:00')
+            END
+        `);
+      } else if (periodo === 'hoje') {
         whereConditions.push("(p.data_hora AT TIME ZONE 'America/Campo_Grande')::date = (NOW() AT TIME ZONE 'America/Campo_Grande')::date");
       } else if (periodo === 'ontem') {
         whereConditions.push("(p.data_hora AT TIME ZONE 'America/Campo_Grande')::date = ((NOW() AT TIME ZONE 'America/Campo_Grande') - INTERVAL '1 day')::date");
@@ -112,6 +157,8 @@ const relatoriosRepository = {
         p.forma_pagamento, 
         p.troco, 
         p.data_hora,
+        to_char(p.data_hora AT TIME ZONE 'America/Campo_Grande', 'DD/MM/YYYY HH24:MI:SS') as data_hora_ms,
+        to_char(p.data_hora AT TIME ZONE 'America/Campo_Grande', 'HH24:MI:SS') as hora_ms,
         COALESCE(string_agg(i.quantidade || 'x ' || i.nome_produto, ', '), 'Itens diversos') as itens_resumo,
         COALESCE(SUM(i.quantidade), 0) as total_itens
       FROM expobai.pedidos p

@@ -12,6 +12,7 @@ const pedidosRouter = require('./routes/pedidos');
 const relatoriosRouter = require('./routes/relatorios');
 const configuracoesRouter = require('./routes/configuracoes');
 const impressaoRouter = require('./routes/impressao');
+const caixaRouter = require('./routes/caixa');
 
 const app = express();
 const PORT = process.env.PORT || 5002;
@@ -56,6 +57,7 @@ app.use('/api/categorias', categoriasRouter);
 app.use('/api/produtos', produtosRouter);
 app.use('/api/pedidos', pedidosRouter);
 app.use('/api/relatorios', relatoriosRouter);
+app.use('/api/caixa', caixaRouter);
 app.use('/api/configuracoes', configuracoesRouter);
 app.use('/api/impressao', impressaoRouter);
 

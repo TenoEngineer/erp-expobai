@@ -5,8 +5,8 @@ const relatoriosRepo = require('../repositories/relatoriosRepository');
 // Fechamento de caixa e resumo de vendas com suporte a filtros de data/período
 router.get('/fechamento', async (req, res) => {
   try {
-    const { data_inicio, data_fim, periodo } = req.query;
-    const fechamento = await relatoriosRepo.getFechamentoCaixa({ data_inicio, data_fim, periodo });
+    const { data_inicio, data_fim, periodo, sessao_id } = req.query;
+    const fechamento = await relatoriosRepo.getFechamentoCaixa({ data_inicio, data_fim, periodo, sessao_id });
     res.json(fechamento);
   } catch (err) {
     console.error('Erro ao gerar relatório de fechamento de caixa:', err);
