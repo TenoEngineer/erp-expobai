@@ -440,33 +440,11 @@ export default function ExecutiveReportPrintView({ report, periodoDescricao, con
       </div>
 
       {/* ========================================================================= */}
-      {/* 7. PARECER CONCLUSIVO & TERMO DE ASSINATURA */}
+      {/* 6. RODAPÉ DO RELATÓRIO */}
       {/* ========================================================================= */}
-      <div className="mt-8 pt-4 border-t-2 border-slate-900 page-break-inside-avoid">
-        <h2 className="text-xs font-black uppercase tracking-wider text-slate-900 mb-2">
-          6. Parecer Conclusivo & Termo de Encerramento do Caixa
-        </h2>
-        <p className="text-[10px] text-slate-700 leading-relaxed mb-8">
-          Atesto que os valores acima declarados correspondem com exatidão à totalidade das comandas e vendas processadas eletronicamente pelo ERP no período supracitado. O montante financeiro foi integralmente auditado, conferido entre as vias físicas e eletrônicas, não tendo sido constatadas inconformidades operacionais.
-        </p>
-
-        <div className="grid grid-cols-2 gap-12 pt-6">
-          <div className="text-center">
-            <div className="border-t border-slate-900 w-3/4 mx-auto mb-1"></div>
-            <p className="text-xs font-bold text-slate-900 uppercase">Operador de Caixa Responsável</p>
-            <p className="text-[10px] text-slate-500">Conferência Física & Lançamentos</p>
-          </div>
-
-          <div className="text-center">
-            <div className="border-t border-slate-900 w-3/4 mx-auto mb-1"></div>
-            <p className="text-xs font-bold text-slate-900 uppercase">Gestor Financeiro / Coordenação</p>
-            <p className="text-[10px] text-slate-500">Tenda dos Müller &bull; Expobai 2026</p>
-          </div>
-        </div>
-
-        <div className="text-center text-[9px] text-slate-400 mt-6 font-mono">
-          Relatório gerado automaticamente por ERP Expobai &bull; Hash de Integridade: {Math.random().toString(36).substring(2, 10).toUpperCase()} &bull; {dataEmissao}
-        </div>
+      <div className="mt-8 pt-4 border-t border-slate-300 flex items-center justify-between text-[10px] text-slate-500 font-mono page-break-inside-avoid">
+        <span>🌾 Tenda dos Müller &bull; Expobai 2026 &bull; ERP Frente de Caixa</span>
+        <span>Emissão: {dataEmissao}</span>
       </div>
 
     </div>
