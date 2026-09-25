@@ -5,7 +5,7 @@ import CartPanel from '../components/CartPanel';
 import CheckoutModal from '../components/CheckoutModal';
 import ReceiptModal from '../components/ReceiptModal';
 import { getCategorias, getProdutos, createPedido } from '../services/api';
-import { CheckCircle2, Printer, X, Sparkles } from 'lucide-react';
+import { RefreshCw, CheckCircle2, Printer, X, Sparkles } from 'lucide-react';
 import confetti from 'canvas-confetti';
 
 export default function PosPage({ config, onCartCountChange }) {
