@@ -282,7 +282,21 @@ export default function ReceiptModal({
                       {item.quantidade}x
                     </td>
                     <td style={{ fontWeight: 'bold', padding: '4px 0' }}>
-                      {item.nome_produto}
+                      <div>{item.nome_produto}</div>
+                      {(() => {
+                        let info = item.combo_info;
+                        if (typeof info === 'string') {
+                          try { info = JSON.parse(info); } catch {}
+                        }
+                        if (info?.itens && Array.isArray(info.itens) && info.itens.length > 0) {
+                          return (
+                            <div style={{ fontSize: '11px', fontWeight: 'normal', color: '#444', marginTop: '2px' }}>
+                              Inclui: {info.itens.map(it => `${it.quantidade}x ${it.nome}`).join(' + ')}
+                            </div>
+                          );
+                        }
+                        return null;
+                      })()}
                     </td>
                   </tr>
                 ))}

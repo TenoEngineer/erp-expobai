@@ -57,6 +57,7 @@ export default function CategoryTabs({ categories = [], selectedCategory, onSele
       {categories.map((cat) => {
         const isSelected = selectedCategory === cat.id;
         const count = productsCountByCat[cat.id] || 0;
+        const isCombo = cat.nome.toLowerCase() === 'combos';
 
         return (
           <button
@@ -64,14 +65,24 @@ export default function CategoryTabs({ categories = [], selectedCategory, onSele
             onClick={() => onSelectCategory(cat.id)}
             className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-sm whitespace-nowrap transition-all duration-200 shadow-md ${
               isSelected
-                ? 'bg-gradient-to-r from-amber-600 to-amber-700 text-white border-2 border-amber-400/50 shadow-amber-950/60 scale-[1.02]'
-                : 'bg-slate-800/90 text-slate-300 hover:bg-slate-800 hover:text-white border border-slate-700/60'
+                ? isCombo
+                  ? 'bg-gradient-to-r from-purple-600 via-indigo-600 to-purple-700 text-white border-2 border-purple-400/60 shadow-purple-950/80 scale-[1.02]'
+                  : 'bg-gradient-to-r from-amber-600 to-amber-700 text-white border-2 border-amber-400/50 shadow-amber-950/60 scale-[1.02]'
+                : isCombo
+                  ? 'bg-purple-950/60 text-purple-200 hover:bg-purple-900/80 hover:text-white border border-purple-500/40 shadow-sm'
+                  : 'bg-slate-800/90 text-slate-300 hover:bg-slate-800 hover:text-white border border-slate-700/60'
             }`}
           >
-            {renderIcon(cat.icone, isSelected ? 'w-4 h-4 text-white' : 'w-4 h-4 text-amber-400')}
-            <span>{cat.nome}</span>
+            {isCombo ? (
+              <span className="text-base">🎁</span>
+            ) : (
+              renderIcon(cat.icone, isSelected ? 'w-4 h-4 text-white' : 'w-4 h-4 text-amber-400')
+            )}
+            <span>{isCombo ? 'Combos Pré-Prontos' : cat.nome}</span>
             <span className={`text-xs px-2 py-0.5 rounded-full font-bold ${
-              isSelected ? 'bg-amber-950/80 text-amber-200' : 'bg-slate-900 text-slate-400'
+              isSelected 
+                ? isCombo ? 'bg-purple-950 text-purple-200' : 'bg-amber-950/80 text-amber-200'
+                : isCombo ? 'bg-purple-900/80 text-purple-300' : 'bg-slate-900 text-slate-400'
             }`}>
               {count}
             </span>

@@ -86,6 +86,19 @@ export default function PosPage({ config, onCartCountChange }) {
   // Ações do Carrinho
   const handleAddToCart = (product) => {
     const itemKey = product.cart_id || product.id;
+    let comboInfo = product.combo_info;
+    if (!comboInfo && (product.is_combo || product.categoria_nome?.toLowerCase() === 'combos')) {
+      let parsedItens = product.itens_combo;
+      if (typeof parsedItens === 'string') {
+        try { parsedItens = JSON.parse(parsedItens); } catch {}
+      }
+      comboInfo = {
+        is_combo: true,
+        titulo: product.nome,
+        itens: parsedItens || []
+      };
+    }
+
     setCart((prevCart) => {
       const existing = prevCart.find((item) => (item.cart_id || item.id) === itemKey);
       if (existing) {
@@ -106,7 +119,7 @@ export default function PosPage({ config, onCartCountChange }) {
           preco_custo: parseFloat(product.preco_custo || 0),
           quantidade: 1,
           foto_url: product.foto_url,
-          combo_info: product.combo_info || null
+          combo_info: comboInfo || null
         }
       ];
     });
@@ -210,16 +223,30 @@ export default function PosPage({ config, onCartCountChange }) {
     setIsReceiptOpen(true);
   };
 
-  // Filtro de produtos por categoria
-  const filteredProducts = selectedCategory
-    ? products.filter((p) => p.categoria_id === selectedCategory)
-    : products;
+  // Categoria de Combos
+  const comboCategory = categories.find((c) => c.nome.toLowerCase() === 'combos');
+  const comboCatId = comboCategory?.id;
 
   // Contagem de produtos por categoria
   const productsCountByCat = {};
+  let totalCombosCount = 0;
   products.forEach((p) => {
+    const isCombo = Boolean(p.is_combo || p.categoria_id === comboCatId || p.categoria_nome?.toLowerCase() === 'combos');
+    if (isCombo) {
+      totalCombosCount++;
+    }
     productsCountByCat[p.categoria_id] = (productsCountByCat[p.categoria_id] || 0) + 1;
   });
+  if (comboCatId) {
+    productsCountByCat[comboCatId] = totalCombosCount;
+  }
+
+  // Filtro de produtos por categoria
+  const filteredProducts = selectedCategory === null
+    ? products
+    : (selectedCategory === comboCatId || selectedCategory === 'combos')
+      ? products.filter((p) => p.is_combo || p.categoria_id === comboCatId || p.categoria_nome?.toLowerCase() === 'combos')
+      : products.filter((p) => p.categoria_id === selectedCategory);
 
   const cartTotal = cart.reduce((acc, item) => acc + item.quantidade * item.preco, 0);
   const cartTotalItems = cart.reduce((acc, item) => acc + item.quantidade, 0);

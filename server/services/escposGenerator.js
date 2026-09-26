@@ -222,6 +222,15 @@ function buildTicketProducao(order, config = {}, largura = '80mm', cortar = true
     b.line(`[ ${qtd}x ] ${nome}`);
     b.size('normal');
     b.bold(false);
+
+    let comboInfo = item.combo_info;
+    if (typeof comboInfo === 'string') {
+      try { comboInfo = JSON.parse(comboInfo); } catch {}
+    }
+    if (comboInfo?.itens && Array.isArray(comboInfo.itens) && comboInfo.itens.length > 0) {
+      const breakdown = comboInfo.itens.map(it => `${it.quantidade}x ${it.nome}`).join(' + ');
+      b.line(`  Inclui: ${breakdown}`);
+    }
   });
 
   b.divider('-', largura);

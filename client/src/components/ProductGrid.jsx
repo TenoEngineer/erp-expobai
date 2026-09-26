@@ -20,6 +20,16 @@ export default function ProductGrid({ products = [], onAddToCart, cartItems = []
     }
   };
 
+  const getParsedItensCombo = (prod) => {
+    if (!prod?.itens_combo) return [];
+    if (Array.isArray(prod.itens_combo)) return prod.itens_combo;
+    try {
+      return JSON.parse(prod.itens_combo);
+    } catch {
+      return [];
+    }
+  };
+
   const getItemQuantityInCart = (productId) => {
     const found = cartItems.find(item => item.id === productId || item.produto_id === productId);
     return found ? found.quantidade : 0;
@@ -66,12 +76,20 @@ export default function ProductGrid({ products = [], onAddToCart, cartItems = []
           {filteredProducts.map((prod) => {
             const qtyInCart = getItemQuantityInCart(prod.id);
             const combos = getProductCombos(prod);
+            const isCombo = Boolean(prod.is_combo || prod.categoria_nome?.toLowerCase() === 'combos');
+            const itensCombo = getParsedItensCombo(prod);
+            const somaAvulso = itensCombo.reduce((acc, it) => acc + (parseFloat(it.preco || 0) * (it.quantidade || 1)), 0);
+            const economia = Math.max(0, somaAvulso - parseFloat(prod.preco || 0));
 
             return (
               <div
                 key={prod.id}
                 onClick={() => onAddToCart(prod)}
-                className="group relative bg-slate-800/80 hover:bg-slate-800 border border-slate-700/70 hover:border-amber-500/50 rounded-2xl p-2.5 sm:p-3 text-left transition-all duration-150 flex flex-col justify-between shadow-lg hover:shadow-amber-950/20 active:scale-[0.99] select-none cursor-pointer overflow-hidden"
+                className={`group relative border rounded-2xl p-2.5 sm:p-3 text-left transition-all duration-150 flex flex-col justify-between shadow-lg active:scale-[0.99] select-none cursor-pointer overflow-hidden ${
+                  isCombo
+                    ? 'bg-gradient-to-b from-purple-950/40 via-slate-900 to-slate-900 border-purple-500/40 hover:border-purple-400 hover:shadow-purple-950/40'
+                    : 'bg-slate-800/80 hover:bg-slate-800 border-slate-700/70 hover:border-amber-500/50 hover:shadow-amber-950/20'
+                }`}
               >
                 {/* Badge de quantidade no carrinho */}
                 {qtyInCart > 0 && (
@@ -80,10 +98,11 @@ export default function ProductGrid({ products = [], onAddToCart, cartItems = []
                   </div>
                 )}
 
-                {/* Badge de Kit Misto */}
-                {prod.is_combo && (
-                  <div className="absolute top-2 left-2 z-10 bg-purple-950 text-purple-300 border border-purple-500/50 font-black text-[9px] px-1.5 py-0.5 rounded-md shadow-md">
-                    KIT MISTO
+                {/* Badge de Combo */}
+                {isCombo && (
+                  <div className="absolute top-2 left-2 z-10 bg-gradient-to-r from-purple-600 to-indigo-600 text-white font-black text-[9px] px-2 py-0.5 rounded-md shadow-md flex items-center gap-1 border border-purple-400/50">
+                    <Sparkles className="w-2.5 h-2.5 text-amber-300" />
+                    <span>COMBO</span>
                   </div>
                 )}
 
@@ -101,34 +120,76 @@ export default function ProductGrid({ products = [], onAddToCart, cartItems = []
                     />
                   ) : null}
                   <div 
-                    className={`w-full h-full flex items-center justify-center bg-gradient-to-br from-emerald-950/80 to-slate-900 ${prod.foto_url ? 'hidden' : 'flex'}`}
+                    className={`w-full h-full flex items-center justify-center ${
+                      isCombo ? 'bg-gradient-to-br from-purple-950/80 to-slate-900' : 'bg-gradient-to-br from-emerald-950/80 to-slate-900'
+                    } ${prod.foto_url ? 'hidden' : 'flex'}`}
                   >
-                    <Utensils className="w-8 h-8 text-emerald-500/60" />
+                    {isCombo ? (
+                      <Sparkles className="w-8 h-8 text-amber-400" />
+                    ) : (
+                      <Utensils className="w-8 h-8 text-emerald-500/60" />
+                    )}
                   </div>
                 </div>
 
                 {/* Detalhes */}
                 <div className="flex-1 flex flex-col justify-between">
                   <div>
-                    <h3 className="font-bold text-slate-100 text-sm leading-tight group-hover:text-amber-400 transition-colors line-clamp-1">
+                    <h3 className={`font-bold text-sm leading-tight transition-colors line-clamp-1 ${
+                      isCombo ? 'text-purple-100 group-hover:text-purple-300' : 'text-slate-100 group-hover:text-amber-400'
+                    }`}>
                       {prod.nome}
                     </h3>
-                    {prod.descricao && (
+                    
+                    {/* Pills de itens inclusos no combo */}
+                    {isCombo && itensCombo.length > 0 && (
+                      <div className="flex flex-wrap gap-1 my-1.5">
+                        {itensCombo.map((it, idx) => (
+                          <span
+                            key={idx}
+                            className="bg-purple-950/90 text-purple-200 border border-purple-500/30 text-[10px] font-bold px-1.5 py-0.5 rounded-md"
+                          >
+                            <b className="text-amber-400">{it.quantidade}x</b> {it.nome}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+
+                    {prod.descricao && (!isCombo || itensCombo.length === 0) && (
                       <p className="text-[11px] text-slate-400 line-clamp-1 mt-0.5 font-normal">
                         {prod.descricao}
                       </p>
                     )}
                   </div>
 
-                  {/* Preço Unitário e Botão de Adicionar */}
+                  {/* Preço e Botão de Adicionar */}
                   <div className="mt-2.5 pt-2 border-t border-slate-700/50 flex items-center justify-between">
                     <div>
-                      <span className="text-[10px] text-slate-400 block font-sans">Unitário</span>
-                      <span className="font-black text-sm sm:text-base text-amber-400 font-mono tracking-tight block">
-                        {formatPrice(prod.preco)}
-                      </span>
+                      {isCombo && somaAvulso > prod.preco ? (
+                        <span className="text-[10px] text-slate-400 line-through font-mono block">
+                          De: {formatPrice(somaAvulso)}
+                        </span>
+                      ) : (
+                        <span className="text-[10px] text-slate-400 block font-sans">
+                          {isCombo ? 'Preço Combo' : 'Unitário'}
+                        </span>
+                      )}
+                      <div className="flex items-baseline gap-1.5 flex-wrap">
+                        <span className="font-black text-sm sm:text-base text-amber-400 font-mono tracking-tight block">
+                          {formatPrice(prod.preco)}
+                        </span>
+                        {isCombo && economia > 0 && (
+                          <span className="text-[9px] bg-amber-500/20 text-amber-300 font-bold px-1.5 py-0.2 rounded border border-amber-500/40">
+                            Economiza {formatPrice(economia)}
+                          </span>
+                        )}
+                      </div>
                     </div>
-                    <div className="w-7 h-7 rounded-lg bg-emerald-600/20 group-hover:bg-emerald-600 text-emerald-400 group-hover:text-white flex items-center justify-center transition-colors">
+                    <div className={`w-7 h-7 rounded-lg flex items-center justify-center transition-colors ${
+                      isCombo
+                        ? 'bg-purple-600/30 group-hover:bg-purple-600 text-purple-300 group-hover:text-white'
+                        : 'bg-emerald-600/20 group-hover:bg-emerald-600 text-emerald-400 group-hover:text-white'
+                    }`}>
                       <Plus className="w-4 h-4" />
                     </div>
                   </div>

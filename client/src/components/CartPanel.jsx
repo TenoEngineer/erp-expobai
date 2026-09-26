@@ -126,11 +126,17 @@ export default function CartPanel({
                         {item.nome}
                       </h4>
                       {item.combo_info && (
-                        <span className="px-1.5 py-0.2 rounded bg-amber-950/80 text-amber-300 border border-amber-500/40 text-[9px] font-black font-mono">
+                        <span className="px-1.5 py-0.2 rounded bg-purple-950/80 text-purple-300 border border-purple-500/40 text-[9px] font-black font-mono">
                           🎁 {item.combo_info.titulo || 'COMBO'}
                         </span>
                       )}
                     </div>
+
+                    {item.combo_info?.itens && Array.isArray(item.combo_info.itens) && item.combo_info.itens.length > 0 && (
+                      <div className="text-[10px] text-purple-300/80 font-medium mt-0.5">
+                        {item.combo_info.itens.map(i => `${i.quantidade}x ${i.nome}`).join(' + ')}
+                      </div>
+                    )}
 
                     {editingPriceId === item.id ? (
                       <div className="flex items-center gap-1 mt-1">

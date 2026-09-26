@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Save, Check, Printer, RefreshCw, AlertCircle, Wifi, Usb, Monitor, Scissors } from 'lucide-react';
+import { Save, Check, Printer, RefreshCw, AlertCircle, Wifi, Usb, Monitor, Scissors, Sparkles } from 'lucide-react';
 import { saveConfig, getPrinters, testPrinter } from '../../services/api';
 
-export default function ConfigManagement({ config = {}, onRefresh }) {
+export default function ConfigManagement({ config = {}, onRefresh, onNavigateToCombos }) {
   const [formData, setFormData] = useState({
     nome_estande: '',
     chave_pix: '',
@@ -131,6 +131,31 @@ export default function ConfigManagement({ config = {}, onRefresh }) {
           Configure a identificação da sua barraca na Expobai e a automação dos tickets térmicos
         </p>
       </div>
+
+      {/* Banner de Atalho para Combos Pré-Prontos */}
+      {onNavigateToCombos && (
+        <div className="bg-gradient-to-r from-purple-950/70 via-slate-900 to-indigo-950/40 border border-purple-500/40 p-4 rounded-2xl flex flex-col sm:flex-row items-center justify-between gap-3 shadow-lg">
+          <div className="flex items-center gap-3">
+            <span className="p-2.5 bg-purple-900/60 text-purple-300 rounded-xl border border-purple-500/30 text-xl">🎁</span>
+            <div>
+              <h4 className="font-bold text-sm text-purple-200">
+                Combos & Promoções Pré-Prontas
+              </h4>
+              <p className="text-xs text-slate-400">
+                Defina os produtos que compõem cada combo e o preço fixo de venda para seleção rápida em 1 clique no caixa.
+              </p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={onNavigateToCombos}
+            className="px-4 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-bold text-xs rounded-xl shadow-md border border-purple-400/40 transition-all shrink-0 cursor-pointer flex items-center gap-1.5 active:scale-95"
+          >
+            <span>Configurar Combos</span>
+            <span>&rarr;</span>
+          </button>
+        </div>
+      )}
 
       <form onSubmit={handleSubmit} className="space-y-6">
 

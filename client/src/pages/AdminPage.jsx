@@ -5,12 +5,14 @@ import {
   BarChart3, 
   Sliders, 
   RefreshCw,
-  TrendingUp
+  TrendingUp,
+  Sparkles
 } from 'lucide-react';
 import ProductManagement from '../components/admin/ProductManagement';
 import CategoryManagement from '../components/admin/CategoryManagement';
 import SalesReport from '../components/admin/SalesReport';
 import CostAnalysisReport from '../components/admin/CostAnalysisReport';
+import ComboManagement from '../components/admin/ComboManagement';
 import ConfigManagement from '../components/admin/ConfigManagement';
 import { getCategoriasAdmin, getProdutosAdmin } from '../services/api';
 
@@ -55,6 +57,18 @@ export default function AdminPage({ config, onRefreshConfig }) {
         >
           <Package className="w-4 h-4" />
           <span>Produtos & Preços</span>
+        </button>
+
+        <button
+          onClick={() => setActiveSubTab('combos')}
+          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-xs uppercase tracking-wider transition-all ${
+            activeSubTab === 'combos'
+              ? 'bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-lg shadow-purple-950 border border-purple-400/40'
+              : 'bg-slate-800/80 text-slate-400 hover:text-white hover:bg-slate-800'
+          }`}
+        >
+          <Sparkles className="w-4 h-4 text-amber-300" />
+          <span>Combos Pré-Prontos 🎁</span>
         </button>
 
         <button
@@ -122,6 +136,14 @@ export default function AdminPage({ config, onRefreshConfig }) {
             />
           )}
 
+          {activeSubTab === 'combos' && (
+            <ComboManagement
+              products={products}
+              categories={categories}
+              onRefresh={loadAdminData}
+            />
+          )}
+
           {activeSubTab === 'categorias' && (
             <CategoryManagement
               categories={categories}
@@ -144,6 +166,7 @@ export default function AdminPage({ config, onRefreshConfig }) {
             <ConfigManagement
               config={config}
               onRefresh={onRefreshConfig}
+              onNavigateToCombos={() => setActiveSubTab('combos')}
             />
           )}
         </>

@@ -49,6 +49,16 @@ export const saveProduto = async (produto) => {
   return data;
 };
 
+export const createProduto = async (produto) => {
+  const { data } = await api.post('/produtos', produto);
+  return data;
+};
+
+export const updateProduto = async (id, produto) => {
+  const { data } = await api.put(`/produtos/${id}`, produto);
+  return data;
+};
+
 export const updatePrecoProduto = async (id, preco) => {
   const { data } = await api.patch(`/produtos/${id}/preco`, { preco });
   return data;

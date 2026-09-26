@@ -119,6 +119,11 @@ async function initDB() {
       ALTER TABLE expobai.produtos ADD COLUMN IF NOT EXISTS itens_combo JSONB DEFAULT '[]'::jsonb;
       ALTER TABLE expobai.pedido_itens ADD COLUMN IF NOT EXISTS preco_custo NUMERIC(10, 2) DEFAULT 0;
       ALTER TABLE expobai.pedido_itens ADD COLUMN IF NOT EXISTS combo_info JSONB DEFAULT NULL;
+
+      -- Migrações v4: Categoria Combos Pré-Prontos
+      INSERT INTO expobai.categorias (nome, icone, cor, ordem, ativo)
+      SELECT 'Combos', 'sparkles', '#7C3AED', 0, 1
+      WHERE NOT EXISTS (SELECT 1 FROM expobai.categorias WHERE LOWER(nome) = 'combos');
     `);
 
     // 3. Seed inicial de categorias se estiver vazio
