@@ -123,19 +123,22 @@ const relatoriosRepository = {
       ORDER BY hora ASC
     `, params);
 
-    // 4. Mix por Categorias
+    // 4. Mix por Categorias com Custos e Lucro Bruto
     const categoriasRes = await query(`
       SELECT 
+        COALESCE(c.id, 0) as categoria_id,
         COALESCE(c.nome, 'Geral') as categoria,
         COALESCE(c.cor, '#2D6A4F') as cor,
         SUM(i.quantidade) as total_itens,
-        SUM(i.subtotal) as total_faturado
+        SUM(i.subtotal) as total_faturado,
+        SUM(i.quantidade * COALESCE(NULLIF(i.preco_custo, 0), pr.preco_custo, 0)) as custo_total,
+        SUM(i.subtotal) - SUM(i.quantidade * COALESCE(NULLIF(i.preco_custo, 0), pr.preco_custo, 0)) as lucro_bruto
       FROM expobai.pedido_itens i
       JOIN expobai.pedidos p ON i.pedido_id = p.id
       LEFT JOIN expobai.produtos pr ON i.produto_id = pr.id
       LEFT JOIN expobai.categorias c ON pr.categoria_id = c.id
       ${whereClause}
-      GROUP BY c.nome, c.cor
+      GROUP BY c.id, c.nome, c.cor
       ORDER BY total_faturado DESC
     `, params);
 
@@ -308,13 +311,23 @@ const relatoriosRepository = {
         total_faturado: parseFloat(r.total_faturado),
         pct: calcPct(parseFloat(r.total_faturado))
       })),
-      categorias: categoriasRes.rows.map(r => ({
-        categoria: r.categoria,
-        cor: r.cor,
-        total_itens: parseInt(r.total_itens, 10),
-        total_faturado: parseFloat(r.total_faturado),
-        pct: calcPct(parseFloat(r.total_faturado))
-      })),
+      categorias: categoriasRes.rows.map(r => {
+        const faturado = parseFloat(r.total_faturado) || 0;
+        const custo = parseFloat(r.custo_total) || 0;
+        const lucro = parseFloat(r.lucro_bruto) || (faturado - custo);
+        const margem = faturado > 0 ? Math.round(((lucro / faturado) * 100) * 10) / 10 : 0;
+        return {
+          categoria_id: r.categoria_id,
+          categoria: r.categoria,
+          cor: r.cor,
+          total_itens: parseInt(r.total_itens, 10) || 0,
+          total_faturado: faturado,
+          custo_total: custo,
+          lucro_bruto: lucro,
+          margem_lucro_pct: margem,
+          pct: calcPct(faturado)
+        };
+      }),
       ranking_produtos: rankingProdutos,
       top_produtos: rankingProdutos.slice(0, 10).map(r => ({
         nome_produto: r.nome_produto,

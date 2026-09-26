@@ -4,11 +4,13 @@ import {
   Tags, 
   BarChart3, 
   Sliders, 
-  RefreshCw 
+  RefreshCw,
+  TrendingUp
 } from 'lucide-react';
 import ProductManagement from '../components/admin/ProductManagement';
 import CategoryManagement from '../components/admin/CategoryManagement';
 import SalesReport from '../components/admin/SalesReport';
+import CostAnalysisReport from '../components/admin/CostAnalysisReport';
 import ConfigManagement from '../components/admin/ConfigManagement';
 import { getCategoriasAdmin, getProdutosAdmin } from '../services/api';
 
@@ -80,10 +82,22 @@ export default function AdminPage({ config, onRefreshConfig }) {
         </button>
 
         <button
+          onClick={() => setActiveSubTab('analise_detalhada')}
+          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-xs uppercase tracking-wider transition-all ${
+            activeSubTab === 'analise_detalhada'
+              ? 'bg-purple-600 text-white shadow-lg shadow-purple-950 border border-purple-400/40'
+              : 'bg-slate-800/80 text-slate-400 hover:text-white hover:bg-slate-800'
+          }`}
+        >
+          <TrendingUp className="w-4 h-4" />
+          <span>Análise Detalhada & Custos</span>
+        </button>
+
+        <button
           onClick={() => setActiveSubTab('config')}
           className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-xs uppercase tracking-wider transition-all ${
             activeSubTab === 'config'
-              ? 'bg-purple-600 text-white shadow-lg shadow-purple-950 border border-purple-400/40'
+              ? 'bg-amber-600 text-white shadow-lg shadow-amber-950 border border-amber-400/40'
               : 'bg-slate-800/80 text-slate-400 hover:text-white hover:bg-slate-800'
           }`}
         >
@@ -116,7 +130,14 @@ export default function AdminPage({ config, onRefreshConfig }) {
           )}
 
           {activeSubTab === 'relatorios' && (
-            <SalesReport config={config} />
+            <SalesReport 
+              config={config} 
+              onNavigateToCustos={() => setActiveSubTab('analise_detalhada')}
+            />
+          )}
+
+          {activeSubTab === 'analise_detalhada' && (
+            <CostAnalysisReport config={config} />
           )}
 
           {activeSubTab === 'config' && (

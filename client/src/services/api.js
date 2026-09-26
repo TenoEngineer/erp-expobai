@@ -122,6 +122,13 @@ export const getFechamento = async (params = {}) => {
   return data;
 };
 
+export const getRelatorioVendas = getFechamento;
+
+export const getRelatorioPorCaixa = async (sessaoId) => {
+  const { data } = await api.get('/relatorios/fechamento', { params: { sessao_id: sessaoId } });
+  return data;
+};
+
 export const getConfig = async () => {
   const { data } = await api.get('/configuracoes');
   return data;
