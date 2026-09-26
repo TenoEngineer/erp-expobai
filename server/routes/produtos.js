@@ -80,7 +80,7 @@ router.get('/admin', async (req, res) => {
 // Criar produto
 router.post('/', async (req, res) => {
   try {
-    const { categoria_id, nome, descricao, preco, foto_url, ordem } = req.body;
+    const { categoria_id, nome, descricao, preco, preco_custo, foto_url, ordem } = req.body;
     if (!categoria_id || !nome || preco === undefined) {
       return res.status(400).json({ error: 'Categoria, nome e preço são obrigatórios' });
     }
@@ -89,6 +89,7 @@ router.post('/', async (req, res) => {
       nome,
       descricao,
       preco,
+      preco_custo,
       foto_url,
       ordem
     });

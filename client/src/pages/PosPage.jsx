@@ -6,7 +6,7 @@ import CheckoutModal from '../components/CheckoutModal';
 import ReceiptModal from '../components/ReceiptModal';
 import RecentOrdersModal from '../components/RecentOrdersModal';
 import { getCategorias, getProdutos, createPedido } from '../services/api';
-import { RefreshCw, CheckCircle2, Printer, X, Sparkles, Receipt, Trash2, Clock } from 'lucide-react';
+import { RefreshCw, CheckCircle2, Printer, X, Sparkles, Receipt, Trash2, Clock, ShoppingBag, ArrowRight } from 'lucide-react';
 import confetti from 'canvas-confetti';
 
 export default function PosPage({ config, onCartCountChange }) {
@@ -20,6 +20,7 @@ export default function PosPage({ config, onCartCountChange }) {
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
   const [isReceiptOpen, setIsReceiptOpen] = useState(false);
   const [isRecentOrdersOpen, setIsRecentOrdersOpen] = useState(false);
+  const [isMobileCartOpen, setIsMobileCartOpen] = useState(false);
   const [lastOrder, setLastOrder] = useState(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [orderNotification, setOrderNotification] = useState(null);
@@ -64,12 +65,13 @@ export default function PosPage({ config, onCartCountChange }) {
       }
       if (e.key === 'Escape') {
         if (isCheckoutOpen) setIsCheckoutOpen(false);
+        if (isMobileCartOpen) setIsMobileCartOpen(false);
       }
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [cart, isCheckoutOpen]);
+  }, [cart, isCheckoutOpen, isMobileCartOpen]);
 
   // Auto-dismiss da notificação rápida de pedido concluído
   useEffect(() => {
@@ -125,27 +127,29 @@ export default function PosPage({ config, onCartCountChange }) {
   const handleClearCart = () => {
     if (cart.length > 0 && confirm('Deseja limpar todos os itens do carrinho?')) {
       setCart([]);
+      setIsMobileCartOpen(false);
     }
   };
 
   // =========================================================================
   // FINALIZAR VENDA
-  // Abre o modal de recibo para conferência e impressão sob demanda (clicar para imprimir)
+  // Abre o modal de recibo para conferência e impressão sob demanda
   // =========================================================================
   const handleConfirmOrder = async (orderPayload) => {
     try {
       setIsProcessing(true);
       const savedOrder = await createPedido(orderPayload);
       
-      // 1. Atualiza último pedido e fecha o modal de checkout
+      // 1. Atualiza último pedido e fecha modais
       setLastOrder(savedOrder);
       setIsCheckoutOpen(false);
+      setIsMobileCartOpen(false);
       setIsProcessing(false);
 
       // 2. Limpa o carrinho instantaneamente
       setCart([]);
 
-      // 3. Abre o modal com os dados do pedido para imprimir se necessário (ou Enter para avançar)
+      // 3. Abre o modal com os dados do pedido para imprimir se necessário
       setIsReceiptOpen(true);
 
     } catch (err) {
@@ -166,9 +170,11 @@ export default function PosPage({ config, onCartCountChange }) {
     }
   };
 
-  // Reimprimir comandas do último pedido reabrindo a tela de recibo
-  const handleReimprimirUltimo = () => {
-    if (!lastOrder) return;
+  // Reimprimir comandas reabrindo a tela de recibo
+  const handleReimprimir = (orderToReprint) => {
+    const target = orderToReprint || lastOrder;
+    if (!target) return;
+    setLastOrder(target);
     setIsReceiptOpen(true);
   };
 
@@ -184,6 +190,7 @@ export default function PosPage({ config, onCartCountChange }) {
   });
 
   const cartTotal = cart.reduce((acc, item) => acc + item.quantidade * item.preco, 0);
+  const cartTotalItems = cart.reduce((acc, item) => acc + item.quantidade, 0);
 
   const formatPrice = (value) => {
     return Number(value || 0).toLocaleString('pt-BR', {
@@ -202,14 +209,11 @@ export default function PosPage({ config, onCartCountChange }) {
   }
 
   return (
-    <div className="max-w-7xl mx-auto p-3 sm:p-4 flex flex-col lg:flex-row gap-4 relative">
+    <div className="max-w-7xl mx-auto p-2 sm:p-4 flex flex-col lg:flex-row gap-4 relative pb-28 lg:pb-4">
       
-      {/* ========================================================================= */}
-      {/* NOTIFICAÇÃO FLUTUANTE ULTRA-RÁPIDA (NÃO BLOQUEIA A TELA) */}
-      {/* Mostra o número da comanda impresso enquanto o caixa já atende o próximo */}
-      {/* ========================================================================= */}
+      {/* NOTIFICAÇÃO FLUTUANTE ULTRA-RÁPIDA */}
       {orderNotification && (
-        <div className="fixed top-16 right-4 sm:right-6 z-40 bg-slate-900/95 border-2 border-emerald-500/80 shadow-2xl shadow-emerald-950/80 rounded-2xl p-3.5 max-w-sm sm:max-w-md animate-in slide-in-from-top-3 duration-200 backdrop-blur-md">
+        <div className="fixed top-16 right-3 sm:right-6 z-40 bg-slate-900/95 border-2 border-emerald-500/80 shadow-2xl shadow-emerald-950/80 rounded-2xl p-3 sm:p-3.5 max-w-sm sm:max-w-md animate-in slide-in-from-top-3 duration-200 backdrop-blur-md">
           <div className="flex items-start justify-between gap-3">
             <div className="flex items-center gap-2.5">
               <div className="w-10 h-10 rounded-xl bg-emerald-500/20 border border-emerald-400/50 flex items-center justify-center text-emerald-400 shrink-0">
@@ -225,7 +229,7 @@ export default function PosPage({ config, onCartCountChange }) {
                   </span>
                 </div>
                 <p className="text-xs text-slate-300 font-medium mt-0.5">
-                  {formatPrice(orderNotification.total)} &bull; {orderNotification.printMessage || 'Impresso automaticamente!'}
+                  {formatPrice(orderNotification.total)} &bull; {orderNotification.printMessage || 'Impresso com sucesso!'}
                 </p>
               </div>
             </div>
@@ -245,11 +249,11 @@ export default function PosPage({ config, onCartCountChange }) {
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
                 <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
               </span>
-              Caixa pronto para o próximo cliente!
+              Pronto para o próximo cliente!
             </span>
 
             <button
-              onClick={handleReimprimirUltimo}
+              onClick={() => handleReimprimir()}
               className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg font-bold flex items-center gap-1 border border-slate-700 hover:border-amber-500/50 text-[11px] transition-colors"
               title="Reimprimir comanda do último pedido"
             >
@@ -264,21 +268,22 @@ export default function PosPage({ config, onCartCountChange }) {
       <div className="flex-1 flex flex-col gap-3 min-w-0">
         
         {/* Barra Rápida de Ações do PDV & Horário Oficial MS */}
-        <div className="flex items-center justify-between gap-2 bg-slate-900 border border-slate-800 px-3.5 py-2 rounded-2xl shadow">
+        <div className="flex items-center justify-between gap-2 bg-slate-900 border border-slate-800 px-3 py-2 rounded-2xl shadow">
           <button
             type="button"
             onClick={() => setIsRecentOrdersOpen(true)}
             className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-amber-300 border border-amber-500/40 rounded-xl font-bold text-xs flex items-center gap-1.5 transition-all active:scale-95 shadow"
-            title="Ver histórico de vendas para reimprimir ou excluir vendas lançadas erradas"
+            title="Ver vendas recentes para reimprimir ficha, editar itens ou excluir erro"
           >
             <Receipt className="w-3.5 h-3.5 text-amber-400" />
-            <span>📋 Vendas Recentes / Corrigir Venda</span>
+            <span>⚡ Vendas Recentes / Correções</span>
           </button>
 
           <div className="flex items-center gap-2 text-[11px] text-slate-400 font-mono">
             <span className="flex items-center gap-1">
               <Clock className="w-3.5 h-3.5 text-slate-500" />
-              <span>Horário MS (-1h BSB)</span>
+              <span className="hidden sm:inline">Horário Oficial</span>
+              <span>MS (-1h BSB)</span>
             </span>
           </div>
         </div>
@@ -299,16 +304,142 @@ export default function PosPage({ config, onCartCountChange }) {
         />
       </div>
 
-      {/* Coluna Direita: Painel do Carrinho e Finalização */}
-      <CartPanel
-        cart={cart}
-        onUpdateQuantity={handleUpdateQuantity}
-        onRemoveItem={handleRemoveItem}
-        onClearCart={handleClearCart}
-        onOpenCheckout={() => setIsCheckoutOpen(true)}
-      />
+      {/* Coluna Direita (Desktop): Painel do Carrinho Fixo */}
+      <div className="hidden lg:block">
+        <CartPanel
+          cart={cart}
+          onUpdateQuantity={handleUpdateQuantity}
+          onRemoveItem={handleRemoveItem}
+          onClearCart={handleClearCart}
+          onOpenCheckout={() => setIsCheckoutOpen(true)}
+        />
+      </div>
 
-      {/* Modal de Pagamento / Checkout (Abre somente para escolher a forma de pagamento) */}
+      {/* ========================================================================= */}
+      {/* BARRA FLUTUANTE INFERIOR MOBILE (CELULAR) */}
+      {/* Permite vender pelo celular de forma rápida e intuitiva */}
+      {/* ========================================================================= */}
+      {cart.length > 0 && (
+        <div className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-slate-900/95 border-t border-emerald-500/50 p-2.5 sm:p-3 backdrop-blur-md shadow-2xl flex items-center justify-between gap-2.5 animate-in slide-in-from-bottom-4 duration-200">
+          <div 
+            onClick={() => setIsMobileCartOpen(true)}
+            className="flex items-center gap-2 cursor-pointer flex-1 min-w-0"
+          >
+            <div className="w-10 h-10 rounded-xl bg-emerald-600/30 border border-emerald-500 flex items-center justify-center text-emerald-400 font-black text-sm shrink-0">
+              🛒 {cartTotalItems}
+            </div>
+            <div className="min-w-0">
+              <span className="text-[10px] text-slate-400 uppercase font-semibold block leading-none">
+                Toque p/ ver itens
+              </span>
+              <p className="text-lg font-black text-emerald-400 font-mono leading-tight truncate">
+                {formatPrice(cartTotal)}
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-1.5 shrink-0">
+            <button
+              type="button"
+              onClick={() => setIsMobileCartOpen(true)}
+              className="px-2.5 py-2 bg-slate-800 text-slate-300 text-xs font-bold rounded-xl border border-slate-700"
+            >
+              Itens
+            </button>
+            <button
+              type="button"
+              onClick={() => setIsCheckoutOpen(true)}
+              className="px-4 py-2 bg-gradient-to-r from-emerald-600 to-green-600 text-white font-black text-xs uppercase tracking-wider rounded-xl shadow-lg shadow-emerald-950 flex items-center gap-1 active:scale-95"
+            >
+              <span>Cobrar</span>
+              <ArrowRight className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL / GAVETA DO CARRINHO MOBILE */}
+      {isMobileCartOpen && (
+        <div className="lg:hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-end sm:items-center justify-center animate-in fade-in">
+          <div className="bg-slate-900 border-t sm:border border-slate-700 w-full sm:max-w-md rounded-t-3xl sm:rounded-3xl shadow-2xl p-4 max-h-[85vh] flex flex-col">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+              <div className="flex items-center gap-2">
+                <ShoppingBag className="w-5 h-5 text-emerald-400" />
+                <h3 className="font-extrabold text-base text-white">Itens do Pedido ({cartTotalItems})</h3>
+              </div>
+              <button
+                onClick={() => setIsMobileCartOpen(false)}
+                className="p-1.5 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto py-3 space-y-2">
+              {cart.map((item) => (
+                <div key={item.id} className="bg-slate-950 border border-slate-800 p-2.5 rounded-xl flex items-center justify-between gap-2">
+                  <div className="flex-1 min-w-0">
+                    <span className="font-bold text-slate-100 block text-xs truncate">{item.nome}</span>
+                    <span className="text-[11px] text-slate-400 font-mono">{formatPrice(item.preco)} cada</span>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <div className="flex items-center bg-slate-900 border border-slate-700 rounded-lg">
+                      <button
+                        onClick={() => handleUpdateQuantity(item.id, item.quantidade - 1)}
+                        className="w-7 h-7 flex items-center justify-center text-slate-400 hover:text-white"
+                      >
+                        -
+                      </button>
+                      <span className="w-7 text-center font-mono font-bold text-xs text-white">
+                        {item.quantidade}
+                      </span>
+                      <button
+                        onClick={() => handleUpdateQuantity(item.id, item.quantidade + 1)}
+                        className="w-7 h-7 flex items-center justify-center text-slate-400 hover:text-white"
+                      >
+                        +
+                      </button>
+                    </div>
+
+                    <span className="font-mono font-bold text-emerald-400 text-xs w-16 text-right">
+                      {formatPrice(item.quantidade * item.preco)}
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div className="pt-3 border-t border-slate-800 space-y-2">
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-slate-400 font-bold">Total:</span>
+                <span className="font-black text-xl text-emerald-400 font-mono">{formatPrice(cartTotal)}</span>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={handleClearCart}
+                  className="py-2.5 bg-slate-800 hover:bg-rose-950/50 text-slate-300 hover:text-rose-400 text-xs font-bold rounded-xl border border-slate-700"
+                >
+                  Limpar Carrinho
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsMobileCartOpen(false);
+                    setIsCheckoutOpen(true);
+                  }}
+                  className="py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs uppercase tracking-wider rounded-xl shadow-lg"
+                >
+                  Ir Cobrar
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de Pagamento / Checkout */}
       <CheckoutModal
         isOpen={isCheckoutOpen}
         onClose={() => setIsCheckoutOpen(false)}
@@ -319,7 +450,7 @@ export default function PosPage({ config, onCartCountChange }) {
         isProcessing={isProcessing}
       />
 
-      {/* Modal de Recibo / Sucesso com botão para imprimir sob demanda */}
+      {/* Modal de Recibo / Sucesso com impressão sob demanda */}
       <ReceiptModal
         isOpen={isReceiptOpen}
         onClose={handleCloseReceipt}
@@ -327,10 +458,12 @@ export default function PosPage({ config, onCartCountChange }) {
         config={config}
       />
 
-      {/* Modal de Correção de Vendas Recentes (Excluir lançamentos errados) */}
+      {/* Modal de Correção de Vendas Recentes */}
       <RecentOrdersModal
         isOpen={isRecentOrdersOpen}
         onClose={() => setIsRecentOrdersOpen(false)}
+        config={config}
+        onReprintOrder={handleReimprimir}
       />
 
     </div>

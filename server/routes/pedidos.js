@@ -7,7 +7,7 @@ const printerService = require('../services/printerService');
 // Criar novo pedido / venda do caixa
 router.post('/', async (req, res) => {
   try {
-    const { itens, forma_pagamento, valor_pago, troco, observacoes } = req.body;
+    const { itens, forma_pagamento, valor_pago, troco, observacoes, pagamentos } = req.body;
     if (!itens || !Array.isArray(itens) || itens.length === 0) {
       return res.status(400).json({ error: 'O pedido deve conter pelo menos um item' });
     }
@@ -20,7 +20,8 @@ router.post('/', async (req, res) => {
       forma_pagamento,
       valor_pago,
       troco,
-      observacoes
+      observacoes,
+      pagamentos
     });
 
     // Impressão automática instantânea se configurado Rede ou USB
@@ -94,6 +95,36 @@ router.patch('/:id/cancelar', async (req, res) => {
   } catch (err) {
     console.error('Erro ao cancelar pedido:', err);
     res.status(500).json({ error: 'Erro ao cancelar pedido' });
+  }
+});
+
+// Editar pedido (itens, valores, forma de pagamento, observações)
+router.put('/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { itens, forma_pagamento, valor_pago, troco, observacoes, pagamentos, motivo_edicao } = req.body;
+    if (itens && (!Array.isArray(itens) || itens.length === 0)) {
+      return res.status(400).json({ error: 'O pedido deve conter pelo menos um item' });
+    }
+
+    const atualizado = await pedidosRepo.updateOrder(id, {
+      itens,
+      forma_pagamento,
+      valor_pago,
+      troco,
+      observacoes,
+      pagamentos,
+      motivo_edicao
+    });
+
+    if (!atualizado) {
+      return res.status(404).json({ error: 'Pedido não encontrado' });
+    }
+
+    res.json({ message: 'Lançamento atualizado com sucesso', pedido: atualizado });
+  } catch (err) {
+    console.error('Erro ao editar pedido:', err);
+    res.status(500).json({ error: 'Erro ao editar lançamento: ' + err.message });
   }
 });
 

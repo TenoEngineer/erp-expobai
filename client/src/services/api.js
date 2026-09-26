@@ -92,6 +92,11 @@ export const deletePedido = async (id) => {
   return data;
 };
 
+export const updatePedido = async (id, pedidoData) => {
+  const { data } = await api.put(`/pedidos/${id}`, pedidoData);
+  return data;
+};
+
 export const getCaixaStatus = async () => {
   const { data } = await api.get('/caixa/status');
   return data;

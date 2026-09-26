@@ -179,6 +179,28 @@ export default function ExecutiveReportPrintView({ report, periodoDescricao, con
             </span>
           </div>
         </div>
+
+        {/* Linha de Lucro Bruto Operacional e Margem de Lucro */}
+        <div className="mt-2.5 grid grid-cols-3 gap-2.5 text-xs bg-emerald-50/70 border border-emerald-200 p-2.5 rounded-lg">
+          <div>
+            <span className="text-emerald-700 text-[10px] uppercase font-bold block">Custo Total de Mercadorias (CMV):</span>
+            <span className="font-extrabold text-slate-900 font-mono">
+              {formatPrice(ind.custo_total_produtos || 0)}
+            </span>
+          </div>
+          <div>
+            <span className="text-emerald-700 text-[10px] uppercase font-bold block">Lucro Bruto Estimado:</span>
+            <span className="font-extrabold text-emerald-800 font-mono">
+              {formatPrice(ind.lucro_bruto_total || 0)}
+            </span>
+          </div>
+          <div>
+            <span className="text-emerald-700 text-[10px] uppercase font-bold block">Margem de Lucro Média:</span>
+            <span className="font-extrabold text-emerald-800 font-mono">
+              {ind.margem_lucro_media_pct || 0}%
+            </span>
+          </div>
+        </div>
       </div>
 
       {/* ========================================================================= */}
@@ -289,13 +311,16 @@ export default function ExecutiveReportPrintView({ report, periodoDescricao, con
 
         <table className="w-full text-xs border border-slate-300 border-collapse mb-2">
           <thead>
-            <tr className="bg-slate-100 text-slate-800 border-b border-slate-300 font-bold uppercase text-[10px]">
-              <th className="p-1.5 text-center w-8">#</th>
+            <tr className="bg-slate-100 text-slate-800 border-b border-slate-300 font-bold uppercase text-[9px]">
+              <th className="p-1.5 text-center w-7">#</th>
               <th className="p-1.5 text-left">Produto / Cardápio</th>
               <th className="p-1.5 text-left">Categoria</th>
-              <th className="p-1.5 text-right">Qtd Vendida</th>
-              <th className="p-1.5 text-right">Preço Médio</th>
+              <th className="p-1.5 text-right">Qtd</th>
+              <th className="p-1.5 text-right">Venda Unit.</th>
+              <th className="p-1.5 text-right">Custo Unit.</th>
               <th className="p-1.5 text-right">Total Faturado</th>
+              <th className="p-1.5 text-right">Lucro Bruto</th>
+              <th className="p-1.5 text-right">Margem</th>
               <th className="p-1.5 text-right">% Share</th>
               <th className="p-1.5 text-center">Curva</th>
             </tr>
@@ -305,10 +330,15 @@ export default function ExecutiveReportPrintView({ report, periodoDescricao, con
               <tr key={idx} className={idx % 2 === 0 ? 'bg-white' : 'bg-slate-50/50'}>
                 <td className="p-1.5 text-center font-mono font-bold text-slate-500">{prod.posicao}</td>
                 <td className="p-1.5 font-bold text-slate-900">{prod.nome_produto}</td>
-                <td className="p-1.5 text-slate-600 text-[11px]">{prod.categoria}</td>
+                <td className="p-1.5 text-slate-600 text-[10px]">{prod.categoria}</td>
                 <td className="p-1.5 text-right font-mono font-bold">{prod.total_vendido} un</td>
                 <td className="p-1.5 text-right font-mono text-slate-600">{formatPrice(prod.preco_medio)}</td>
+                <td className="p-1.5 text-right font-mono text-slate-600">{formatPrice(prod.preco_custo || 0)}</td>
                 <td className="p-1.5 text-right font-mono font-bold text-slate-950">{formatPrice(prod.total_faturado)}</td>
+                <td className="p-1.5 text-right font-mono font-bold text-emerald-800">{formatPrice(prod.lucro_bruto || 0)}</td>
+                <td className="p-1.5 text-right font-mono text-slate-700 font-bold">
+                  {prod.margem_lucro_pct !== null && prod.margem_lucro_pct !== undefined ? `${prod.margem_lucro_pct}%` : '-'}
+                </td>
                 <td className="p-1.5 text-right font-mono font-medium text-slate-700">{prod.pct_share}%</td>
                 <td className="p-1.5 text-center">
                   <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${
@@ -323,7 +353,7 @@ export default function ExecutiveReportPrintView({ report, periodoDescricao, con
             ))}
             {rankingComCurva.length === 0 && (
               <tr>
-                <td colSpan="8" className="p-4 text-center text-slate-500 italic">
+                <td colSpan="11" className="p-4 text-center text-slate-500 italic">
                   Nenhuma venda registrada no período selecionado.
                 </td>
               </tr>
@@ -399,30 +429,51 @@ export default function ExecutiveReportPrintView({ report, periodoDescricao, con
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-200 text-[11px]">
-            {pedidos.slice(0, 100).map((ped, idx) => (
-              <tr key={idx} className={idx % 2 === 0 ? 'bg-white' : 'bg-slate-50/40'}>
-                <td className="p-1.5 text-center font-mono font-bold text-slate-900">
-                  #{String(ped.numero_pedido).padStart(3, '0')}
-                </td>
-                <td className="p-1.5 text-center font-mono text-slate-600 text-[10px]">
-                  {ped.data_hora ? new Date(ped.data_hora).toLocaleTimeString('pt-BR', { timeZone: 'America/Campo_Grande', hour: '2-digit', minute: '2-digit' }) : '-'}
-                </td>
-                <td className="p-1.5 text-center">
-                  <span className="font-bold text-[9px] uppercase px-1.5 py-0.5 rounded bg-slate-100 text-slate-700 font-mono">
-                    {ped.forma_pagamento}
-                  </span>
-                </td>
-                <td className="p-1.5 text-slate-700 truncate max-w-[280px]">
-                  {ped.itens_resumo}
-                </td>
-                <td className="p-1.5 text-right font-mono text-slate-500 text-[10px]">
-                  {parseFloat(ped.troco) > 0 ? formatPrice(ped.troco) : '-'}
-                </td>
-                <td className="p-1.5 text-right font-mono font-bold text-slate-950">
-                  {formatPrice(ped.total)}
-                </td>
-              </tr>
-            ))}
+            {pedidos.slice(0, 100).map((ped, idx) => {
+              const isMisto = ped.forma_pagamento === 'misto' && Array.isArray(ped.pagamentos);
+              const splitText = isMisto 
+                ? ped.pagamentos.map(p => `${p.forma.toUpperCase()} ${formatPrice(p.valor)}`).join(' + ') 
+                : null;
+
+              return (
+                <tr key={idx} className={idx % 2 === 0 ? 'bg-white' : 'bg-slate-50/40'}>
+                  <td className="p-1.5 text-center font-mono font-bold text-slate-900">
+                    <div>#{String(ped.numero_pedido).padStart(3, '0')}</div>
+                    {ped.editado && (
+                      <span className="inline-block text-[8px] bg-amber-100 text-amber-900 border border-amber-300 rounded px-1 mt-0.5 font-sans font-bold">
+                        [Editado]
+                      </span>
+                    )}
+                  </td>
+                  <td className="p-1.5 text-center font-mono text-slate-600 text-[10px]">
+                    {ped.hora_ms || (ped.data_hora ? new Date(ped.data_hora).toLocaleTimeString('pt-BR', { timeZone: 'America/Campo_Grande', hour: '2-digit', minute: '2-digit' }) : '-')}
+                  </td>
+                  <td className="p-1.5 text-center">
+                    {isMisto ? (
+                      <span className="font-bold text-[8px] uppercase px-1 py-0.5 rounded bg-amber-50 text-amber-900 border border-amber-200 font-mono block">
+                        {splitText}
+                      </span>
+                    ) : (
+                      <span className="font-bold text-[9px] uppercase px-1.5 py-0.5 rounded bg-slate-100 text-slate-700 font-mono">
+                        {ped.forma_pagamento}
+                      </span>
+                    )}
+                  </td>
+                  <td className="p-1.5 text-slate-700 max-w-[280px]">
+                    <div className="truncate">{ped.itens_resumo}</div>
+                    {ped.editado && ped.motivo_edicao && (
+                      <div className="text-[9px] text-amber-700 font-medium italic">Obs: {ped.motivo_edicao}</div>
+                    )}
+                  </td>
+                  <td className="p-1.5 text-right font-mono text-slate-500 text-[10px]">
+                    {parseFloat(ped.troco) > 0 ? formatPrice(ped.troco) : '-'}
+                  </td>
+                  <td className="p-1.5 text-right font-mono font-bold text-slate-950">
+                    {formatPrice(ped.total)}
+                  </td>
+                </tr>
+              );
+            })}
             {pedidos.length === 0 && (
               <tr>
                 <td colSpan="6" className="p-4 text-center text-slate-500 italic">

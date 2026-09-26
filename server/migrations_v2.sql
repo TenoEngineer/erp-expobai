@@ -1,0 +1,11 @@
+CREATE SEQUENCE IF NOT EXISTS expobai.pedidos_numero_seq;
+SELECT setval('expobai.pedidos_numero_seq', COALESCE((SELECT MAX(numero_pedido) FROM expobai.pedidos), 0));
+ALTER TABLE expobai.produtos ADD COLUMN IF NOT EXISTS preco_custo NUMERIC(10, 2) DEFAULT 0;
+ALTER TABLE expobai.pedidos ADD COLUMN IF NOT EXISTS pagamentos JSONB DEFAULT NULL;
+ALTER TABLE expobai.pedidos ADD COLUMN IF NOT EXISTS editado BOOLEAN DEFAULT FALSE;
+ALTER TABLE expobai.pedidos ADD COLUMN IF NOT EXISTS editado_em TIMESTAMP WITH TIME ZONE DEFAULT NULL;
+ALTER TABLE expobai.pedidos ADD COLUMN IF NOT EXISTS motivo_edicao TEXT DEFAULT NULL;
+INSERT INTO expobai.configuracoes (chave, valor) VALUES ('pix_cnpj', '') ON CONFLICT (chave) DO NOTHING;
+INSERT INTO expobai.configuracoes (chave, valor) VALUES ('pix_qrcode_url', '/img/pix-qrcode.jpeg') ON CONFLICT (chave) DO NOTHING;
+UPDATE expobai.produtos SET preco_custo = 4.50 WHERE (preco_custo IS NULL OR preco_custo = 0) AND nome IN ('Refrigerante', 'Água Mineral', 'Amstel', 'Suco de Polpa', 'Soda Italiana');
+UPDATE expobai.produtos SET preco_custo = 5.00 WHERE (preco_custo IS NULL OR preco_custo = 0) AND nome IN ('Cookies', 'Heineken');

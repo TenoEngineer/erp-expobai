@@ -56,20 +56,48 @@ const relatoriosRepository = {
 
     const whereClause = `WHERE ${whereConditions.join(' AND ')}`;
 
-    // 1. Totais Gerais e Conciliação por Forma de Pagamento
+    // 1. Totais Gerais e Conciliação por Forma de Pagamento (suporta pagamento único e misto)
     const totaisRes = await query(`
       SELECT 
         COUNT(p.id) as total_pedidos,
         COALESCE(SUM(p.total), 0) as faturamento_total,
         COALESCE(SUM(p.troco), 0) as total_troco,
-        COALESCE(SUM(CASE WHEN p.forma_pagamento = 'pix' THEN p.total ELSE 0 END), 0) as total_pix,
-        COALESCE(SUM(CASE WHEN p.forma_pagamento = 'dinheiro' THEN p.total ELSE 0 END), 0) as total_dinheiro,
-        COALESCE(SUM(CASE WHEN p.forma_pagamento = 'debito' THEN p.total ELSE 0 END), 0) as total_debito,
-        COALESCE(SUM(CASE WHEN p.forma_pagamento = 'credito' THEN p.total ELSE 0 END), 0) as total_credito,
-        COALESCE(COUNT(CASE WHEN p.forma_pagamento = 'pix' THEN 1 END), 0) as qtd_pix,
-        COALESCE(COUNT(CASE WHEN p.forma_pagamento = 'dinheiro' THEN 1 END), 0) as qtd_dinheiro,
-        COALESCE(COUNT(CASE WHEN p.forma_pagamento = 'debito' THEN 1 END), 0) as qtd_debito,
-        COALESCE(COUNT(CASE WHEN p.forma_pagamento = 'credito' THEN 1 END), 0) as qtd_credito
+        COALESCE(SUM(
+          CASE 
+            WHEN p.pagamentos IS NOT NULL AND jsonb_typeof(p.pagamentos) = 'array'
+            THEN COALESCE((SELECT SUM((elem->>'valor')::numeric) FROM jsonb_array_elements(p.pagamentos) elem WHERE elem->>'forma' = 'pix'), 0)
+            WHEN p.forma_pagamento = 'pix' THEN p.total
+            ELSE 0
+          END
+        ), 0) as total_pix,
+        COALESCE(SUM(
+          CASE 
+            WHEN p.pagamentos IS NOT NULL AND jsonb_typeof(p.pagamentos) = 'array'
+            THEN COALESCE((SELECT SUM((elem->>'valor')::numeric) FROM jsonb_array_elements(p.pagamentos) elem WHERE elem->>'forma' = 'dinheiro'), 0)
+            WHEN p.forma_pagamento = 'dinheiro' THEN p.total
+            ELSE 0
+          END
+        ), 0) as total_dinheiro,
+        COALESCE(SUM(
+          CASE 
+            WHEN p.pagamentos IS NOT NULL AND jsonb_typeof(p.pagamentos) = 'array'
+            THEN COALESCE((SELECT SUM((elem->>'valor')::numeric) FROM jsonb_array_elements(p.pagamentos) elem WHERE elem->>'forma' = 'debito'), 0)
+            WHEN p.forma_pagamento = 'debito' THEN p.total
+            ELSE 0
+          END
+        ), 0) as total_debito,
+        COALESCE(SUM(
+          CASE 
+            WHEN p.pagamentos IS NOT NULL AND jsonb_typeof(p.pagamentos) = 'array'
+            THEN COALESCE((SELECT SUM((elem->>'valor')::numeric) FROM jsonb_array_elements(p.pagamentos) elem WHERE elem->>'forma' = 'credito'), 0)
+            WHEN p.forma_pagamento = 'credito' THEN p.total
+            ELSE 0
+          END
+        ), 0) as total_credito,
+        COALESCE(COUNT(CASE WHEN p.forma_pagamento = 'pix' OR (p.pagamentos IS NOT NULL AND p.pagamentos::text LIKE '%"pix"%') THEN 1 END), 0) as qtd_pix,
+        COALESCE(COUNT(CASE WHEN p.forma_pagamento = 'dinheiro' OR (p.pagamentos IS NOT NULL AND p.pagamentos::text LIKE '%"dinheiro"%') THEN 1 END), 0) as qtd_dinheiro,
+        COALESCE(COUNT(CASE WHEN p.forma_pagamento = 'debito' OR (p.pagamentos IS NOT NULL AND p.pagamentos::text LIKE '%"debito"%') THEN 1 END), 0) as qtd_debito,
+        COALESCE(COUNT(CASE WHEN p.forma_pagamento = 'credito' OR (p.pagamentos IS NOT NULL AND p.pagamentos::text LIKE '%"credito"%') THEN 1 END), 0) as qtd_credito
       FROM expobai.pedidos p
       ${whereClause}
     `, params);
@@ -111,14 +139,17 @@ const relatoriosRepository = {
       ORDER BY total_faturado DESC
     `, params);
 
-    // 5. Ranking Completo de Produtos (Curva ABC / Pareto)
+    // 5. Ranking Completo de Produtos (Curva ABC / Lucro e Margem)
     const rankingProdutosRes = await query(`
       SELECT 
         i.nome_produto,
         COALESCE(c.nome, 'Geral') as categoria,
         SUM(i.quantidade) as total_vendido,
         ROUND(AVG(i.preco_unitario), 2) as preco_medio,
-        SUM(i.subtotal) as total_faturado
+        COALESCE(AVG(pr.preco_custo), 0) as preco_custo,
+        SUM(i.subtotal) as total_faturado,
+        SUM(i.quantidade * COALESCE(pr.preco_custo, 0)) as custo_total,
+        SUM(i.subtotal) - SUM(i.quantidade * COALESCE(pr.preco_custo, 0)) as lucro_bruto
       FROM expobai.pedido_itens i
       JOIN expobai.pedidos p ON i.pedido_id = p.id
       LEFT JOIN expobai.produtos pr ON i.produto_id = pr.id
@@ -126,10 +157,10 @@ const relatoriosRepository = {
       ${whereClause}
       GROUP BY i.nome_produto, c.nome
       ORDER BY total_faturado DESC
-      LIMIT 60
+      LIMIT 100
     `, params);
 
-    // 6. Auditoria de Pedidos do Período com Resumo dos Itens (até 200 pedidos)
+    // 6. Auditoria de Pedidos do Período com Resumo dos Itens, Pagamentos e Edição
     const pedidosAuditRes = await query(`
       SELECT 
         p.id, 
@@ -137,12 +168,30 @@ const relatoriosRepository = {
         p.codigo_identificador, 
         p.total, 
         p.forma_pagamento, 
+        p.valor_pago,
         p.troco, 
+        p.status,
+        p.observacoes,
+        p.pagamentos,
+        p.editado,
+        p.editado_em,
+        to_char(p.editado_em AT TIME ZONE 'America/Campo_Grande', 'DD/MM/YYYY HH24:MI') as editado_em_ms,
+        p.motivo_edicao,
         p.data_hora,
         to_char(p.data_hora AT TIME ZONE 'America/Campo_Grande', 'DD/MM/YYYY HH24:MI:SS') as data_hora_ms,
         to_char(p.data_hora AT TIME ZONE 'America/Campo_Grande', 'HH24:MI:SS') as hora_ms,
         COALESCE(string_agg(i.quantidade || 'x ' || i.nome_produto, ', '), 'Itens diversos') as itens_resumo,
-        COALESCE(SUM(i.quantidade), 0) as total_itens
+        COALESCE(SUM(i.quantidade), 0) as total_itens,
+        COALESCE(json_agg(
+          json_build_object(
+            'id', i.id,
+            'produto_id', i.produto_id,
+            'nome_produto', i.nome_produto,
+            'quantidade', i.quantidade,
+            'preco_unitario', i.preco_unitario,
+            'subtotal', i.subtotal
+          )
+        ) FILTER (WHERE i.id IS NOT NULL), '[]') as itens_detalhes
       FROM expobai.pedidos p
       LEFT JOIN expobai.pedido_itens i ON i.pedido_id = p.id
       ${whereClause}
@@ -171,6 +220,37 @@ const relatoriosRepository = {
 
     const calcPct = (val) => faturamentoTotal > 0 ? Math.round((val / faturamentoTotal) * 1000) / 10 : 0;
 
+    let custoTotalProdutos = 0;
+    let lucroBrutoTotal = 0;
+
+    const rankingProdutos = rankingProdutosRes.rows.map((r, index) => {
+      const faturado = parseFloat(r.total_faturado) || 0;
+      const custo = parseFloat(r.custo_total) || 0;
+      const lucro = parseFloat(r.lucro_bruto) || (faturado - custo);
+      const margem = faturado > 0 ? Math.round(((lucro / faturado) * 100) * 10) / 10 : 0;
+      const totalVendido = parseInt(r.total_vendido, 10) || 0;
+
+      custoTotalProdutos += custo;
+      lucroBrutoTotal += lucro;
+
+      return {
+        posicao: index + 1,
+        nome_produto: r.nome_produto,
+        categoria: r.categoria,
+        total_vendido: totalVendido,
+        preco_medio: parseFloat(r.preco_medio) || 0,
+        preco_custo: parseFloat(r.preco_custo) || 0,
+        custo_total: custo,
+        lucro_bruto: lucro,
+        margem_lucro_pct: margem,
+        total_faturado: faturado,
+        pct_share: calcPct(faturado),
+        pct_share_qtd: totalItensVendidos > 0 ? Math.round(((totalVendido / totalItensVendidos) * 100) * 10) / 10 : 0
+      };
+    });
+
+    const margemMediaPct = faturamentoTotal > 0 ? Math.round(((lucroBrutoTotal / faturamentoTotal) * 100) * 10) / 10 : 0;
+
     return {
       filtro: {
         periodo: periodo || (data_inicio ? 'personalizado' : 'todos'),
@@ -184,6 +264,9 @@ const relatoriosRepository = {
         total_itens_vendidos: totalItensVendidos,
         media_itens_por_pedido: mediaItensPorPedido,
         total_troco_entregue: totalTroco,
+        custo_total_produtos: custoTotalProdutos,
+        lucro_bruto_total: lucroBrutoTotal,
+        margem_lucro_media_pct: margemMediaPct,
         faturamento_a_vista: valPix + valDinheiro,
         faturamento_cartao: valDebito + valCredito,
         pct_a_vista: calcPct(valPix + valDinheiro),
@@ -232,19 +315,11 @@ const relatoriosRepository = {
         total_faturado: parseFloat(r.total_faturado),
         pct: calcPct(parseFloat(r.total_faturado))
       })),
-      ranking_produtos: rankingProdutosRes.rows.map((r, index) => ({
-        posicao: index + 1,
+      ranking_produtos: rankingProdutos,
+      top_produtos: rankingProdutos.slice(0, 10).map(r => ({
         nome_produto: r.nome_produto,
-        categoria: r.categoria,
-        total_vendido: parseInt(r.total_vendido, 10),
-        preco_medio: parseFloat(r.preco_medio),
-        total_faturado: parseFloat(r.total_faturado),
-        pct_share: calcPct(parseFloat(r.total_faturado))
-      })),
-      top_produtos: rankingProdutosRes.rows.slice(0, 10).map(r => ({
-        nome_produto: r.nome_produto,
-        total_vendido: parseInt(r.total_vendido, 10),
-        total_faturado: parseFloat(r.total_faturado)
+        total_vendido: r.total_vendido,
+        total_faturado: r.total_faturado
       })),
       ultimos_pedidos: pedidosAuditRes.rows
     };

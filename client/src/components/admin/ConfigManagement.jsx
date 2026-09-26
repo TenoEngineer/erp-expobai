@@ -36,7 +36,9 @@ export default function ConfigManagement({ config = {}, onRefresh }) {
 
       setFormData({
         nome_estande: config.nome_estande || 'Tenda dos Müller',
-        chave_pix: config.chave_pix || 'pix@expobai.com.br',
+        chave_pix: config.chave_pix || '',
+        pix_cnpj: config.pix_cnpj || '',
+        pix_qrcode_url: config.pix_qrcode_url || '/img/pix-qrcode.jpeg',
         prefixo_pedido: config.prefixo_pedido || 'EXP',
         impressora_tipo: tipo,
         impressora_ip: config.impressora_ip || '192.168.1.200',
@@ -525,21 +527,38 @@ export default function ConfigManagement({ config = {}, onRefresh }) {
             </div>
           </div>
 
-          <div>
-            <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-1">
-              Chave PIX para Recebimentos
-            </label>
-            <input
-              type="text"
-              required
-              placeholder="CNPJ, E-mail, Celular ou Chave Aleatória"
-              value={formData.chave_pix}
-              onChange={(e) => setFormData({ ...formData, chave_pix: e.target.value })}
-              className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2.5 text-sm text-emerald-400 font-mono focus:outline-none focus:border-emerald-500"
-            />
-            <p className="text-[11px] text-slate-500 mt-1">
-              Esta chave é gerada em QR Code para pagamento instantâneo no checkout.
-            </p>
+          <div className="space-y-3">
+            <div>
+              <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-1">
+                Número de CNPJ / Chave PIX (Opcional)
+              </label>
+              <input
+                type="text"
+                placeholder="Ex: 00.000.000/0001-00 (pode preencher quando tiver)"
+                value={formData.pix_cnpj || formData.chave_pix}
+                onChange={(e) => setFormData({ ...formData, pix_cnpj: e.target.value, chave_pix: e.target.value })}
+                className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2.5 text-sm text-emerald-400 font-mono focus:outline-none focus:border-emerald-500"
+              />
+              <p className="text-[11px] text-slate-500 mt-1">
+                Caso ainda não tenha o CNPJ em mãos, o QR Code Nubank abaixo já está ativo e operando em todos os checkouts!
+              </p>
+            </div>
+
+            {/* Preview do QR Code Ativo */}
+            <div className="flex items-center gap-4 bg-slate-950 p-4 rounded-xl border border-slate-800">
+              <div className="w-24 h-24 bg-white p-1 rounded-xl flex items-center justify-center shrink-0 border border-emerald-500/60 shadow">
+                <img src="/img/pix-qrcode.jpeg" alt="QR Code Nubank" className="w-full h-full object-contain rounded-lg" />
+              </div>
+              <div className="space-y-1">
+                <span className="font-bold text-slate-200 text-xs flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                  QR Code Oficial Nubank Ativo no Caixa
+                </span>
+                <p className="text-[11px] text-slate-400 leading-relaxed">
+                  Este QR Code é o mesmo exibido na tela de checkout quando o cliente escolhe pagar via PIX. Assim que você cadastrar o CNPJ acima, o botão "Copiar Chave" também ficará disponível.
+                </p>
+              </div>
+            </div>
           </div>
         </div>
 

@@ -101,6 +101,17 @@ async function initDB() {
       CREATE INDEX IF NOT EXISTS idx_expobai_pedidos_data ON expobai.pedidos(data_hora);
       CREATE INDEX IF NOT EXISTS idx_expobai_pedido_itens_pedido ON expobai.pedido_itens(pedido_id);
       CREATE INDEX IF NOT EXISTS idx_expobai_sessoes_status ON expobai.sessoes_caixa(status);
+
+      -- Migrações v2: Concorrência atômica, custos, split payment e auditoria de edição
+      CREATE SEQUENCE IF NOT EXISTS expobai.pedidos_numero_seq;
+      SELECT setval('expobai.pedidos_numero_seq', COALESCE((SELECT MAX(numero_pedido) FROM expobai.pedidos), 0));
+      ALTER TABLE expobai.produtos ADD COLUMN IF NOT EXISTS preco_custo NUMERIC(10, 2) DEFAULT 0;
+      ALTER TABLE expobai.pedidos ADD COLUMN IF NOT EXISTS pagamentos JSONB DEFAULT NULL;
+      ALTER TABLE expobai.pedidos ADD COLUMN IF NOT EXISTS editado BOOLEAN DEFAULT FALSE;
+      ALTER TABLE expobai.pedidos ADD COLUMN IF NOT EXISTS editado_em TIMESTAMP WITH TIME ZONE DEFAULT NULL;
+      ALTER TABLE expobai.pedidos ADD COLUMN IF NOT EXISTS motivo_edicao TEXT DEFAULT NULL;
+      INSERT INTO expobai.configuracoes (chave, valor) VALUES ('pix_cnpj', '') ON CONFLICT (chave) DO NOTHING;
+      INSERT INTO expobai.configuracoes (chave, valor) VALUES ('pix_qrcode_url', '/img/pix-qrcode.jpeg') ON CONFLICT (chave) DO NOTHING;
     `);
 
     // 3. Seed inicial de categorias se estiver vazio

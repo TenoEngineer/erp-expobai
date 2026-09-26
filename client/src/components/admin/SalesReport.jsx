@@ -21,7 +21,8 @@ import {
   Lock,
   Unlock,
   CheckCircle2,
-  X
+  X,
+  Edit3
 } from 'lucide-react';
 import { 
   getFechamento, 
@@ -32,11 +33,20 @@ import {
   getCaixaHistorico
 } from '../../services/api';
 import ExecutiveReportPrintView from './ExecutiveReportPrintView';
+import EditOrderModal from '../EditOrderModal';
+import { executeOrderPrint } from '../../services/printManager';
 
 export default function SalesReport({ config }) {
   const [report, setReport] = useState(null);
   const [loading, setLoading] = useState(true);
   const [viewMode, setViewMode] = useState('dashboard'); // 'dashboard' ou 'relatorio_executivo'
+  
+  // Curva ABC por Faturamento ('valor') ou por Quantidade ('qtd')
+  const [abcSortBy, setAbcSortBy] = useState('valor');
+
+  // Edição de Lançamento
+  const [editingOrder, setEditingOrder] = useState(null);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   
   // Gestão de Caixa Flexível
   const [caixaAtivo, setCaixaAtivo] = useState(null);
@@ -642,8 +652,8 @@ export default function SalesReport({ config }) {
       {viewMode === 'dashboard' && (
         <div className="space-y-6">
           
-          {/* Cards de Métricas Principais (KPIs) */}
-          <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
+          {/* Cards de Métricas Principais (KPIs) com Lucro Bruto e Margem */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
             <div className="bg-gradient-to-br from-emerald-950/80 via-slate-900 to-slate-950 border border-emerald-500/40 p-4 rounded-2xl shadow-lg">
               <span className="text-xs font-bold text-emerald-400 uppercase tracking-wider block">
                 Faturamento Total
@@ -656,27 +666,32 @@ export default function SalesReport({ config }) {
               </span>
             </div>
 
-            <div className="bg-slate-900 border border-slate-800 p-4 rounded-2xl shadow-lg">
-              <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block">
-                Total de Pedidos
-              </span>
-              <span className="font-black text-3xl text-amber-400 font-mono mt-1 block">
-                {report?.total_pedidos || 0}
+            <div className="bg-gradient-to-br from-amber-950/70 via-slate-900 to-slate-950 border border-amber-500/40 p-4 rounded-2xl shadow-lg">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold text-amber-400 uppercase tracking-wider block">
+                  Lucro Bruto Estimado
+                </span>
+                <span className="px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 font-mono text-[10px] font-bold">
+                  {ind.margem_lucro_media_pct || 0}% margem
+                </span>
+              </div>
+              <span className="font-black text-3xl text-amber-300 font-mono mt-1 block">
+                {formatPrice(ind.lucro_bruto_total)}
               </span>
               <span className="text-[11px] text-slate-400 mt-1 block">
-                Comandas geradas no PDV
+                Custo dos produtos: {formatPrice(ind.custo_total_produtos)}
               </span>
             </div>
 
             <div className="bg-slate-900 border border-slate-800 p-4 rounded-2xl shadow-lg">
               <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block">
-                Ticket Médio
+                Total de Pedidos
               </span>
               <span className="font-black text-3xl text-slate-100 font-mono mt-1 block">
-                {formatPrice(report?.ticket_medio)}
+                {report?.total_pedidos || 0}
               </span>
               <span className="text-[11px] text-slate-400 mt-1 block">
-                Média gasta por cliente
+                Ticket Médio: {formatPrice(report?.ticket_medio)}
               </span>
             </div>
 
@@ -835,35 +850,85 @@ export default function SalesReport({ config }) {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             
             {/* Curva ABC & Ranking Completo de Produtos */}
-            <div className="bg-slate-900 border border-slate-800 p-4 rounded-2xl shadow-xl">
-              <h4 className="font-bold text-sm text-slate-100 mb-3 flex items-center justify-between">
+            <div className="bg-slate-900 border border-slate-800 p-4 rounded-2xl shadow-xl flex flex-col">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 mb-3 border-b border-slate-800">
                 <div className="flex items-center gap-2">
                   <Award className="w-4 h-4 text-amber-400" />
-                  <span>Curva ABC & Mix de Produtos</span>
+                  <h4 className="font-bold text-sm text-slate-100">Curva ABC & Performance de Produtos</h4>
                 </div>
-                <span className="text-[10px] font-mono text-slate-400 font-normal">
-                  Ranking por faturamento
-                </span>
-              </h4>
+
+                {/* Seletor de Ordenação: Por Faturamento vs Por Quantidade */}
+                <div className="flex items-center bg-slate-950 p-1 rounded-xl border border-slate-800 text-[11px] font-bold">
+                  <button
+                    type="button"
+                    onClick={() => setAbcSortBy('valor')}
+                    className={`px-2.5 py-1 rounded-lg transition-all ${
+                      abcSortBy === 'valor'
+                        ? 'bg-amber-500 text-slate-950 shadow font-black'
+                        : 'text-slate-400 hover:text-white'
+                    }`}
+                  >
+                    💰 Faturamento (R$)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setAbcSortBy('qtd')}
+                    className={`px-2.5 py-1 rounded-lg transition-all ${
+                      abcSortBy === 'qtd'
+                        ? 'bg-cyan-500 text-slate-950 shadow font-black'
+                        : 'text-slate-400 hover:text-white'
+                    }`}
+                  >
+                    📦 Quantidade (Un)
+                  </button>
+                </div>
+              </div>
 
               {ranking.length === 0 ? (
                 <p className="text-xs text-slate-500 text-center py-6">Nenhuma venda registrada ainda.</p>
               ) : (
-                <div className="space-y-2 max-h-96 overflow-y-auto pr-1">
-                  {ranking.map((p, idx) => (
-                    <div key={idx} className="flex items-center justify-between p-2.5 bg-slate-950/60 rounded-xl text-xs border border-slate-800/60">
-                      <div className="flex items-center gap-2.5">
-                        <span className="w-6 h-6 rounded-lg bg-slate-800 text-amber-400 font-black flex items-center justify-center text-xs font-mono">
-                          {idx + 1}
-                        </span>
-                        <div>
-                          <span className="font-bold text-slate-200 block">{p.nome_produto}</span>
-                          <span className="text-[10px] text-slate-500">{p.categoria} &bull; Médio: {formatPrice(p.preco_medio)}</span>
+                <div className="space-y-2 max-h-[420px] overflow-y-auto pr-1 flex-1">
+                  {[...ranking]
+                    .sort((a, b) => abcSortBy === 'qtd' ? (b.total_vendido || 0) - (a.total_vendido || 0) : (b.total_faturado || 0) - (a.total_faturado || 0))
+                    .map((p, idx) => (
+                    <div key={idx} className="p-2.5 bg-slate-950/70 rounded-xl text-xs border border-slate-800/80 hover:border-slate-700 transition-colors space-y-1.5">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2.5">
+                          <span className={`w-6 h-6 rounded-lg font-black flex items-center justify-center text-xs font-mono ${
+                            idx === 0 ? 'bg-amber-500 text-slate-950 shadow' : 'bg-slate-800 text-slate-300'
+                          }`}>
+                            {idx + 1}
+                          </span>
+                          <div>
+                            <span className="font-bold text-slate-100 text-xs block">{p.nome_produto}</span>
+                            <span className="text-[10px] text-slate-400">
+                              {p.categoria} &bull; Venda: {formatPrice(p.preco_medio)} &bull; Custo: {formatPrice(p.preco_custo || 0)}
+                            </span>
+                          </div>
+                        </div>
+
+                        <div className="text-right">
+                          <span className="font-black text-slate-100 font-mono text-sm block">
+                            {formatPrice(p.total_faturado)}
+                          </span>
+                          <span className="text-cyan-400 text-[11px] font-bold font-mono">
+                            {p.total_vendido} un. ({abcSortBy === 'qtd' ? `${p.pct_share_qtd || 0}% vol.` : `${p.pct_share}% rec.`})
+                          </span>
                         </div>
                       </div>
-                      <div className="text-right">
-                        <span className="font-black text-slate-100 font-mono block">{formatPrice(p.total_faturado)}</span>
-                        <span className="text-amber-400 text-[11px] font-bold font-mono">{p.total_vendido} un. ({p.pct_share}%)</span>
+
+                      {/* Faixa de Lucro e Margem do Produto */}
+                      <div className="pt-1.5 border-t border-slate-900 flex items-center justify-between text-[11px] font-mono">
+                        <span className="text-slate-400">
+                          Lucro Bruto: <b className="text-emerald-400">{formatPrice(p.lucro_bruto || 0)}</b>
+                        </span>
+                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                          (p.margem_lucro_pct || 0) >= 50 
+                            ? 'bg-emerald-950 text-emerald-300 border border-emerald-500/30' 
+                            : 'bg-amber-950 text-amber-300 border border-amber-500/30'
+                        }`}>
+                          Margem: {p.margem_lucro_pct || 0}%
+                        </span>
                       </div>
                     </div>
                   ))}
@@ -871,64 +936,123 @@ export default function SalesReport({ config }) {
               )}
             </div>
 
-            {/* Auditoria de Pedidos com Itens Detalhados */}
-            <div className="bg-slate-900 border border-slate-800 p-4 rounded-2xl shadow-xl">
-              <h4 className="font-bold text-sm text-slate-100 mb-3 flex items-center justify-between">
+            {/* Auditoria de Pedidos com Itens Detalhados, Edição e Reimpressão */}
+            <div className="bg-slate-900 border border-slate-800 p-4 rounded-2xl shadow-xl flex flex-col">
+              <div className="flex items-center justify-between pb-3 mb-3 border-b border-slate-800">
                 <div className="flex items-center gap-2">
                   <ShoppingBag className="w-4 h-4 text-emerald-400" />
-                  <span>Auditoria de Comandas Emitidas</span>
+                  <h4 className="font-bold text-sm text-slate-100">Auditoria de Comandas Emitidas</h4>
                 </div>
                 <span className="text-[10px] font-mono text-slate-400 font-normal">
                   {report?.ultimos_pedidos?.length || 0} pedidos listados &bull; Horário MS
                 </span>
-              </h4>
+              </div>
 
               {(report?.ultimos_pedidos || []).length === 0 ? (
                 <p className="text-xs text-slate-500 text-center py-6">Nenhum pedido recente.</p>
               ) : (
-                <div className="space-y-2 max-h-96 overflow-y-auto pr-1">
-                  {(report?.ultimos_pedidos || []).map((ped) => (
-                    <div key={ped.id} className="p-2.5 bg-slate-950/60 rounded-xl text-xs border border-slate-800/60 space-y-1">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <span className="font-black text-amber-400 font-mono text-sm">
-                            #{String(ped.numero_pedido).padStart(3, '0')}
-                          </span>
-                          <span className="px-2 py-0.5 rounded-md bg-slate-800 text-[10px] font-bold text-slate-300 uppercase font-mono">
-                            {ped.forma_pagamento}
-                          </span>
-                          <span className="text-[10px] text-slate-400 font-mono">
-                            🕒 {ped.hora_ms || (ped.data_hora_ms ? ped.data_hora_ms.split(' ')[1] : new Date(ped.data_hora).toLocaleTimeString('pt-BR', { timeZone: 'America/Campo_Grande' }))} (MS)
-                          </span>
+                <div className="space-y-2 max-h-[420px] overflow-y-auto pr-1 flex-1">
+                  {(report?.ultimos_pedidos || []).map((ped) => {
+                    const isMisto = ped.forma_pagamento === 'misto' && Array.isArray(ped.pagamentos);
+                    const splitText = isMisto ? ped.pagamentos.map(p => `${p.forma.toUpperCase()} ${formatPrice(p.valor)}`).join(' + ') : null;
+
+                    return (
+                      <div key={ped.id} className="p-2.5 bg-slate-950/70 rounded-xl text-xs border border-slate-800/80 space-y-1.5 hover:border-slate-700 transition-colors">
+                        <div className="flex items-center justify-between gap-2">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="font-black text-amber-400 font-mono text-sm">
+                              #{String(ped.numero_pedido).padStart(3, '0')}
+                            </span>
+
+                            {isMisto ? (
+                              <span className="px-2 py-0.5 rounded-md bg-amber-950/80 text-amber-300 border border-amber-500/40 text-[10px] font-bold font-mono">
+                                ⚡ {splitText}
+                              </span>
+                            ) : (
+                              <span className="px-2 py-0.5 rounded-md bg-slate-800 text-[10px] font-bold text-slate-300 uppercase font-mono">
+                                {ped.forma_pagamento}
+                              </span>
+                            )}
+
+                            <span className="text-[10px] text-slate-400 font-mono">
+                              🕒 {ped.hora_ms || (ped.data_hora_ms ? ped.data_hora_ms.split(' ')[1] : new Date(ped.data_hora).toLocaleTimeString('pt-BR', { timeZone: 'America/Campo_Grande' }))}
+                            </span>
+
+                            {ped.editado && (
+                              <span 
+                                className="px-1.5 py-0.5 rounded-full bg-amber-950 text-amber-300 border border-amber-500/40 text-[9px] font-bold flex items-center gap-1"
+                                title={`Editado: ${ped.motivo_edicao || 'Alteração manual'}`}
+                              >
+                                <Edit3 className="w-2.5 h-2.5" />
+                                <span>Editado</span>
+                              </span>
+                            )}
+                          </div>
+
+                          <div className="flex items-center gap-1.5 shrink-0">
+                            <span className="font-black text-sm text-emerald-400 font-mono mr-1">
+                              {formatPrice(ped.total)}
+                            </span>
+
+                            {/* Botão Reimprimir Ficha */}
+                            <button
+                              onClick={async () => {
+                                try {
+                                  await executeOrderPrint(ped, config);
+                                } catch (e) {
+                                  alert('Erro ao imprimir: ' + e.message);
+                                }
+                              }}
+                              className="p-1.5 text-slate-400 hover:text-amber-400 hover:bg-slate-800 rounded transition-colors"
+                              title="Reimprimir ficha"
+                            >
+                              <Printer className="w-3.5 h-3.5" />
+                            </button>
+
+                            {/* Botão Editar Venda */}
+                            <button
+                              onClick={() => {
+                                setEditingOrder(ped);
+                                setIsEditModalOpen(true);
+                              }}
+                              className="p-1.5 text-slate-400 hover:text-cyan-400 hover:bg-slate-800 rounded transition-colors"
+                              title="Editar itens, valor ou forma de pagamento"
+                            >
+                              <Edit3 className="w-3.5 h-3.5" />
+                            </button>
+
+                            {/* Botão Cancelar */}
+                            <button
+                              onClick={() => handleCancel(ped.id, ped.numero_pedido)}
+                              className="p-1.5 text-slate-400 hover:text-amber-400 hover:bg-slate-800 rounded transition-colors"
+                              title="Marcar como cancelado"
+                            >
+                              <Ban className="w-3.5 h-3.5" />
+                            </button>
+
+                            {/* Botão Excluir */}
+                            <button
+                              onClick={() => handleDelete(ped.id, ped.numero_pedido)}
+                              className="p-1.5 text-slate-400 hover:text-rose-400 hover:bg-rose-950/40 rounded transition-colors"
+                              title="Excluir lançamento errado definitivamente"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
                         </div>
 
-                        <div className="flex items-center gap-2">
-                          <span className="font-black text-sm text-emerald-400 font-mono">
-                            {formatPrice(ped.total)}
-                          </span>
-                          <button
-                            onClick={() => handleCancel(ped.id, ped.numero_pedido)}
-                            className="p-1.5 text-slate-400 hover:text-amber-400 hover:bg-slate-800 rounded transition-colors"
-                            title="Marcar como cancelado"
-                          >
-                            <Ban className="w-3.5 h-3.5" />
-                          </button>
-                          <button
-                            onClick={() => handleDelete(ped.id, ped.numero_pedido)}
-                            className="p-1.5 text-slate-400 hover:text-rose-400 hover:bg-rose-950/40 rounded transition-colors"
-                            title="Excluir lançamento errado definitivamente"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </button>
+                        {/* Resumo dos Itens Consumidos */}
+                        <div className="flex items-center justify-between text-[11px] text-slate-400 font-sans pt-1 border-t border-slate-900">
+                          <p className="truncate flex-1">🍽️ {ped.itens_resumo}</p>
+                          {ped.motivo_edicao && (
+                            <span className="text-[10px] text-amber-400/80 font-mono italic ml-2 shrink-0">
+                              ({ped.motivo_edicao})
+                            </span>
+                          )}
                         </div>
                       </div>
-
-                      {/* Resumo dos Itens Consumidos */}
-                      <p className="text-[11px] text-slate-400 font-sans truncate">
-                        🍽️ {ped.itens_resumo}
-                      </p>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </div>
@@ -936,6 +1060,19 @@ export default function SalesReport({ config }) {
           </div>
 
         </div>
+      )}
+
+      {/* Modal de Edição de Venda */}
+      {isEditModalOpen && editingOrder && (
+        <EditOrderModal
+          isOpen={isEditModalOpen}
+          onClose={() => {
+            setIsEditModalOpen(false);
+            setEditingOrder(null);
+          }}
+          order={editingOrder}
+          onOrderUpdated={() => fetchReport()}
+        />
       )}
 
       {/* Componente Oculto na tela normal, mas ativo durante window.print() */}

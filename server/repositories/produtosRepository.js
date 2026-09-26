@@ -40,33 +40,35 @@ const produtosRepository = {
     return res.rows[0] || null;
   },
 
-  async create({ categoria_id, nome, descricao = '', preco, foto_url = '', ordem = 0 }) {
+  async create({ categoria_id, nome, descricao = '', preco, preco_custo = 0, foto_url = '', ordem = 0 }) {
     const res = await query(
-      `INSERT INTO expobai.produtos (categoria_id, nome, descricao, preco, foto_url, ordem)
-       VALUES ($1, $2, $3, $4, $5, $6)
+      `INSERT INTO expobai.produtos (categoria_id, nome, descricao, preco, preco_custo, foto_url, ordem)
+       VALUES ($1, $2, $3, $4, $5, $6, $7)
        RETURNING *`,
-      [Number(categoria_id), nome, descricao, parseFloat(preco), foto_url, Number(ordem) || 0]
+      [Number(categoria_id), nome, descricao, parseFloat(preco), parseFloat(preco_custo) || 0, foto_url, Number(ordem) || 0]
     );
     return res.rows[0];
   },
 
-  async update(id, { categoria_id, nome, descricao, preco, foto_url, ativo, ordem }) {
+  async update(id, { categoria_id, nome, descricao, preco, preco_custo, foto_url, ativo, ordem }) {
     const res = await query(
       `UPDATE expobai.produtos
        SET categoria_id = COALESCE($1, categoria_id),
            nome = COALESCE($2, nome),
            descricao = COALESCE($3, descricao),
            preco = COALESCE($4, preco),
-           foto_url = COALESCE($5, foto_url),
-           ativo = COALESCE($6, ativo),
-           ordem = COALESCE($7, ordem)
-       WHERE id = $8
+           preco_custo = COALESCE($5, preco_custo),
+           foto_url = COALESCE($6, foto_url),
+           ativo = COALESCE($7, ativo),
+           ordem = COALESCE($8, ordem)
+       WHERE id = $9
        RETURNING *`,
       [
         categoria_id !== undefined ? Number(categoria_id) : null,
         nome || null,
         descricao !== undefined ? descricao : null,
         preco !== undefined ? parseFloat(preco) : null,
+        preco_custo !== undefined ? parseFloat(preco_custo) : null,
         foto_url !== undefined ? foto_url : null,
         ativo !== undefined ? Number(ativo) : null,
         ordem !== undefined ? Number(ordem) : null,

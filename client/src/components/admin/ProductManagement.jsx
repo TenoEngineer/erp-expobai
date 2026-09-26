@@ -26,6 +26,7 @@ export default function ProductManagement({ products = [], categories = [], onRe
     nome: '',
     descricao: '',
     preco: '',
+    preco_custo: '',
     foto_url: '',
     ordem: 0
   });
@@ -40,6 +41,7 @@ export default function ProductManagement({ products = [], categories = [], onRe
       nome: '',
       descricao: '',
       preco: '',
+      preco_custo: '',
       foto_url: '',
       ordem: 0
     });
@@ -53,6 +55,7 @@ export default function ProductManagement({ products = [], categories = [], onRe
       nome: prod.nome,
       descricao: prod.descricao || '',
       preco: prod.preco,
+      preco_custo: prod.preco_custo !== undefined ? String(prod.preco_custo) : '',
       foto_url: prod.foto_url || '',
       ordem: prod.ordem || 0
     });
@@ -83,7 +86,8 @@ export default function ProductManagement({ products = [], categories = [], onRe
       await saveProduto({
         ...formData,
         id: editingProduct?.id,
-        preco: parseFloat(formData.preco)
+        preco: parseFloat(formData.preco),
+        preco_custo: parseFloat(formData.preco_custo) || 0
       });
       setIsModalOpen(false);
       onRefresh();
@@ -158,7 +162,9 @@ export default function ProductManagement({ products = [], categories = [], onRe
                 <th className="p-3.5 w-16">Foto</th>
                 <th className="p-3.5">Nome do Produto</th>
                 <th className="p-3.5">Categoria</th>
-                <th className="p-3.5">Preço (R$)</th>
+                <th className="p-3.5">Preço Venda</th>
+                <th className="p-3.5">Custo Unit.</th>
+                <th className="p-3.5 text-center">Margem Est.</th>
                 <th className="p-3.5 text-center">Status</th>
                 <th className="p-3.5 text-right">Ações</th>
               </tr>
@@ -193,7 +199,7 @@ export default function ProductManagement({ products = [], categories = [], onRe
                     </span>
                   </td>
 
-                  {/* Preço (com edição inline) */}
+                  {/* Preço de Venda */}
                   <td className="p-3">
                     {editingPriceId === prod.id ? (
                       <div className="flex items-center gap-1.5">
@@ -225,12 +231,35 @@ export default function ProductManagement({ products = [], categories = [], onRe
                           setTempPrice(prod.preco);
                         }}
                         title="Clique para alterar preço"
-                        className="group flex items-center gap-1.5 font-bold font-mono text-amber-400 hover:text-amber-300 bg-slate-950/60 px-2.5 py-1 rounded-lg border border-slate-800 hover:border-amber-500/50 transition-all"
+                        className="group flex items-center gap-1.5 font-bold font-mono text-emerald-400 hover:text-emerald-300 bg-slate-950/60 px-2.5 py-1 rounded-lg border border-slate-800 hover:border-emerald-500/50 transition-all"
                       >
                         <span>{formatPrice(prod.preco)}</span>
-                        <DollarSign className="w-3 h-3 text-slate-500 group-hover:text-amber-400" />
+                        <DollarSign className="w-3 h-3 text-slate-500 group-hover:text-emerald-400" />
                       </button>
                     )}
+                  </td>
+
+                  {/* Preço de Custo */}
+                  <td className="p-3 font-mono text-slate-300">
+                    {formatPrice(prod.preco_custo || 0)}
+                  </td>
+
+                  {/* Margem */}
+                  <td className="p-3 text-center">
+                    {(() => {
+                      const pv = parseFloat(prod.preco) || 0;
+                      const pc = parseFloat(prod.preco_custo) || 0;
+                      if (pv <= 0) return <span className="text-slate-600">-</span>;
+                      const margem = ((pv - pc) / pv) * 100;
+                      const isGood = margem >= 40;
+                      return (
+                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold font-mono ${
+                          isGood ? 'bg-emerald-950 text-emerald-300 border border-emerald-500/40' : 'bg-amber-950 text-amber-300 border border-amber-500/40'
+                        }`}>
+                          {margem.toFixed(1)}%
+                        </span>
+                      );
+                    })()}
                   </td>
 
                   {/* Status Ativo/Inativo */}
@@ -308,7 +337,7 @@ export default function ProductManagement({ products = [], categories = [], onRe
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div>
                   <label className="block text-xs font-bold text-slate-300 mb-1">
                     Categoria *
@@ -325,8 +354,8 @@ export default function ProductManagement({ products = [], categories = [], onRe
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-slate-300 mb-1">
-                    Preço (R$) *
+                  <label className="block text-xs font-bold text-emerald-400 mb-1">
+                    Preço de Venda (R$) *
                   </label>
                   <input
                     type="number"
@@ -335,10 +364,41 @@ export default function ProductManagement({ products = [], categories = [], onRe
                     placeholder="0.00"
                     value={formData.preco}
                     onChange={(e) => setFormData({ ...formData, preco: e.target.value })}
-                    className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white font-mono focus:outline-none focus:border-amber-500"
+                    className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white font-mono font-bold focus:outline-none focus:border-emerald-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-amber-400 mb-1">
+                    Preço de Custo (R$)
+                  </label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    placeholder="0.00"
+                    value={formData.preco_custo}
+                    onChange={(e) => setFormData({ ...formData, preco_custo: e.target.value })}
+                    className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-amber-300 font-mono font-bold focus:outline-none focus:border-amber-500"
                   />
                 </div>
               </div>
+
+              {/* Indicador de Margem Projetada */}
+              {formData.preco && (
+                <div className="bg-slate-950 p-2.5 rounded-xl border border-slate-800 text-[11px] flex items-center justify-between font-mono">
+                  <span className="text-slate-400">
+                    Lucro Bruto: <b className="text-emerald-400">{formatPrice(Math.max(0, (parseFloat(formData.preco) || 0) - (parseFloat(formData.preco_custo) || 0)))}</b>
+                  </span>
+                  <span className="text-slate-400">
+                    Margem Projetada:{' '}
+                    <b className="text-amber-400">
+                      {parseFloat(formData.preco) > 0 
+                        ? (((parseFloat(formData.preco) - (parseFloat(formData.preco_custo) || 0)) / parseFloat(formData.preco)) * 100).toFixed(1) + '%' 
+                        : '0%'}
+                    </b>
+                  </span>
+                </div>
+              )}
 
               <div>
                 <label className="block text-xs font-bold text-slate-300 mb-1">
