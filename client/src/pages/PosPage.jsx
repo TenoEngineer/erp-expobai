@@ -518,13 +518,15 @@ export default function PosPage({ config, onCartCountChange }) {
           </div>
         </div>
 
-        {/* Barra de Categorias */}
-        <CategoryTabs
-          categories={categories}
-          selectedCategory={selectedCategory}
-          onSelectCategory={setSelectedCategory}
-          productsCountByCat={productsCountByCat}
-        />
+        {/* Barra de Filtros Fixa no Topo ao Rolar a Tela */}
+        <div className="sticky top-[64px] z-20 bg-slate-950/98 backdrop-blur-xl py-2 -mx-2 px-2 sm:mx-0 sm:px-0 border-b border-slate-800/90 shadow-lg">
+          <CategoryTabs
+            categories={categories}
+            selectedCategory={selectedCategory}
+            onSelectCategory={setSelectedCategory}
+            productsCountByCat={productsCountByCat}
+          />
+        </div>
 
         {/* Grade de Produtos */}
         <ProductGrid
@@ -551,43 +553,46 @@ export default function PosPage({ config, onCartCountChange }) {
 
       {/* ========================================================================= */}
       {/* BARRA FLUTUANTE INFERIOR MOBILE (CELULAR ESTILO APLICATIVO) */}
-      {/* Botões gigantes de 64px de altura para o polegar com 1 toque no checkout */}
+      {/* Aparece automaticamente assim que um produto é selecionado */}
       {/* ========================================================================= */}
       {cart.length > 0 && (
         <div 
-          className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-slate-950/98 border-t-2 border-emerald-500 p-2.5 sm:p-3.5 backdrop-blur-xl shadow-[0_-12px_30px_rgba(0,0,0,0.8)] flex items-center justify-between gap-3 animate-in slide-in-from-bottom-4 duration-200"
+          className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-slate-950/98 border-t-2 border-emerald-500 p-2.5 sm:p-3.5 backdrop-blur-xl shadow-[0_-12px_35px_rgba(0,0,0,0.95)] flex items-center justify-between gap-2.5 animate-in slide-in-from-bottom-4 duration-200"
           style={{ paddingBottom: 'max(1rem, env(safe-area-inset-bottom))' }}
         >
-          {/* Botão Ver Itens */}
+          {/* Botão Ver Itens / Carrinho */}
           <button 
             type="button"
             onClick={() => setIsMobileCartOpen(true)}
-            className="flex items-center gap-2.5 bg-slate-900 active:bg-slate-800 border border-slate-700/90 rounded-2xl px-3.5 h-16 transition-colors text-left shrink-0 active:scale-95 shadow"
+            className="flex items-center gap-2 bg-slate-900 active:bg-slate-800 border-2 border-slate-700/90 rounded-2xl px-3.5 h-16 transition-colors text-left shrink-0 active:scale-95 shadow"
+            title="Ver detalhes dos itens no pedido"
           >
             <div className="w-10 h-10 rounded-xl bg-emerald-600/30 border border-emerald-500/50 flex items-center justify-center text-emerald-400 font-black text-base shrink-0">
               🛒 {cartTotalItems}
             </div>
-            <div className="min-w-0 pr-1">
-              <span className="text-[11px] text-slate-400 uppercase font-black block leading-none">
-                Carrinho
+            <div className="hidden xs:block min-w-0 pr-1">
+              <span className="text-[10px] text-slate-400 uppercase font-black block leading-none">
+                Pedido
               </span>
-              <p className="text-sm font-black text-slate-200 truncate">
+              <p className="text-xs font-black text-slate-200 truncate">
                 {cartTotalItems} {cartTotalItems === 1 ? 'item' : 'itens'}
               </p>
             </div>
           </button>
 
-          {/* Botão Principal de Cobrança Rápida - GIGANTE ESTILO APLICATIVO */}
+          {/* Botão Gigante: FINALIZAR COMPRA */}
           <button
             type="button"
             onClick={() => setIsCheckoutOpen(true)}
-            className="flex-1 h-16 bg-gradient-to-r from-emerald-500 to-green-500 active:from-emerald-400 active:to-green-400 text-slate-950 font-black text-lg uppercase tracking-wider rounded-2xl shadow-xl shadow-emerald-950 flex items-center justify-center gap-2.5 active:scale-[0.98] transition-all"
+            className="flex-1 h-16 bg-gradient-to-r from-emerald-500 via-emerald-400 to-green-500 active:from-emerald-400 active:to-green-400 text-slate-950 font-black text-base xs:text-lg sm:text-xl uppercase tracking-wider rounded-2xl shadow-xl shadow-emerald-950 flex items-center justify-between px-4 sm:px-5 active:scale-[0.98] transition-all border-2 border-emerald-300"
           >
-            <span>COBRAR</span>
-            <span className="font-mono text-xl font-black bg-slate-950/20 px-3 py-0.5 rounded-lg text-slate-950">
-              {formatPrice(cartTotal)}
-            </span>
-            <ArrowRight className="w-6 h-6 text-slate-950 stroke-[3] shrink-0" />
+            <span className="truncate">FINALIZAR COMPRA</span>
+            <div className="flex items-center gap-2 shrink-0">
+              <span className="font-mono text-lg sm:text-xl font-black bg-slate-950/20 px-2.5 py-1 rounded-xl text-slate-950">
+                {formatPrice(cartTotal)}
+              </span>
+              <ArrowRight className="w-6 h-6 text-slate-950 stroke-[3] shrink-0" />
+            </div>
           </button>
         </div>
       )}
