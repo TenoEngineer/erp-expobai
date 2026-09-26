@@ -34,19 +34,19 @@ export default function CategoryTabs({ categories = [], selectedCategory, onSele
   };
 
   return (
-    <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none select-none">
+    <div className="flex items-center gap-1.5 sm:gap-2 overflow-x-auto pb-1.5 sm:pb-2 scrollbar-none select-none -mx-2 px-2 sm:mx-0 sm:px-0">
       {/* Botão "Todos" */}
       <button
         onClick={() => onSelectCategory(null)}
-        className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-sm whitespace-nowrap transition-all duration-200 shadow-md ${
+        className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl font-bold text-xs sm:text-sm whitespace-nowrap transition-all duration-200 shadow-md shrink-0 ${
           selectedCategory === null
             ? 'bg-gradient-to-r from-emerald-600 to-emerald-700 text-white border-2 border-emerald-400/50 shadow-emerald-950/60 scale-[1.02]'
             : 'bg-slate-800/90 text-slate-300 hover:bg-slate-800 hover:text-white border border-slate-700/60'
         }`}
       >
-        <Sparkles className="w-4 h-4 text-amber-400" />
-        <span>Todos os Produtos</span>
-        <span className={`text-xs px-2 py-0.5 rounded-full font-bold ${
+        <Sparkles className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-400" />
+        <span>Todos</span>
+        <span className={`text-[10px] sm:text-xs px-1.5 py-0.2 rounded-full font-bold ${
           selectedCategory === null ? 'bg-emerald-950/80 text-emerald-200' : 'bg-slate-900 text-slate-400'
         }`}>
           {totalProducts}
@@ -63,7 +63,7 @@ export default function CategoryTabs({ categories = [], selectedCategory, onSele
           <button
             key={cat.id}
             onClick={() => onSelectCategory(cat.id)}
-            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-sm whitespace-nowrap transition-all duration-200 shadow-md ${
+            className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl font-bold text-xs sm:text-sm whitespace-nowrap transition-all duration-200 shadow-md shrink-0 ${
               isSelected
                 ? isCombo
                   ? 'bg-gradient-to-r from-purple-600 via-indigo-600 to-purple-700 text-white border-2 border-purple-400/60 shadow-purple-950/80 scale-[1.02]'
@@ -74,12 +74,12 @@ export default function CategoryTabs({ categories = [], selectedCategory, onSele
             }`}
           >
             {isCombo ? (
-              <span className="text-base">🎁</span>
+              <span className="text-sm sm:text-base">🎁</span>
             ) : (
-              renderIcon(cat.icone, isSelected ? 'w-4 h-4 text-white' : 'w-4 h-4 text-amber-400')
+              renderIcon(cat.icone, isSelected ? 'w-3.5 h-3.5 sm:w-4 sm:h-4 text-white' : 'w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-400')
             )}
             <span>{isCombo ? 'Combos Pré-Prontos' : cat.nome}</span>
-            <span className={`text-xs px-2 py-0.5 rounded-full font-bold ${
+            <span className={`text-[10px] sm:text-xs px-1.5 py-0.2 rounded-full font-bold ${
               isSelected 
                 ? isCombo ? 'bg-purple-950 text-purple-200' : 'bg-amber-950/80 text-amber-200'
                 : isCombo ? 'bg-purple-900/80 text-purple-300' : 'bg-slate-900 text-slate-400'

@@ -99,90 +99,90 @@ export default function ReceiptModal({
   return (
     <>
       {/* Modal na Tela */}
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/85 backdrop-blur-md animate-in fade-in duration-200">
-        <div className="bg-slate-900 border border-slate-700/80 rounded-3xl w-full max-w-md shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/85 backdrop-blur-md animate-in fade-in duration-200">
+        <div className="bg-slate-900 border border-slate-700/80 rounded-2xl sm:rounded-3xl w-full max-w-md shadow-2xl overflow-hidden flex flex-col max-h-[92vh]">
           
           {/* Header Sucesso */}
-          <div className="p-6 bg-gradient-to-b from-emerald-950/80 to-slate-900 border-b border-slate-800 flex flex-col items-center text-center relative">
+          <div className="p-4 sm:p-5 bg-gradient-to-b from-emerald-950/80 to-slate-900 border-b border-slate-800 flex flex-col items-center text-center relative">
             <button
               onClick={onClose}
-              className="absolute top-4 right-4 text-slate-400 hover:text-white p-1 rounded-lg"
+              className="absolute top-3.5 right-3.5 text-slate-400 hover:text-white p-1 rounded-lg"
             >
               <X className="w-5 h-5" />
             </button>
 
-            <div className="w-14 h-14 rounded-full bg-emerald-500/20 border border-emerald-400/50 flex items-center justify-center text-emerald-400 mb-3 shadow-lg shadow-emerald-950">
-              <CheckCircle className="w-8 h-8" />
+            <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-emerald-500/20 border border-emerald-400/50 flex items-center justify-center text-emerald-400 mb-2 shadow-lg shadow-emerald-950">
+              <CheckCircle className="w-6 h-6 sm:w-7 sm:h-7" />
             </div>
 
-            <h3 className="text-sm font-bold uppercase tracking-widest text-emerald-400">
+            <h3 className="text-xs sm:text-sm font-bold uppercase tracking-widest text-emerald-400">
               Venda Concluída com Sucesso!
             </h3>
 
             {/* Número do Pedido Grande */}
-            <div className="mt-3 bg-slate-950 border border-amber-500/40 px-6 py-2.5 rounded-2xl shadow-inner">
-              <span className="text-xs text-slate-400 uppercase tracking-widest block font-bold">
+            <div className="mt-2 bg-slate-950 border border-amber-500/40 px-4 py-1.5 sm:px-6 sm:py-2 rounded-2xl shadow-inner">
+              <span className="text-[10px] sm:text-xs text-slate-400 uppercase tracking-widest block font-bold">
                 Número da Comanda / Senha
               </span>
-              <span className="font-black text-5xl sm:text-6xl text-amber-400 font-mono tracking-tight">
+              <span className="font-black text-4xl sm:text-6xl text-amber-400 font-mono tracking-tight">
                 #{numeroFormatado}
               </span>
             </div>
 
             {/* Status da Impressão Térmica Automática */}
-            <div className="mt-3 w-full">
+            <div className="mt-2 w-full">
               {printStatus === 'printed' && (
-                <div className="bg-emerald-950/70 border border-emerald-500/40 text-emerald-300 text-xs px-3 py-1.5 rounded-xl flex items-center justify-center gap-1.5 animate-in fade-in">
+                <div className="bg-emerald-950/70 border border-emerald-500/40 text-emerald-300 text-xs px-3 py-1 rounded-xl flex items-center justify-center gap-1.5 animate-in fade-in">
                   <Printer className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-                  <span className="font-medium">{statusMessage}</span>
+                  <span className="font-medium text-[11px] sm:text-xs">{statusMessage}</span>
                 </div>
               )}
 
               {printStatus === 'printing_browser' && (
-                <div className="bg-amber-950/70 border border-amber-500/40 text-amber-300 text-xs px-3 py-1.5 rounded-xl flex items-center justify-center gap-1.5">
+                <div className="bg-amber-950/70 border border-amber-500/40 text-amber-300 text-xs px-3 py-1 rounded-xl flex items-center justify-center gap-1.5">
                   <RefreshCw className="w-3.5 h-3.5 animate-spin text-amber-400 shrink-0" />
-                  <span className="font-medium">Imprimindo pelo navegador automaticamente...</span>
+                  <span className="font-medium text-[11px] sm:text-xs">Imprimindo pelo navegador automaticamente...</span>
                 </div>
               )}
 
               {printStatus === 'error' && (
-                <div className="bg-rose-950/70 border border-rose-500/40 text-rose-300 text-xs px-3 py-1.5 rounded-xl flex items-center justify-center gap-1.5">
+                <div className="bg-rose-950/70 border border-rose-500/40 text-rose-300 text-xs px-3 py-1 rounded-xl flex items-center justify-center gap-1.5">
                   <AlertCircle className="w-3.5 h-3.5 text-rose-400 shrink-0" />
-                  <span className="font-medium">{statusMessage}</span>
+                  <span className="font-medium text-[11px] sm:text-xs">{statusMessage}</span>
                 </div>
               )}
             </div>
           </div>
 
           {/* Resumo dos Itens & Vias Impressas */}
-          <div className="p-5 overflow-y-auto space-y-3 flex-1">
-            <div className="text-[11px] text-slate-400 bg-slate-950/40 p-2.5 rounded-xl border border-slate-800/80 flex items-center justify-between">
-              <span>🎟️ <b>Via 1:</b> Ficha Cliente (Senha)</span>
-              <span>👨‍🍳 <b>Via 2:</b> Cozinha (Itens)</span>
+          <div className="p-3 sm:p-4 overflow-y-auto space-y-2.5 flex-1 max-h-44 sm:max-h-56">
+            <div className="text-[10px] sm:text-[11px] text-slate-400 bg-slate-950/40 p-2 rounded-xl border border-slate-800/80 flex items-center justify-between">
+              <span>🎟️ <b>Via 1:</b> Ficha Cliente</span>
+              <span>👨‍🍳 <b>Via 2:</b> Cozinha</span>
             </div>
 
-            <div className="bg-slate-950/60 rounded-xl p-3 border border-slate-800 space-y-2">
-              <div className="text-xs font-bold text-slate-400 uppercase tracking-wider pb-1 border-b border-slate-800 flex justify-between">
+            <div className="bg-slate-950/60 rounded-xl p-2.5 sm:p-3 border border-slate-800 space-y-1.5">
+              <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider pb-1 border-b border-slate-800 flex justify-between">
                 <span>Item Pedido</span>
                 <span>Subtotal</span>
               </div>
               
-              <div className="space-y-1.5">
+              <div className="space-y-1 max-h-24 overflow-y-auto pr-1">
                 {(order.itens || []).map((item, idx) => (
                   <div key={idx} className="flex justify-between items-center text-xs">
-                    <span className="text-slate-200 font-medium">
+                    <span className="text-slate-200 font-medium truncate max-w-[200px]">
                       <b className="text-amber-400 font-mono">{item.quantidade}x</b> {item.nome_produto}
                     </span>
-                    <span className="text-slate-300 font-mono">
+                    <span className="text-slate-300 font-mono shrink-0">
                       {formatPrice(item.subtotal)}
                     </span>
                   </div>
                 ))}
               </div>
 
-              <div className="pt-2 border-t border-slate-800 flex justify-between items-center text-sm font-bold">
-                <span className="text-slate-300">Total Pago ({order.forma_pagamento?.toUpperCase()}):</span>
-                <span className="text-emerald-400 font-mono font-black text-base">
+              <div className="pt-1.5 border-t border-slate-800 flex justify-between items-center text-xs sm:text-sm font-bold">
+                <span className="text-slate-300">Total ({order.forma_pagamento?.toUpperCase()}):</span>
+                <span className="text-emerald-400 font-mono font-black text-sm sm:text-base">
                   {formatPrice(order.total)}
                 </span>
               </div>
@@ -196,28 +196,33 @@ export default function ReceiptModal({
             </div>
           </div>
 
-          {/* Ações: Imprimir se necessário ou Próximo Pedido */}
-          <div className="p-4 bg-slate-950/90 border-t border-slate-800 flex flex-col gap-2.5">
-            <button
-              onClick={handleImprimir}
-              disabled={isImprimindo}
-              className="w-full py-3.5 px-4 bg-amber-500 hover:bg-amber-400 active:scale-[0.98] text-slate-950 rounded-xl font-black text-sm uppercase tracking-wider flex items-center justify-center gap-2 shadow-lg shadow-amber-950/40 border border-amber-400 transition-all cursor-pointer disabled:opacity-50"
-            >
-              {isImprimindo ? (
-                <RefreshCw className="w-5 h-5 animate-spin text-slate-950" />
-              ) : (
-                <Printer className="w-5 h-5 text-slate-950" />
-              )}
-              <span>{printStatus === 'printed' ? 'Reimprimir Comandas (P)' : '🖨️ Imprimir Comandas (P)'}</span>
-            </button>
-
+          {/* Ações: Próximo Pedido Prioritário e Impressão Sob Demanda */}
+          <div 
+            className="p-3 sm:p-4 bg-slate-950/95 border-t border-slate-800 flex flex-col gap-2 shrink-0"
+            style={{ paddingBottom: 'max(0.75rem, env(safe-area-inset-bottom))' }}
+          >
+            {/* Botão Primário: Próximo Pedido */}
             <button
               onClick={onClose}
               autoFocus
-              className="w-full py-3 px-4 bg-slate-800 hover:bg-slate-700 active:scale-[0.98] text-slate-100 rounded-xl font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 border border-slate-700 transition-all cursor-pointer"
+              className="w-full py-3.5 px-4 bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-500 hover:to-green-500 active:scale-[0.98] text-white rounded-xl font-black text-sm uppercase tracking-wider flex items-center justify-center gap-2 shadow-lg shadow-emerald-950/40 border border-emerald-400/40 transition-all cursor-pointer"
             >
-              <span>Próximo Pedido (Enter)</span>
-              <ArrowRight className="w-4 h-4 text-emerald-400" />
+              <span>PRÓXIMO PEDIDO (ENTER)</span>
+              <ArrowRight className="w-4 h-4 text-emerald-200" />
+            </button>
+
+            {/* Botão Secundário: Imprimir Comandas */}
+            <button
+              onClick={handleImprimir}
+              disabled={isImprimindo}
+              className="w-full py-2 px-3 bg-slate-800 hover:bg-slate-700 active:scale-[0.98] text-amber-300 rounded-xl font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 border border-slate-700 transition-all cursor-pointer disabled:opacity-50"
+            >
+              {isImprimindo ? (
+                <RefreshCw className="w-4 h-4 animate-spin text-amber-400" />
+              ) : (
+                <Printer className="w-4 h-4 text-amber-400" />
+              )}
+              <span>{printStatus === 'printed' ? 'Reimprimir Comandas (P)' : '🖨️ Imprimir Comandas (P)'}</span>
             </button>
           </div>
 

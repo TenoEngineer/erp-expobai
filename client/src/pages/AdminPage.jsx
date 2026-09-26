@@ -45,11 +45,11 @@ export default function AdminPage({ config, onRefreshConfig }) {
   return (
     <div className="max-w-7xl mx-auto p-4 sm:p-6 space-y-6">
       
-      {/* Sub-navegação do Admin */}
-      <div className="flex items-center gap-2 border-b border-slate-800 pb-3 overflow-x-auto">
+      {/* Sub-navegação do Admin com Rolagem Fluida no Mobile */}
+      <div className="flex items-center gap-2 border-b border-slate-800 pb-3 overflow-x-auto flex-nowrap -mx-4 px-4 sm:mx-0 sm:px-0">
         <button
           onClick={() => setActiveSubTab('produtos')}
-          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-xs uppercase tracking-wider transition-all ${
+          className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl font-bold text-xs uppercase tracking-wider transition-all shrink-0 whitespace-nowrap ${
             activeSubTab === 'produtos'
               ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-950 border border-emerald-400/40'
               : 'bg-slate-800/80 text-slate-400 hover:text-white hover:bg-slate-800'
@@ -61,19 +61,19 @@ export default function AdminPage({ config, onRefreshConfig }) {
 
         <button
           onClick={() => setActiveSubTab('combos')}
-          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-xs uppercase tracking-wider transition-all ${
+          className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl font-bold text-xs uppercase tracking-wider transition-all shrink-0 whitespace-nowrap ${
             activeSubTab === 'combos'
               ? 'bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-lg shadow-purple-950 border border-purple-400/40'
               : 'bg-slate-800/80 text-slate-400 hover:text-white hover:bg-slate-800'
           }`}
         >
           <Sparkles className="w-4 h-4 text-amber-300" />
-          <span>Combos Pré-Prontos 🎁</span>
+          <span>Combos 🎁</span>
         </button>
 
         <button
           onClick={() => setActiveSubTab('categorias')}
-          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-xs uppercase tracking-wider transition-all ${
+          className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl font-bold text-xs uppercase tracking-wider transition-all shrink-0 whitespace-nowrap ${
             activeSubTab === 'categorias'
               ? 'bg-amber-600 text-white shadow-lg shadow-amber-950 border border-amber-400/40'
               : 'bg-slate-800/80 text-slate-400 hover:text-white hover:bg-slate-800'
@@ -85,31 +85,31 @@ export default function AdminPage({ config, onRefreshConfig }) {
 
         <button
           onClick={() => setActiveSubTab('relatorios')}
-          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-xs uppercase tracking-wider transition-all ${
+          className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl font-bold text-xs uppercase tracking-wider transition-all shrink-0 whitespace-nowrap ${
             activeSubTab === 'relatorios'
               ? 'bg-cyan-600 text-white shadow-lg shadow-cyan-950 border border-cyan-400/40'
               : 'bg-slate-800/80 text-slate-400 hover:text-white hover:bg-slate-800'
           }`}
         >
           <BarChart3 className="w-4 h-4" />
-          <span>Fechamento de Caixa</span>
+          <span>Fechamento Caixa</span>
         </button>
 
         <button
           onClick={() => setActiveSubTab('analise_detalhada')}
-          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-xs uppercase tracking-wider transition-all ${
+          className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl font-bold text-xs uppercase tracking-wider transition-all shrink-0 whitespace-nowrap ${
             activeSubTab === 'analise_detalhada'
               ? 'bg-purple-600 text-white shadow-lg shadow-purple-950 border border-purple-400/40'
               : 'bg-slate-800/80 text-slate-400 hover:text-white hover:bg-slate-800'
           }`}
         >
           <TrendingUp className="w-4 h-4" />
-          <span>Análise Detalhada & Custos</span>
+          <span>Análise & Custos</span>
         </button>
 
         <button
           onClick={() => setActiveSubTab('config')}
-          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-xs uppercase tracking-wider transition-all ${
+          className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl font-bold text-xs uppercase tracking-wider transition-all shrink-0 whitespace-nowrap ${
             activeSubTab === 'config'
               ? 'bg-amber-600 text-white shadow-lg shadow-amber-950 border border-amber-400/40'
               : 'bg-slate-800/80 text-slate-400 hover:text-white hover:bg-slate-800'

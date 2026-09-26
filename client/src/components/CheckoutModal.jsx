@@ -158,10 +158,11 @@ export default function CheckoutModal({
         </div>
 
         {/* Corpo do Modal */}
-        <form onSubmit={handleSubmit} className="p-4 sm:p-5 overflow-y-auto space-y-4 flex-1">
-          
-          {/* Card de Valor Total */}
-          <div className="bg-gradient-to-br from-emerald-950/70 via-slate-900 to-slate-950 p-3.5 sm:p-4 rounded-2xl border border-emerald-500/30 flex items-center justify-between">
+        <form onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0 overflow-hidden">
+          <div className="p-3.5 sm:p-5 overflow-y-auto space-y-3.5 sm:space-y-4 flex-1">
+            
+            {/* Card de Valor Total */}
+            <div className="bg-gradient-to-br from-emerald-950/70 via-slate-900 to-slate-950 p-3 sm:p-4 rounded-2xl border border-emerald-500/30 flex items-center justify-between">
             <div>
               <span className="text-[11px] font-bold text-emerald-300 uppercase tracking-wider">
                 Total do Pedido
@@ -283,6 +284,7 @@ export default function CheckoutModal({
                       </span>
                       <input
                         type="number"
+                        inputMode="decimal"
                         step="0.01"
                         placeholder={`Valor exato (${totalNum.toFixed(2)}) ou digite o valor recebido`}
                         value={cashReceived}
@@ -380,6 +382,7 @@ export default function CheckoutModal({
                     </span>
                     <input
                       type="number"
+                      inputMode="decimal"
                       step="0.01"
                       placeholder="0,00"
                       value={splitAmount1}
@@ -419,6 +422,7 @@ export default function CheckoutModal({
                     </span>
                     <input
                       type="number"
+                      inputMode="decimal"
                       step="0.01"
                       placeholder="0,00"
                       value={splitAmount2}
@@ -445,8 +449,8 @@ export default function CheckoutModal({
 
           {/* Painel do QR CODE PIX (se PIX for selecionado) */}
           {showPixQr && (
-            <div className="bg-slate-950/90 p-4 rounded-2xl border border-emerald-500/30 flex flex-col items-center text-center space-y-2.5">
-              <div className="w-44 h-44 bg-white p-2 rounded-2xl shadow-xl flex items-center justify-center overflow-hidden border-2 border-emerald-500">
+            <div className="bg-slate-950/90 p-3 sm:p-4 rounded-2xl border border-emerald-500/30 flex flex-col items-center text-center space-y-2">
+              <div className="w-32 h-32 sm:w-44 sm:h-44 bg-white p-1.5 sm:p-2 rounded-2xl shadow-xl flex items-center justify-center overflow-hidden border-2 border-emerald-500">
                 <img
                   src={config?.pix_qrcode_url || '/img/pix-qrcode.jpeg'}
                   alt="QR Code Pix"
@@ -460,24 +464,24 @@ export default function CheckoutModal({
               </div>
 
               <div>
-                <p className="text-xs font-bold text-emerald-400">
+                <p className="text-[11px] sm:text-xs font-bold text-emerald-400">
                   Aponte a câmera do aplicativo do banco para pagar
                 </p>
                 {pixKey ? (
-                  <div className="flex items-center justify-center gap-2 mt-1.5 bg-slate-900 border border-slate-700 rounded-lg px-3 py-1 font-mono text-xs text-slate-300">
-                    <span className="text-[11px] text-slate-400">Chave/CNPJ:</span>
-                    <span className="text-emerald-400 font-bold">{pixKey}</span>
+                  <div className="flex items-center justify-center gap-2 mt-1.5 bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1 font-mono text-xs text-slate-300">
+                    <span className="text-[10px] sm:text-[11px] text-slate-400">Chave/CNPJ:</span>
+                    <span className="text-emerald-400 font-bold truncate max-w-[160px] sm:max-w-none">{pixKey}</span>
                     <button
                       type="button"
                       onClick={handleCopyPix}
-                      className="text-slate-400 hover:text-white transition-colors"
+                      className="text-slate-400 hover:text-white transition-colors shrink-0"
                       title="Copiar Chave"
                     >
                       {copiedPix ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
                     </button>
                   </div>
                 ) : (
-                  <p className="text-[11px] text-slate-500 mt-0.5">
+                  <p className="text-[10px] sm:text-[11px] text-slate-500 mt-0.5">
                     (CNPJ da chave pode ser cadastrado nas Configurações)
                   </p>
                 )}
@@ -485,8 +489,13 @@ export default function CheckoutModal({
             </div>
           )}
 
-          {/* Botão de Confirmação */}
-          <div className="pt-2">
+          </div>
+
+          {/* Rodapé Fixo / Sticky com Botão de Confirmação */}
+          <div 
+            className="p-3 sm:p-4 bg-slate-950 border-t border-slate-800 shrink-0"
+            style={{ paddingBottom: 'max(0.75rem, env(safe-area-inset-bottom))' }}
+          >
             <button
               type="submit"
               disabled={!canSubmit || isProcessing}

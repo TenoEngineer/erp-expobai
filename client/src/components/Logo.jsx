@@ -122,27 +122,27 @@ export function BrandEmblem({ size = 44, className = "" }) {
   );
 }
 
-export default function Logo({ boothName = "Tenda dos Müller", subtitle = "EXPOBAI 2026", size = 46 }) {
+export default function Logo({ boothName = "Tenda dos Müller", subtitle = "EXPOBAI 2026", size = 44 }) {
   return (
-    <div className="flex items-center gap-3">
+    <div className="flex items-center gap-2 sm:gap-3 min-w-0">
       {/* Emblema Gráfico */}
-      <BrandEmblem size={size} />
+      <BrandEmblem size={size} className="w-8 h-8 sm:w-11 sm:h-11 shrink-0" />
 
       {/* Tipografia da Marca */}
-      <div className="flex flex-col">
-        <div className="flex items-center gap-2">
-          <span className="font-extrabold text-base sm:text-lg tracking-tight bg-gradient-to-r from-amber-200 via-amber-400 to-yellow-500 bg-clip-text text-transparent uppercase drop-shadow-sm">
+      <div className="flex flex-col min-w-0">
+        <div className="flex items-center gap-1.5">
+          <span className="font-extrabold text-xs sm:text-base tracking-tight bg-gradient-to-r from-amber-200 via-amber-400 to-yellow-500 bg-clip-text text-transparent uppercase drop-shadow-sm truncate max-w-[120px] sm:max-w-none">
             {boothName}
           </span>
-          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider bg-emerald-950/90 text-emerald-300 border border-emerald-500/40 shadow-sm">
+          <span className="hidden xs:inline-flex items-center px-1.5 py-0.2 rounded-full text-[9px] font-black uppercase tracking-wider bg-emerald-950/90 text-emerald-300 border border-emerald-500/40 shadow-sm">
             PDV
           </span>
         </div>
 
-        <div className="flex items-center gap-1.5 text-[11px] text-slate-400 font-medium">
+        <div className="flex items-center gap-1 text-[10px] sm:text-[11px] text-slate-400 font-medium leading-tight">
           <span className="text-emerald-400 font-semibold">{subtitle}</span>
-          <span className="text-slate-600">•</span>
-          <span className="text-slate-400">Frente de Caixa</span>
+          <span className="hidden sm:inline text-slate-600">•</span>
+          <span className="hidden sm:inline text-slate-400">Frente de Caixa</span>
         </div>
       </div>
     </div>

@@ -268,7 +268,7 @@ export default function PosPage({ config, onCartCountChange }) {
   }
 
   return (
-    <div className="max-w-7xl mx-auto p-2 sm:p-4 flex flex-col lg:flex-row gap-4 relative pb-28 lg:pb-4">
+    <div className="max-w-7xl mx-auto p-2 sm:p-4 flex flex-col lg:flex-row gap-3 sm:gap-4 relative pb-36 lg:pb-6">
       
       {/* NOTIFICAÇÃO FLUTUANTE ULTRA-RÁPIDA */}
       {orderNotification && (
@@ -327,23 +327,21 @@ export default function PosPage({ config, onCartCountChange }) {
       <div className="flex-1 flex flex-col gap-3 min-w-0">
         
         {/* Barra Rápida de Ações do PDV & Horário Oficial MS */}
-        <div className="flex items-center justify-between gap-2 bg-slate-900 border border-slate-800 px-3 py-2 rounded-2xl shadow">
+        <div className="flex items-center justify-between gap-2 bg-slate-900 border border-slate-800 px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-2xl shadow">
           <button
             type="button"
             onClick={() => setIsRecentOrdersOpen(true)}
-            className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-amber-300 border border-amber-500/40 rounded-xl font-bold text-xs flex items-center gap-1.5 transition-all active:scale-95 shadow"
+            className="px-2.5 sm:px-3 py-1 sm:py-1.5 bg-slate-800 hover:bg-slate-700 text-amber-300 border border-amber-500/40 rounded-xl font-bold text-xs flex items-center gap-1.5 transition-all active:scale-95 shadow truncate"
             title="Ver vendas recentes para reimprimir ficha, editar itens ou excluir erro"
           >
-            <Receipt className="w-3.5 h-3.5 text-amber-400" />
-            <span>⚡ Vendas Recentes / Correções</span>
+            <Receipt className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+            <span className="truncate">⚡ Vendas Recentes <span className="hidden xs:inline">/ Correções</span></span>
           </button>
 
-          <div className="flex items-center gap-2 text-[11px] text-slate-400 font-mono">
-            <span className="flex items-center gap-1">
-              <Clock className="w-3.5 h-3.5 text-slate-500" />
-              <span className="hidden sm:inline">Horário Oficial</span>
-              <span>MS (-1h BSB)</span>
-            </span>
+          <div className="flex items-center gap-1.5 text-[10px] sm:text-[11px] text-slate-400 font-mono shrink-0">
+            <Clock className="w-3.5 h-3.5 text-slate-500 shrink-0" />
+            <span className="hidden sm:inline">Horário Oficial</span>
+            <span>MS (-1h BSB)</span>
           </div>
         </div>
 
@@ -359,6 +357,8 @@ export default function PosPage({ config, onCartCountChange }) {
         <ProductGrid
           products={filteredProducts}
           onAddToCart={handleAddToCart}
+          onUpdateQuantity={handleUpdateQuantity}
+          onRemoveItem={handleRemoveItem}
           cartItems={cart}
         />
       </div>
@@ -378,44 +378,41 @@ export default function PosPage({ config, onCartCountChange }) {
 
       {/* ========================================================================= */}
       {/* BARRA FLUTUANTE INFERIOR MOBILE (CELULAR) */}
-      {/* Permite vender pelo celular de forma rápida e intuitiva */}
+      {/* Permite vender pelo celular de forma rápida e intuitiva com 1 toque */}
       {/* ========================================================================= */}
       {cart.length > 0 && (
-        <div className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-slate-900/95 border-t border-emerald-500/50 p-2.5 sm:p-3 backdrop-blur-md shadow-2xl flex items-center justify-between gap-2.5 animate-in slide-in-from-bottom-4 duration-200">
-          <div 
+        <div 
+          className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-slate-950/95 border-t-2 border-emerald-500/80 p-2 sm:p-2.5 backdrop-blur-xl shadow-[0_-8px_25px_rgba(0,0,0,0.6)] flex items-center justify-between gap-2 animate-in slide-in-from-bottom-4 duration-200"
+          style={{ paddingBottom: 'max(0.75rem, env(safe-area-inset-bottom))' }}
+        >
+          {/* Botão Ver Itens */}
+          <button 
+            type="button"
             onClick={() => setIsMobileCartOpen(true)}
-            className="flex items-center gap-2 cursor-pointer flex-1 min-w-0"
+            className="flex items-center gap-2 bg-slate-900 hover:bg-slate-800 border border-slate-700/80 rounded-xl px-2.5 py-1.5 transition-colors text-left"
           >
-            <div className="w-10 h-10 rounded-xl bg-emerald-600/30 border border-emerald-500 flex items-center justify-center text-emerald-400 font-black text-sm shrink-0">
+            <div className="w-8 h-8 rounded-lg bg-emerald-600/30 border border-emerald-500/50 flex items-center justify-center text-emerald-400 font-black text-xs shrink-0">
               🛒 {cartTotalItems}
             </div>
             <div className="min-w-0">
-              <span className="text-[10px] text-slate-400 uppercase font-semibold block leading-none">
-                Toque p/ ver itens
+              <span className="text-[9px] text-slate-400 uppercase font-semibold block leading-none">
+                Ver Carrinho
               </span>
-              <p className="text-lg font-black text-emerald-400 font-mono leading-tight truncate">
-                {formatPrice(cartTotal)}
+              <p className="text-xs font-bold text-slate-200 truncate">
+                {cartTotalItems} {cartTotalItems === 1 ? 'item' : 'itens'}
               </p>
             </div>
-          </div>
+          </button>
 
-          <div className="flex items-center gap-1.5 shrink-0">
-            <button
-              type="button"
-              onClick={() => setIsMobileCartOpen(true)}
-              className="px-2.5 py-2 bg-slate-800 text-slate-300 text-xs font-bold rounded-xl border border-slate-700"
-            >
-              Itens
-            </button>
-            <button
-              type="button"
-              onClick={() => setIsCheckoutOpen(true)}
-              className="px-4 py-2 bg-gradient-to-r from-emerald-600 to-green-600 text-white font-black text-xs uppercase tracking-wider rounded-xl shadow-lg shadow-emerald-950 flex items-center gap-1 active:scale-95"
-            >
-              <span>Cobrar</span>
-              <ArrowRight className="w-4 h-4" />
-            </button>
-          </div>
+          {/* Botão Principal de Cobrança Rápida - 1 Toque Direto no Checkout */}
+          <button
+            type="button"
+            onClick={() => setIsCheckoutOpen(true)}
+            className="flex-1 max-w-[240px] py-2.5 px-3.5 bg-gradient-to-r from-emerald-500 to-green-500 hover:from-emerald-400 hover:to-green-400 text-slate-950 font-black text-xs sm:text-sm uppercase tracking-wider rounded-xl shadow-lg shadow-emerald-950/80 flex items-center justify-center gap-2 active:scale-95 transition-all"
+          >
+            <span>Cobrar {formatPrice(cartTotal)}</span>
+            <ArrowRight className="w-4 h-4 text-slate-950 shrink-0" />
+          </button>
         </div>
       )}
 
