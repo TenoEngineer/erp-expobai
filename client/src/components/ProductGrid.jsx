@@ -89,7 +89,7 @@ export default function ProductGrid({
             placeholder="Buscar produto (espetinho, chopp, refri)..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full h-14 sm:h-13 bg-slate-900 border-2 border-slate-700/80 rounded-2xl pl-12 pr-12 text-base sm:text-lg text-slate-100 placeholder-slate-400 focus:outline-none focus:border-amber-500 transition-all shadow-inner font-bold"
+            className="w-full h-14 sm:h-13 lg:h-12 bg-slate-900 border-2 border-slate-700/80 rounded-2xl pl-12 pr-12 text-base sm:text-lg lg:text-base text-slate-100 placeholder-slate-400 focus:outline-none focus:border-amber-500 transition-all shadow-inner font-bold lg:font-medium"
           />
           {searchTerm && (
             <button
@@ -102,7 +102,7 @@ export default function ProductGrid({
         </div>
 
         {/* Alternador de Modo (Lista Rápida / Teclas Grandes) */}
-        <div className="flex items-center bg-slate-900 border border-slate-800 rounded-2xl p-1 shrink-0 shadow-sm h-14 sm:h-13">
+        <div className="flex items-center bg-slate-900 border border-slate-800 rounded-2xl p-1 shrink-0 shadow-sm h-14 sm:h-13 lg:h-12">
           <button
             type="button"
             onClick={() => handleSetViewMode('list')}
@@ -113,7 +113,7 @@ export default function ProductGrid({
             }`}
             title="Visualização em Lista Rápida (Foco em velocidade)"
           >
-            <List className="w-5 h-5" />
+            <List className="w-5 h-5 lg:w-4 lg:h-4" />
             <span className="hidden xs:inline">Lista</span>
           </button>
           <button
@@ -126,7 +126,7 @@ export default function ProductGrid({
             }`}
             title="Visualização em Teclas Grandes (Teclado PDV)"
           >
-            <LayoutGrid className="w-5 h-5" />
+            <LayoutGrid className="w-5 h-5 lg:w-4 lg:h-4" />
             <span className="hidden xs:inline">Teclas</span>
           </button>
         </div>
@@ -141,9 +141,9 @@ export default function ProductGrid({
         </div>
       ) : viewMode === 'list' ? (
         /* ========================================================================= */
-        /* MODO LISTA RÁPIDA (PADRÃO MOBILE): SEM FOTOS, LETRAS GRANDES, BOTÕES GIGANTES */
+        /* MODO LISTA RÁPIDA: RESPONSIVO (GIGANTE NO MOBILE, COMPACTO NO DESKTOP) */
         /* ========================================================================= */
-        <div className="flex flex-col gap-3">
+        <div className="flex flex-col gap-3 lg:gap-2.5">
           {filteredProducts.map((prod) => {
             const cartItem = getCartItem(prod.id);
             const qtyInCart = cartItem ? cartItem.quantidade : 0;
@@ -157,7 +157,7 @@ export default function ProductGrid({
               <div
                 key={prod.id}
                 onClick={() => onAddToCart(prod)}
-                className={`p-4 sm:p-4.5 rounded-2xl border-2 transition-all flex flex-col justify-between cursor-pointer select-none active:scale-[0.99] shadow-md ${
+                className={`p-4 sm:p-4.5 lg:p-3.5 rounded-2xl border-2 transition-all flex flex-col justify-between cursor-pointer select-none active:scale-[0.99] shadow-md ${
                   qtyInCart > 0
                     ? 'bg-gradient-to-r from-amber-950/40 via-slate-800 to-slate-800 border-amber-500 shadow-xl shadow-amber-950/40'
                     : isCombo
@@ -170,17 +170,17 @@ export default function ProductGrid({
                   {/* Informações: Nome Grande e Preço Destacado */}
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <h3 className="font-black text-lg sm:text-xl text-white leading-tight">
+                      <h3 className="font-black text-lg sm:text-xl lg:text-base text-white leading-tight">
                         {prod.nome}
                       </h3>
                       {isCombo && (
-                        <span className="bg-gradient-to-r from-purple-600 to-indigo-600 text-white text-xs font-black px-2.5 py-0.5 rounded-md shadow-sm border border-purple-400/50 flex items-center gap-1">
-                          <Sparkles className="w-3.5 h-3.5 text-amber-300" />
+                        <span className="bg-gradient-to-r from-purple-600 to-indigo-600 text-white text-xs lg:text-[10px] font-black px-2.5 lg:px-2 py-0.5 rounded-md shadow-sm border border-purple-400/50 flex items-center gap-1">
+                          <Sparkles className="w-3.5 h-3.5 lg:w-3 lg:h-3 text-amber-300" />
                           <span>COMBO</span>
                         </span>
                       )}
                       {qtyInCart > 0 && (
-                        <span className="bg-amber-500 text-slate-950 font-black text-xs sm:text-sm px-3 py-0.5 rounded-full shadow">
+                        <span className="bg-amber-500 text-slate-950 font-black text-xs sm:text-sm lg:text-xs px-3 lg:px-2.5 py-0.5 rounded-full shadow">
                           {qtyInCart}x no pedido
                         </span>
                       )}
@@ -192,7 +192,7 @@ export default function ProductGrid({
                         {itensCombo.map((it, idx) => (
                           <span
                             key={idx}
-                            className="bg-purple-950/90 text-purple-200 border border-purple-500/40 text-xs sm:text-sm font-bold px-2.5 py-1 rounded-xl"
+                            className="bg-purple-950/90 text-purple-200 border border-purple-500/40 text-xs sm:text-sm lg:text-xs font-bold px-2.5 lg:px-2 py-1 lg:py-0.5 rounded-xl"
                           >
                             <b className="text-amber-400 font-mono">{it.quantidade}x</b> {it.nome}
                           </span>
@@ -206,51 +206,51 @@ export default function ProductGrid({
 
                     {/* Preço em Destaque */}
                     <div className="flex items-baseline gap-2 mt-2">
-                      <span className="font-black text-2xl sm:text-3xl text-amber-400 font-mono tracking-tight">
+                      <span className="font-black text-2xl sm:text-3xl lg:text-xl text-amber-400 font-mono tracking-tight">
                         {formatPrice(prod.preco)}
                       </span>
                       {isCombo && economia > 0 && (
-                        <span className="text-xs sm:text-sm bg-emerald-950/90 text-emerald-300 font-bold px-2.5 py-0.5 rounded-xl border border-emerald-500/40 font-mono">
+                        <span className="text-xs sm:text-sm lg:text-xs bg-emerald-950/90 text-emerald-300 font-bold px-2.5 lg:px-2 py-0.5 rounded-xl border border-emerald-500/40 font-mono">
                           Economiza {formatPrice(economia)}
                         </span>
                       )}
                     </div>
                   </div>
 
-                  {/* Controles de Toque Grandes (Touch-Friendly para Polegar) */}
+                  {/* Controles de Toque Grandes (Touch-Friendly para Polegar no Celular / Compacto no Desktop) */}
                   <div className="shrink-0" onClick={(e) => e.stopPropagation()}>
                     {qtyInCart > 0 ? (
                       <div className="flex items-center bg-slate-950 border-2 border-amber-500 rounded-2xl p-1 shadow-lg">
                         <button
                           type="button"
                           onClick={(e) => handleDecrement(e, prod)}
-                          className="w-14 h-14 sm:w-14 sm:h-14 rounded-xl bg-slate-900 active:bg-amber-600 text-amber-400 active:text-slate-950 flex items-center justify-center transition-all border border-slate-700 active:scale-90"
+                          className="w-14 h-14 sm:w-14 sm:h-14 lg:w-11 lg:h-11 rounded-xl bg-slate-900 active:bg-amber-600 text-amber-400 active:text-slate-950 flex items-center justify-center transition-all border border-slate-700 active:scale-90"
                           title="Diminuir"
                         >
-                          <Minus className="w-7 h-7 stroke-[3]" />
+                          <Minus className="w-7 h-7 lg:w-5 lg:h-5 stroke-[3]" />
                         </button>
                         
-                        <span className="min-w-[48px] sm:min-w-[52px] text-center font-mono font-black text-2xl sm:text-3xl text-amber-400 select-none">
+                        <span className="min-w-[48px] sm:min-w-[52px] lg:min-w-[40px] text-center font-mono font-black text-2xl sm:text-3xl lg:text-xl text-amber-400 select-none">
                           {qtyInCart}
                         </span>
 
                         <button
                           type="button"
                           onClick={(e) => handleIncrement(e, prod)}
-                          className="w-14 h-14 sm:w-14 sm:h-14 rounded-xl bg-amber-500 active:bg-amber-400 text-slate-950 flex items-center justify-center transition-all shadow-md active:scale-90"
+                          className="w-14 h-14 sm:w-14 sm:h-14 lg:w-11 lg:h-11 rounded-xl bg-amber-500 active:bg-amber-400 text-slate-950 flex items-center justify-center transition-all shadow-md active:scale-90"
                           title="Aumentar"
                         >
-                          <Plus className="w-7 h-7 stroke-[3]" />
+                          <Plus className="w-7 h-7 lg:w-5 lg:h-5 stroke-[3]" />
                         </button>
                       </div>
                     ) : (
                       <button
                         type="button"
                         onClick={() => onAddToCart(prod)}
-                        className="h-14 sm:h-14 px-5 sm:px-6 rounded-2xl bg-emerald-600/30 active:bg-emerald-500 text-emerald-300 active:text-slate-950 border-2 border-emerald-500/70 flex items-center gap-2 font-black text-base sm:text-base uppercase tracking-wider transition-all active:scale-95 shadow"
+                        className="h-14 sm:h-14 lg:h-11 px-5 sm:px-6 lg:px-4 rounded-2xl bg-emerald-600/30 active:bg-emerald-500 text-emerald-300 active:text-slate-950 border-2 border-emerald-500/70 flex items-center gap-2 font-black text-base sm:text-base lg:text-xs uppercase tracking-wider transition-all active:scale-95 shadow"
                         title="Adicionar ao pedido"
                       >
-                        <Plus className="w-6 h-6 stroke-[3]" />
+                        <Plus className="w-6 h-6 lg:w-4 lg:h-4 stroke-[3]" />
                         <span>Adicionar</span>
                       </button>
                     )}
@@ -303,7 +303,7 @@ export default function ProductGrid({
               <div
                 key={prod.id}
                 onClick={() => onAddToCart(prod)}
-                className={`p-4 rounded-2xl border-2 transition-all flex flex-col justify-between min-h-[160px] cursor-pointer select-none active:scale-[0.98] shadow-md ${
+                className={`p-4 lg:p-3 rounded-2xl border-2 transition-all flex flex-col justify-between min-h-[160px] lg:min-h-[130px] cursor-pointer select-none active:scale-[0.98] shadow-md ${
                   qtyInCart > 0
                     ? 'bg-slate-800 border-amber-500 shadow-xl shadow-amber-950/40'
                     : isCombo
@@ -314,24 +314,24 @@ export default function ProductGrid({
                 <div>
                   <div className="flex items-center justify-between gap-1 mb-1.5">
                     {isCombo ? (
-                      <span className="bg-purple-900/80 text-purple-200 border border-purple-400/40 text-xs font-black px-2 py-0.5 rounded-lg">
+                      <span className="bg-purple-900/80 text-purple-200 border border-purple-400/40 text-xs lg:text-[10px] font-black px-2 py-0.5 rounded-lg">
                         COMBO
                       </span>
                     ) : <span />}
                     {qtyInCart > 0 && (
-                      <span className="bg-amber-500 text-slate-950 font-black text-xs sm:text-sm px-2.5 py-0.5 rounded-full shadow">
+                      <span className="bg-amber-500 text-slate-950 font-black text-xs sm:text-sm lg:text-xs px-2.5 py-0.5 rounded-full shadow">
                         {qtyInCart}x
                       </span>
                     )}
                   </div>
 
-                  <h3 className="font-black text-base sm:text-lg text-slate-100 leading-snug line-clamp-2">
+                  <h3 className="font-black text-base sm:text-lg lg:text-sm text-slate-100 leading-snug line-clamp-2">
                     {prod.nome}
                   </h3>
                 </div>
 
-                <div className="mt-3.5 pt-2.5 border-t border-slate-800 flex items-center justify-between gap-1.5">
-                  <span className="font-black text-lg sm:text-xl text-amber-400 font-mono tracking-tight">
+                <div className="mt-3.5 lg:mt-2 pt-2.5 lg:pt-2 border-t border-slate-800 flex items-center justify-between gap-1.5">
+                  <span className="font-black text-lg sm:text-xl lg:text-base text-amber-400 font-mono tracking-tight">
                     {formatPrice(prod.preco)}
                   </span>
 
@@ -343,24 +343,24 @@ export default function ProductGrid({
                       <button
                         type="button"
                         onClick={(e) => handleDecrement(e, prod)}
-                        className="w-10 h-10 rounded-lg bg-slate-900 active:bg-amber-600 text-amber-400 active:text-slate-950 flex items-center justify-center active:scale-90 font-black"
+                        className="w-10 h-10 lg:w-8 lg:h-8 rounded-lg bg-slate-900 active:bg-amber-600 text-amber-400 active:text-slate-950 flex items-center justify-center active:scale-90 font-black"
                       >
-                        <Minus className="w-5 h-5 stroke-[3]" />
+                        <Minus className="w-5 h-5 lg:w-4 lg:h-4 stroke-[3]" />
                       </button>
-                      <span className="font-mono font-black text-base px-2 text-amber-400">
+                      <span className="font-mono font-black text-base lg:text-sm px-2 lg:px-1.5 text-amber-400">
                         {qtyInCart}
                       </span>
                       <button
                         type="button"
                         onClick={(e) => handleIncrement(e, prod)}
-                        className="w-10 h-10 rounded-lg bg-amber-500 active:bg-amber-400 text-slate-950 flex items-center justify-center active:scale-90 font-black"
+                        className="w-10 h-10 lg:w-8 lg:h-8 rounded-lg bg-amber-500 active:bg-amber-400 text-slate-950 flex items-center justify-center active:scale-90 font-black"
                       >
-                        <Plus className="w-5 h-5 stroke-[3]" />
+                        <Plus className="w-5 h-5 lg:w-4 lg:h-4 stroke-[3]" />
                       </button>
                     </div>
                   ) : (
-                    <div className="w-11 h-11 rounded-xl bg-emerald-600/30 text-emerald-400 border border-emerald-500/50 flex items-center justify-center font-black shrink-0">
-                      <Plus className="w-6 h-6 stroke-[3]" />
+                    <div className="w-11 h-11 lg:w-9 lg:h-9 rounded-xl bg-emerald-600/30 text-emerald-400 border border-emerald-500/50 flex items-center justify-center font-black shrink-0">
+                      <Plus className="w-6 h-6 lg:w-4 lg:h-4 stroke-[3]" />
                     </div>
                   )}
                 </div>

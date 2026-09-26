@@ -518,8 +518,8 @@ export default function PosPage({ config, onCartCountChange }) {
           </div>
         </div>
 
-        {/* Barra de Filtros Fixa no Topo ao Rolar a Tela */}
-        <div className="sticky top-[64px] z-20 bg-slate-950/98 backdrop-blur-xl py-2 px-1 w-full max-w-full border-b border-slate-800/90 shadow-lg">
+        {/* Barra de Filtros Fixa no Topo ao Rolar a Tela (Apenas no Mobile) */}
+        <div className="lg:static sticky top-[64px] z-20 bg-slate-950/98 lg:bg-transparent backdrop-blur-xl lg:backdrop-blur-none py-2 px-1 lg:p-0 w-full max-w-full border-b border-slate-800/90 lg:border-none shadow-lg lg:shadow-none">
           <CategoryTabs
             categories={categories}
             selectedCategory={selectedCategory}
