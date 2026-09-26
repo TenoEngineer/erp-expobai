@@ -8,7 +8,11 @@ import {
   X, 
   Image as ImageIcon, 
   Power,
-  DollarSign 
+  DollarSign,
+  Package,
+  Layers,
+  Sparkles,
+  Tag
 } from 'lucide-react';
 import { 
   saveProduto, 
@@ -28,11 +32,24 @@ export default function ProductManagement({ products = [], categories = [], onRe
     preco: '',
     preco_custo: '',
     foto_url: '',
-    ordem: 0
+    ordem: 0,
+    combos: [],
+    is_combo: false,
+    itens_combo: []
   });
   const [isUploading, setIsUploading] = useState(false);
   const [editingPriceId, setEditingPriceId] = useState(null);
   const [tempPrice, setTempPrice] = useState('');
+
+  const parseJsonField = (val) => {
+    if (!val) return [];
+    if (Array.isArray(val)) return val;
+    try {
+      return JSON.parse(val);
+    } catch {
+      return [];
+    }
+  };
 
   const handleOpenNew = () => {
     setEditingProduct(null);
@@ -43,7 +60,10 @@ export default function ProductManagement({ products = [], categories = [], onRe
       preco: '',
       preco_custo: '',
       foto_url: '',
-      ordem: 0
+      ordem: 0,
+      combos: [],
+      is_combo: false,
+      itens_combo: []
     });
     setIsModalOpen(true);
   };
@@ -57,9 +77,80 @@ export default function ProductManagement({ products = [], categories = [], onRe
       preco: prod.preco,
       preco_custo: prod.preco_custo !== undefined ? String(prod.preco_custo) : '',
       foto_url: prod.foto_url || '',
-      ordem: prod.ordem || 0
+      ordem: prod.ordem || 0,
+      combos: parseJsonField(prod.combos),
+      is_combo: Boolean(prod.is_combo),
+      itens_combo: parseJsonField(prod.itens_combo)
     });
     setIsModalOpen(true);
+  };
+
+  const handleAddComboOption = () => {
+    const combosAtuais = formData.combos || [];
+    const nextQty = combosAtuais.length > 0 ? (combosAtuais[combosAtuais.length - 1].quantidade + 2) : 3;
+    const basePreco = parseFloat(formData.preco) || 0;
+    const baseCusto = parseFloat(formData.preco_custo) || 0;
+    const suggestedPrice = basePreco > 0 ? (basePreco * nextQty * 0.9).toFixed(2) : '';
+    const suggestedCost = (baseCusto * nextQty).toFixed(2);
+
+    setFormData(prev => ({
+      ...prev,
+      combos: [
+        ...(prev.combos || []),
+        {
+          id: 'combo-' + Date.now(),
+          titulo: `Combo ${nextQty} unidades`,
+          quantidade: nextQty,
+          preco: suggestedPrice,
+          preco_custo: suggestedCost
+        }
+      ]
+    }));
+  };
+
+  const handleUpdateComboOption = (index, field, value) => {
+    setFormData(prev => {
+      const updated = [...(prev.combos || [])];
+      updated[index] = { ...updated[index], [field]: value };
+      if (field === 'quantidade' && parseFloat(formData.preco_custo) > 0) {
+        updated[index].preco_custo = (parseFloat(formData.preco_custo) * parseInt(value || 1, 10)).toFixed(2);
+      }
+      return { ...prev, combos: updated };
+    });
+  };
+
+  const handleRemoveComboOption = (index) => {
+    setFormData(prev => ({
+      ...prev,
+      combos: prev.combos.filter((_, i) => i !== index)
+    }));
+  };
+
+  const handleAddBundleItem = (prodId) => {
+    const prod = products.find(p => p.id === Number(prodId));
+    if (!prod) return;
+    setFormData(prev => {
+      const existing = (prev.itens_combo || []).find(i => i.produto_id === prod.id);
+      let newItens;
+      if (existing) {
+        newItens = prev.itens_combo.map(i => i.produto_id === prod.id ? { ...i, quantidade: i.quantidade + 1 } : i);
+      } else {
+        newItens = [...(prev.itens_combo || []), { produto_id: prod.id, nome: prod.nome, quantidade: 1, preco: prod.preco, preco_custo: prod.preco_custo }];
+      }
+      const totalCusto = newItens.reduce((acc, it) => acc + (parseFloat(it.preco_custo || 0) * it.quantidade), 0);
+      return {
+        ...prev,
+        itens_combo: newItens,
+        preco_custo: prev.preco_custo ? prev.preco_custo : (totalCusto > 0 ? String(totalCusto) : '')
+      };
+    });
+  };
+
+  const handleRemoveBundleItem = (prodId) => {
+    setFormData(prev => ({
+      ...prev,
+      itens_combo: (prev.itens_combo || []).filter(i => i.produto_id !== prodId)
+    }));
   };
 
   const handleFileChange = async (e) => {
@@ -87,7 +178,15 @@ export default function ProductManagement({ products = [], categories = [], onRe
         ...formData,
         id: editingProduct?.id,
         preco: parseFloat(formData.preco),
-        preco_custo: parseFloat(formData.preco_custo) || 0
+        preco_custo: parseFloat(formData.preco_custo) || 0,
+        combos: (formData.combos || []).map(c => ({
+          ...c,
+          quantidade: parseInt(c.quantidade, 10) || 1,
+          preco: parseFloat(c.preco) || 0,
+          preco_custo: parseFloat(c.preco_custo) || 0
+        })),
+        is_combo: Boolean(formData.is_combo),
+        itens_combo: formData.itens_combo || []
       });
       setIsModalOpen(false);
       onRefresh();
@@ -186,7 +285,19 @@ export default function ProductManagement({ products = [], categories = [], onRe
 
                   {/* Nome e Descrição */}
                   <td className="p-3">
-                    <div className="font-bold text-slate-100 text-sm">{prod.nome}</div>
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <span className="font-bold text-slate-100 text-sm">{prod.nome}</span>
+                      {prod.is_combo && (
+                        <span className="px-1.5 py-0.5 rounded text-[9px] font-black bg-purple-950 text-purple-300 border border-purple-500/40">
+                          KIT MISTO
+                        </span>
+                      )}
+                      {(Array.isArray(prod.combos) ? prod.combos.length : parseJsonField(prod.combos).length) > 0 && (
+                        <span className="px-1.5 py-0.5 rounded text-[9px] font-black bg-amber-950 text-amber-300 border border-amber-500/40">
+                          🎁 {(Array.isArray(prod.combos) ? prod.combos : parseJsonField(prod.combos)).length} COMBOS
+                        </span>
+                      )}
+                    </div>
                     {prod.descricao && (
                       <div className="text-[11px] text-slate-400 truncate max-w-xs">{prod.descricao}</div>
                     )}
@@ -307,21 +418,22 @@ export default function ProductManagement({ products = [], categories = [], onRe
       {/* Modal de Criação / Edição */}
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-in fade-in">
-          <div className="bg-slate-900 border border-slate-700 rounded-3xl w-full max-w-md shadow-2xl overflow-hidden">
+          <div className="bg-slate-900 border border-slate-700 rounded-3xl w-full max-w-2xl max-h-[90vh] flex flex-col shadow-2xl overflow-hidden">
             
-            <div className="p-4 border-b border-slate-800 bg-slate-950/60 flex items-center justify-between">
-              <h3 className="font-bold text-sm text-slate-100">
-                {editingProduct ? 'Editar Produto' : 'Cadastrar Novo Produto'}
+            <div className="p-4 border-b border-slate-800 bg-slate-950/60 flex items-center justify-between shrink-0">
+              <h3 className="font-bold text-sm text-slate-100 flex items-center gap-2">
+                <Package className="w-4 h-4 text-amber-400" />
+                <span>{editingProduct ? 'Editar Produto' : 'Cadastrar Novo Produto'}</span>
               </h3>
               <button
                 onClick={() => setIsModalOpen(false)}
-                className="text-slate-400 hover:text-white p-1"
+                className="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
 
-            <form onSubmit={handleSubmit} className="p-5 space-y-4">
+            <form onSubmit={handleSubmit} className="p-5 space-y-4 overflow-y-auto flex-1">
               
               <div>
                 <label className="block text-xs font-bold text-slate-300 mb-1">
@@ -355,7 +467,7 @@ export default function ProductManagement({ products = [], categories = [], onRe
 
                 <div>
                   <label className="block text-xs font-bold text-emerald-400 mb-1">
-                    Preço de Venda (R$) *
+                    Preço de Venda Unit. (R$) *
                   </label>
                   <input
                     type="number"
@@ -370,7 +482,7 @@ export default function ProductManagement({ products = [], categories = [], onRe
 
                 <div>
                   <label className="block text-xs font-bold text-amber-400 mb-1">
-                    Preço de Custo (R$)
+                    Preço de Custo Unit. (R$)
                   </label>
                   <input
                     type="number"
@@ -387,7 +499,7 @@ export default function ProductManagement({ products = [], categories = [], onRe
               {formData.preco && (
                 <div className="bg-slate-950 p-2.5 rounded-xl border border-slate-800 text-[11px] flex items-center justify-between font-mono">
                   <span className="text-slate-400">
-                    Lucro Bruto: <b className="text-emerald-400">{formatPrice(Math.max(0, (parseFloat(formData.preco) || 0) - (parseFloat(formData.preco_custo) || 0)))}</b>
+                    Lucro Bruto Unitário: <b className="text-emerald-400">{formatPrice(Math.max(0, (parseFloat(formData.preco) || 0) - (parseFloat(formData.preco_custo) || 0)))}</b>
                   </span>
                   <span className="text-slate-400">
                     Margem Projetada:{' '}
@@ -399,6 +511,194 @@ export default function ProductManagement({ products = [], categories = [], onRe
                   </span>
                 </div>
               )}
+
+              {/* ========================================================================= */}
+              {/* SEÇÃO DE COMBOS & PREÇOS PROMOCIONAIS POR QUANTIDADE                      */}
+              {/* ========================================================================= */}
+              <div className="pt-3 border-t border-slate-800 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h4 className="font-black text-xs text-amber-400 uppercase tracking-wider flex items-center gap-1.5">
+                      <Tag className="w-3.5 h-3.5" />
+                      <span>Combos & Preços Promocionais</span>
+                    </h4>
+                    <p className="text-[11px] text-slate-400">
+                      Cadastre preços especiais por quantidade (Ex: 3 unidades por R$ 25,00)
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleAddComboOption}
+                    className="px-3 py-1.5 bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 rounded-xl text-xs font-bold flex items-center gap-1 transition-all"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    <span>Adicionar Opção de Combo</span>
+                  </button>
+                </div>
+
+                {(!formData.combos || formData.combos.length === 0) ? (
+                  <div className="p-3 bg-slate-950/60 border border-dashed border-slate-800 rounded-xl text-center text-slate-500 text-xs">
+                    Nenhum combo configurado para este item. Clique em "Adicionar Opção de Combo" acima para cadastrar promoções.
+                  </div>
+                ) : (
+                  <div className="space-y-2.5">
+                    {formData.combos.map((combo, idx) => {
+                      const cPreco = parseFloat(combo.preco) || 0;
+                      const cCusto = parseFloat(combo.preco_custo) || 0;
+                      const cLucro = Math.max(0, cPreco - cCusto);
+                      const cMargem = cPreco > 0 ? ((cLucro / cPreco) * 100).toFixed(1) : '0';
+
+                      return (
+                        <div key={combo.id || idx} className="bg-slate-950 p-3 rounded-xl border border-slate-800 space-y-2">
+                          <div className="grid grid-cols-1 sm:grid-cols-4 gap-2">
+                            <div className="sm:col-span-2">
+                              <label className="block text-[10px] font-bold text-slate-400 mb-0.5">
+                                Nome do Combo / Rótulo
+                              </label>
+                              <input
+                                type="text"
+                                placeholder="Ex: Combo 3 Unidades"
+                                value={combo.titulo}
+                                onChange={(e) => handleUpdateComboOption(idx, 'titulo', e.target.value)}
+                                className="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-white focus:outline-none focus:border-amber-500"
+                              />
+                            </div>
+
+                            <div>
+                              <label className="block text-[10px] font-bold text-slate-400 mb-0.5">
+                                Qtd de Itens
+                              </label>
+                              <input
+                                type="number"
+                                min="1"
+                                value={combo.quantidade}
+                                onChange={(e) => handleUpdateComboOption(idx, 'quantidade', e.target.value)}
+                                className="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-white font-mono focus:outline-none focus:border-amber-500"
+                              />
+                            </div>
+
+                            <div>
+                              <label className="block text-[10px] font-bold text-emerald-400 mb-0.5">
+                                Preço do Combo (R$)
+                              </label>
+                              <div className="flex items-center gap-1">
+                                <input
+                                  type="number"
+                                  step="0.01"
+                                  placeholder="0.00"
+                                  value={combo.preco}
+                                  onChange={(e) => handleUpdateComboOption(idx, 'preco', e.target.value)}
+                                  className="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-emerald-300 font-mono font-bold focus:outline-none focus:border-emerald-500"
+                                />
+                                <button
+                                  type="button"
+                                  onClick={() => handleRemoveComboOption(idx)}
+                                  className="p-1.5 text-slate-500 hover:text-rose-400 hover:bg-slate-800 rounded-lg transition-colors"
+                                  title="Remover opção de combo"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Linha de Custo e Margem do Combo */}
+                          <div className="flex items-center justify-between pt-1.5 border-t border-slate-900 text-[11px] font-mono">
+                            <div className="flex items-center gap-2">
+                              <span className="text-slate-400">Custo Total:</span>
+                              <input
+                                type="number"
+                                step="0.01"
+                                placeholder="0.00"
+                                value={combo.preco_custo}
+                                onChange={(e) => handleUpdateComboOption(idx, 'preco_custo', e.target.value)}
+                                className="w-24 bg-slate-900 border border-slate-700 rounded px-2 py-0.5 text-[11px] text-amber-300 font-mono focus:outline-none"
+                              />
+                            </div>
+
+                            <div className="flex items-center gap-3">
+                              <span className="text-slate-400">
+                                Lucro: <b className="text-emerald-400">{formatPrice(cLucro)}</b>
+                              </span>
+                              <span className="text-amber-400 font-bold">
+                                Margem: {cMargem}%
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+
+              {/* ========================================================================= */}
+              {/* SEÇÃO KIT / COMBO MISTO (MÚLTIPLOS ITENS DIFERENTES)                      */}
+              {/* ========================================================================= */}
+              <div className="pt-3 border-t border-slate-800 space-y-2">
+                <label className="flex items-center gap-2 cursor-pointer select-none">
+                  <input
+                    type="checkbox"
+                    checked={formData.is_combo}
+                    onChange={(e) => setFormData(prev => ({ ...prev, is_combo: e.target.checked }))}
+                    className="w-4 h-4 rounded border-slate-700 bg-slate-950 text-amber-500 focus:ring-0 focus:outline-none"
+                  />
+                  <span className="text-xs font-bold text-slate-300">
+                    Este item é um Combo / Kit com múltiplos produtos diferentes (ex: 1 Cookie + 1 Refri)
+                  </span>
+                </label>
+
+                {formData.is_combo && (
+                  <div className="p-3 bg-slate-950/80 rounded-xl border border-slate-800 space-y-2 animate-in fade-in">
+                    <p className="text-[11px] text-slate-400">
+                      Selecione quais produtos do cardápio fazem parte deste combo:
+                    </p>
+                    <div className="flex items-center gap-2">
+                      <select
+                        onChange={(e) => {
+                          if (e.target.value) {
+                            handleAddBundleItem(e.target.value);
+                            e.target.value = '';
+                          }
+                        }}
+                        className="flex-1 bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-white focus:outline-none"
+                        defaultValue=""
+                      >
+                        <option value="" disabled>+ Incluir produto no kit...</option>
+                        {products.filter(p => p.id !== editingProduct?.id).map(p => (
+                          <option key={p.id} value={p.id}>
+                            {p.nome} - {formatPrice(p.preco)} (Custo: {formatPrice(p.preco_custo || 0)})
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    {(formData.itens_combo || []).length > 0 && (
+                      <div className="space-y-1 pt-1">
+                        {formData.itens_combo.map((it) => (
+                          <div key={it.produto_id} className="flex items-center justify-between bg-slate-900 p-2 rounded-lg text-xs">
+                            <span className="font-bold text-slate-200">
+                              {it.quantidade}x {it.nome}
+                            </span>
+                            <div className="flex items-center gap-2">
+                              <span className="text-slate-400 font-mono text-[11px]">
+                                Custo acumulado: {formatPrice((parseFloat(it.preco_custo || 0) * it.quantidade))}
+                              </span>
+                              <button
+                                type="button"
+                                onClick={() => handleRemoveBundleItem(it.produto_id)}
+                                className="text-slate-500 hover:text-rose-400 p-1"
+                              >
+                                <X className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
 
               <div>
                 <label className="block text-xs font-bold text-slate-300 mb-1">
@@ -443,7 +743,7 @@ export default function ProductManagement({ products = [], categories = [], onRe
                 </div>
               </div>
 
-              <div className="pt-2 flex justify-end gap-2">
+              <div className="pt-2 flex justify-end gap-2 border-t border-slate-800">
                 <button
                   type="button"
                   onClick={() => setIsModalOpen(false)}
@@ -455,7 +755,7 @@ export default function ProductManagement({ products = [], categories = [], onRe
                   type="submit"
                   className="px-5 py-2 bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-500 text-white rounded-xl text-xs font-black uppercase tracking-wider shadow-lg"
                 >
-                  Salvar Produto
+                  Salvar Produto & Combos
                 </button>
               </div>
 

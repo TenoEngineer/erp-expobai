@@ -146,10 +146,10 @@ const relatoriosRepository = {
         COALESCE(c.nome, 'Geral') as categoria,
         SUM(i.quantidade) as total_vendido,
         ROUND(AVG(i.preco_unitario), 2) as preco_medio,
-        COALESCE(AVG(pr.preco_custo), 0) as preco_custo,
+        COALESCE(NULLIF(AVG(i.preco_custo), 0), AVG(pr.preco_custo), 0) as preco_custo,
         SUM(i.subtotal) as total_faturado,
-        SUM(i.quantidade * COALESCE(pr.preco_custo, 0)) as custo_total,
-        SUM(i.subtotal) - SUM(i.quantidade * COALESCE(pr.preco_custo, 0)) as lucro_bruto
+        SUM(i.quantidade * COALESCE(NULLIF(i.preco_custo, 0), pr.preco_custo, 0)) as custo_total,
+        SUM(i.subtotal) - SUM(i.quantidade * COALESCE(NULLIF(i.preco_custo, 0), pr.preco_custo, 0)) as lucro_bruto
       FROM expobai.pedido_itens i
       JOIN expobai.pedidos p ON i.pedido_id = p.id
       LEFT JOIN expobai.produtos pr ON i.produto_id = pr.id

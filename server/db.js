@@ -112,6 +112,13 @@ async function initDB() {
       ALTER TABLE expobai.pedidos ADD COLUMN IF NOT EXISTS motivo_edicao TEXT DEFAULT NULL;
       INSERT INTO expobai.configuracoes (chave, valor) VALUES ('pix_cnpj', '') ON CONFLICT (chave) DO NOTHING;
       INSERT INTO expobai.configuracoes (chave, valor) VALUES ('pix_qrcode_url', '/img/pix-qrcode.jpeg') ON CONFLICT (chave) DO NOTHING;
+
+      -- Migrações v3: Suporte a combos com preços diferentes
+      ALTER TABLE expobai.produtos ADD COLUMN IF NOT EXISTS combos JSONB DEFAULT '[]'::jsonb;
+      ALTER TABLE expobai.produtos ADD COLUMN IF NOT EXISTS is_combo BOOLEAN DEFAULT FALSE;
+      ALTER TABLE expobai.produtos ADD COLUMN IF NOT EXISTS itens_combo JSONB DEFAULT '[]'::jsonb;
+      ALTER TABLE expobai.pedido_itens ADD COLUMN IF NOT EXISTS preco_custo NUMERIC(10, 2) DEFAULT 0;
+      ALTER TABLE expobai.pedido_itens ADD COLUMN IF NOT EXISTS combo_info JSONB DEFAULT NULL;
     `);
 
     // 3. Seed inicial de categorias se estiver vazio

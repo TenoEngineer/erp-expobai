@@ -1,13 +1,25 @@
-import React from 'react';
-import { ShoppingBag, Trash2, Plus, Minus, ArrowRight, X } from 'lucide-react';
+import React, { useState } from 'react';
+import { ShoppingBag, Trash2, Plus, Minus, ArrowRight, X, Edit2, Check, Tag, Sparkles } from 'lucide-react';
 
 export default function CartPanel({
   cart = [],
   onUpdateQuantity,
+  onUpdatePrice,
   onRemoveItem,
   onClearCart,
+  onAddCustomCombo,
   onOpenCheckout
 }) {
+  const [editingPriceId, setEditingPriceId] = useState(null);
+  const [editPriceVal, setEditPriceVal] = useState('');
+  const [isCustomComboOpen, setIsCustomComboOpen] = useState(false);
+  const [customComboData, setCustomComboData] = useState({
+    nome: '',
+    preco: '',
+    preco_custo: '',
+    quantidade: 1
+  });
+
   const totalItems = cart.reduce((acc, item) => acc + item.quantidade, 0);
   const totalPrice = cart.reduce((acc, item) => acc + (item.quantidade * item.preco), 0);
 
@@ -18,11 +30,37 @@ export default function CartPanel({
     });
   };
 
+  const handleStartEditPrice = (item) => {
+    setEditingPriceId(item.id);
+    setEditPriceVal(String(item.preco));
+  };
+
+  const handleSavePrice = (itemId) => {
+    const val = parseFloat(editPriceVal);
+    if (!isNaN(val) && val >= 0 && onUpdatePrice) {
+      onUpdatePrice(itemId, val);
+    }
+    setEditingPriceId(null);
+  };
+
+  const handleCreateCustomCombo = (e) => {
+    e.preventDefault();
+    if (!customComboData.nome || !customComboData.preco) {
+      alert('Informe o nome e o preço do combo');
+      return;
+    }
+    if (onAddCustomCombo) {
+      onAddCustomCombo(customComboData);
+    }
+    setCustomComboData({ nome: '', preco: '', preco_custo: '', quantidade: 1 });
+    setIsCustomComboOpen(false);
+  };
+
   return (
     <div className="w-full lg:w-96 bg-slate-900/95 border border-slate-800 rounded-2xl flex flex-col h-[calc(100vh-6rem)] lg:sticky lg:top-20 shadow-2xl overflow-hidden">
       
       {/* Header do Carrinho */}
-      <div className="p-4 border-b border-slate-800 bg-slate-950/60 flex items-center justify-between">
+      <div className="p-3.5 border-b border-slate-800 bg-slate-950/60 flex items-center justify-between">
         <div className="flex items-center gap-2">
           <div className="w-8 h-8 rounded-lg bg-emerald-950 border border-emerald-500/30 flex items-center justify-center text-emerald-400">
             <ShoppingBag className="w-4 h-4" />
@@ -37,16 +75,27 @@ export default function CartPanel({
           </div>
         </div>
 
-        {cart.length > 0 && (
+        <div className="flex items-center gap-1.5">
           <button
-            onClick={onClearCart}
-            title="Limpar todos os itens"
-            className="text-xs text-rose-400 hover:text-rose-300 hover:bg-rose-950/40 p-1.5 rounded-lg border border-transparent hover:border-rose-800/40 transition-colors flex items-center gap-1"
+            type="button"
+            onClick={() => setIsCustomComboOpen(true)}
+            title="Lançar combo avulso ou promoção na hora"
+            className="text-[11px] bg-amber-500/20 hover:bg-amber-500 text-amber-300 hover:text-slate-950 border border-amber-500/40 px-2 py-1 rounded-lg font-bold flex items-center gap-1 transition-all"
           >
-            <Trash2 className="w-3.5 h-3.5" />
-            <span>Limpar</span>
+            <Sparkles className="w-3 h-3" />
+            <span>+ Combo</span>
           </button>
-        )}
+
+          {cart.length > 0 && (
+            <button
+              onClick={onClearCart}
+              title="Limpar todos os itens"
+              className="text-xs text-rose-400 hover:text-rose-300 hover:bg-rose-950/40 p-1.5 rounded-lg transition-colors flex items-center"
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Lista de Itens do Carrinho */}
@@ -71,13 +120,60 @@ export default function CartPanel({
                 className="bg-slate-800/60 border border-slate-700/60 hover:border-slate-600 rounded-xl p-3 flex flex-col gap-2 transition-all"
               >
                 <div className="flex items-start justify-between gap-2">
-                  <div className="flex-1">
-                    <h4 className="font-bold text-sm text-slate-100 leading-snug">
-                      {item.nome}
-                    </h4>
-                    <span className="text-xs text-slate-400 font-mono">
-                      {formatPrice(item.preco)} cada
-                    </span>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <h4 className="font-bold text-sm text-slate-100 leading-snug">
+                        {item.nome}
+                      </h4>
+                      {item.combo_info && (
+                        <span className="px-1.5 py-0.2 rounded bg-amber-950/80 text-amber-300 border border-amber-500/40 text-[9px] font-black font-mono">
+                          🎁 {item.combo_info.titulo || 'COMBO'}
+                        </span>
+                      )}
+                    </div>
+
+                    {editingPriceId === item.id ? (
+                      <div className="flex items-center gap-1 mt-1">
+                        <span className="text-xs text-slate-400 font-mono">R$</span>
+                        <input
+                          type="number"
+                          step="0.01"
+                          autoFocus
+                          value={editPriceVal}
+                          onChange={(e) => setEditPriceVal(e.target.value)}
+                          className="w-20 bg-slate-950 border border-amber-500 rounded px-1.5 py-0.5 text-xs text-white font-mono font-bold focus:outline-none"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => handleSavePrice(item.id)}
+                          className="p-1 bg-emerald-600 hover:bg-emerald-500 rounded text-white"
+                          title="Salvar preço"
+                        >
+                          <Check className="w-3 h-3" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setEditingPriceId(null)}
+                          className="p-1 bg-slate-800 hover:bg-slate-700 rounded text-slate-400"
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-1 mt-0.5">
+                        <span className="text-xs text-slate-400 font-mono">
+                          {formatPrice(item.preco)} cada
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => handleStartEditPrice(item)}
+                          className="text-slate-500 hover:text-amber-400 p-0.5 rounded transition-colors"
+                          title="Alterar preço deste item"
+                        >
+                          <Edit2 className="w-2.5 h-2.5" />
+                        </button>
+                      </div>
+                    )}
                   </div>
 
                   <button
@@ -147,6 +243,90 @@ export default function CartPanel({
           <ArrowRight className="w-4 h-4" />
         </button>
       </div>
+
+      {/* Modal Rápido de Combo Avulso / Especial */}
+      {isCustomComboOpen && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in">
+          <div className="bg-slate-900 border border-slate-700 w-full max-w-sm rounded-2xl shadow-2xl p-4 space-y-3">
+            <div className="flex items-center justify-between pb-2 border-b border-slate-800">
+              <h3 className="font-extrabold text-sm text-white flex items-center gap-1.5">
+                <Sparkles className="w-4 h-4 text-amber-400" />
+                <span>Lançar Combo Avulso</span>
+              </h3>
+              <button
+                type="button"
+                onClick={() => setIsCustomComboOpen(false)}
+                className="text-slate-400 hover:text-white p-1"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <form onSubmit={handleCreateCustomCombo} className="space-y-3">
+              <div>
+                <label className="block text-xs font-bold text-slate-300 mb-1">
+                  Nome do Combo / Descrição *
+                </label>
+                <input
+                  type="text"
+                  required
+                  placeholder="Ex: Combo 4 Latas + Gelo"
+                  value={customComboData.nome}
+                  onChange={(e) => setCustomComboData({ ...customComboData, nome: e.target.value })}
+                  className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-500"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="block text-xs font-bold text-emerald-400 mb-1">
+                    Preço Total (R$) *
+                  </label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    required
+                    placeholder="0.00"
+                    value={customComboData.preco}
+                    onChange={(e) => setCustomComboData({ ...customComboData, preco: e.target.value })}
+                    className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-emerald-300 font-mono font-bold focus:outline-none focus:border-emerald-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-amber-400 mb-1">
+                    Custo Total (R$)
+                  </label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    placeholder="0.00"
+                    value={customComboData.preco_custo}
+                    onChange={(e) => setCustomComboData({ ...customComboData, preco_custo: e.target.value })}
+                    className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-amber-300 font-mono font-bold focus:outline-none focus:border-amber-500"
+                  />
+                </div>
+              </div>
+
+              <div className="pt-2 flex items-center justify-end gap-2 border-t border-slate-800">
+                <button
+                  type="button"
+                  onClick={() => setIsCustomComboOpen(false)}
+                  className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-bold"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-1.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs uppercase tracking-wider rounded-xl shadow-lg"
+                >
+                  Adicionar ao Carrinho
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
     </div>
   );

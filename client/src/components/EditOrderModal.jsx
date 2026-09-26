@@ -136,32 +136,46 @@ export default function EditOrderModal({
     setItems(prev => prev.filter((_, idx) => idx !== index));
   };
 
-  const handleAddProduct = () => {
-    const prod = availableProducts.find(p => String(p.id) === String(selectedAddProductId));
-    if (!prod) return;
-
-    setItems(prev => {
-      const existingIdx = prev.findIndex(i => String(i.produto_id) === String(prod.id));
-      if (existingIdx >= 0) {
-        const updated = [...prev];
-        updated[existingIdx] = {
-          ...updated[existingIdx],
-          quantidade: updated[existingIdx].quantidade + 1,
-          subtotal: (updated[existingIdx].quantidade + 1) * updated[existingIdx].preco_unitario
-        };
-        return updated;
-      }
-      return [
-        ...prev,
-        {
-          produto_id: prod.id,
-          nome_produto: prod.nome,
-          quantidade: 1,
-          preco_unitario: parseFloat(prod.preco),
-          subtotal: parseFloat(prod.preco)
-        }
-      ];
+  const prodsOptions = [];
+  availableProducts.forEach(p => {
+    prodsOptions.push({
+      key: `p_${p.id}`,
+      produto_id: p.id,
+      nome_produto: p.nome,
+      preco: parseFloat(p.preco),
+      preco_custo: parseFloat(p.preco_custo || 0),
+      label: `${p.nome} - R$ ${Number(p.preco).toFixed(2)}`
     });
+    const combos = Array.isArray(p.combos) ? p.combos : (typeof p.combos === 'string' ? JSON.parse(p.combos || '[]') : []);
+    combos.forEach((c, idx) => {
+      prodsOptions.push({
+        key: `p_${p.id}_combo_${c.id || idx}`,
+        produto_id: p.id,
+        nome_produto: `${p.nome} (${c.titulo || `${c.quantidade}x`})`,
+        preco: parseFloat(c.preco),
+        preco_custo: parseFloat(c.preco_custo || 0),
+        label: `🎁 ${p.nome} (${c.titulo || `${c.quantidade}x`}) - R$ ${Number(c.preco).toFixed(2)}`,
+        combo_info: c
+      });
+    });
+  });
+
+  const handleAddProduct = () => {
+    const opt = prodsOptions.find(o => o.key === selectedAddProductId) || prodsOptions.find(o => String(o.produto_id) === String(selectedAddProductId));
+    if (!opt) return;
+
+    setItems(prev => [
+      ...prev,
+      {
+        produto_id: opt.produto_id,
+        nome_produto: opt.nome_produto,
+        quantidade: 1,
+        preco_unitario: opt.preco,
+        subtotal: opt.preco,
+        preco_custo: opt.preco_custo,
+        combo_info: opt.combo_info || null
+      }
+    ]);
   };
 
   // Cálculos do Pagamento Misto
@@ -356,9 +370,9 @@ export default function EditOrderModal({
                 onChange={(e) => setSelectedAddProductId(e.target.value)}
                 className="flex-1 bg-slate-950 border border-slate-700 rounded-xl px-3 py-1.5 text-xs text-white"
               >
-                {availableProducts.map(p => (
-                  <option key={p.id} value={p.id}>
-                    {p.nome} - R$ {Number(p.preco).toFixed(2)}
+                {prodsOptions.map(opt => (
+                  <option key={opt.key} value={opt.key}>
+                    {opt.label}
                   </option>
                 ))}
               </select>

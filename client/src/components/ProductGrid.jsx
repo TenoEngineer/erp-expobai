@@ -10,6 +10,16 @@ export default function ProductGrid({ products = [], onAddToCart, cartItems = []
     return p.nome.toLowerCase().includes(term) || (p.descricao && p.descricao.toLowerCase().includes(term));
   });
 
+  const getProductCombos = (prod) => {
+    if (!prod?.combos) return [];
+    if (Array.isArray(prod.combos)) return prod.combos;
+    try {
+      return JSON.parse(prod.combos);
+    } catch {
+      return [];
+    }
+  };
+
   const getItemQuantityInCart = (productId) => {
     const found = cartItems.find(item => item.id === productId || item.produto_id === productId);
     return found ? found.quantidade : 0;
@@ -55,17 +65,25 @@ export default function ProductGrid({ products = [], onAddToCart, cartItems = []
         <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
           {filteredProducts.map((prod) => {
             const qtyInCart = getItemQuantityInCart(prod.id);
+            const combos = getProductCombos(prod);
 
             return (
-              <button
+              <div
                 key={prod.id}
                 onClick={() => onAddToCart(prod)}
-                className="group relative bg-slate-800/80 hover:bg-slate-800 border border-slate-700/70 hover:border-amber-500/50 rounded-2xl p-2.5 sm:p-3 text-left transition-all duration-150 flex flex-col justify-between shadow-lg hover:shadow-amber-950/20 active:scale-[0.98] select-none overflow-hidden"
+                className="group relative bg-slate-800/80 hover:bg-slate-800 border border-slate-700/70 hover:border-amber-500/50 rounded-2xl p-2.5 sm:p-3 text-left transition-all duration-150 flex flex-col justify-between shadow-lg hover:shadow-amber-950/20 active:scale-[0.99] select-none cursor-pointer overflow-hidden"
               >
                 {/* Badge de quantidade no carrinho */}
                 {qtyInCart > 0 && (
                   <div className="absolute top-2 right-2 z-10 bg-amber-500 text-slate-950 font-black text-xs px-2 py-0.5 rounded-full shadow-md flex items-center gap-1 animate-pulse">
                     <span>{qtyInCart}x</span>
+                  </div>
+                )}
+
+                {/* Badge de Kit Misto */}
+                {prod.is_combo && (
+                  <div className="absolute top-2 left-2 z-10 bg-purple-950 text-purple-300 border border-purple-500/50 font-black text-[9px] px-1.5 py-0.5 rounded-md shadow-md">
+                    KIT MISTO
                   </div>
                 )}
 
@@ -102,17 +120,49 @@ export default function ProductGrid({ products = [], onAddToCart, cartItems = []
                     )}
                   </div>
 
-                  {/* Preço e Botão de Adicionar */}
+                  {/* Preço Unitário e Botão de Adicionar */}
                   <div className="mt-2.5 pt-2 border-t border-slate-700/50 flex items-center justify-between">
-                    <span className="font-black text-sm sm:text-base text-amber-400 font-mono tracking-tight">
-                      {formatPrice(prod.preco)}
-                    </span>
+                    <div>
+                      <span className="text-[10px] text-slate-400 block font-sans">Unitário</span>
+                      <span className="font-black text-sm sm:text-base text-amber-400 font-mono tracking-tight block">
+                        {formatPrice(prod.preco)}
+                      </span>
+                    </div>
                     <div className="w-7 h-7 rounded-lg bg-emerald-600/20 group-hover:bg-emerald-600 text-emerald-400 group-hover:text-white flex items-center justify-center transition-colors">
                       <Plus className="w-4 h-4" />
                     </div>
                   </div>
+
+                  {/* Opções Rápidas de Combos com Preços Diferentes */}
+                  {combos.length > 0 && (
+                    <div 
+                      className="mt-2 pt-2 border-t border-slate-700/40 flex flex-wrap gap-1"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      {combos.map((combo, cIdx) => (
+                        <button
+                          key={combo.id || cIdx}
+                          type="button"
+                          onClick={() => onAddToCart({
+                            ...prod,
+                            cart_id: `${prod.id}_combo_${combo.id || cIdx}`,
+                            nome: `${prod.nome} (${combo.titulo || `${combo.quantidade}x`})`,
+                            preco: parseFloat(combo.preco),
+                            preco_custo: parseFloat(combo.preco_custo || 0),
+                            quantidade_unidades: combo.quantidade || 1,
+                            combo_info: combo
+                          })}
+                          className="px-2 py-1 bg-amber-500/15 hover:bg-amber-500 text-amber-300 hover:text-slate-950 border border-amber-500/40 rounded-lg text-[10px] font-black transition-all active:scale-95 flex items-center gap-1 shadow-sm"
+                          title={`Adicionar ${combo.titulo}: ${combo.quantidade} un por ${formatPrice(combo.preco)}`}
+                        >
+                          <span>🎁 {combo.titulo || `${combo.quantidade}x`}:</span>
+                          <span className="font-mono">{formatPrice(combo.preco)}</span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
                 </div>
-              </button>
+              </div>
             );
           })}
         </div>

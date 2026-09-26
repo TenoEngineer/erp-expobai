@@ -19,13 +19,16 @@ const pedidosRepository = {
         const qtd = Math.max(1, parseInt(item.quantidade, 10) || 1);
         const precoUnit = parseFloat(item.preco_unitario || item.preco);
         const subtotal = qtd * precoUnit;
+        const precoCusto = parseFloat(item.preco_custo) || 0;
         totalCalculado += subtotal;
         return {
           produto_id: item.produto_id || item.id || null,
           nome_produto: item.nome_produto || item.nome,
           quantidade: qtd,
           preco_unitario: precoUnit,
-          subtotal
+          subtotal,
+          preco_custo: precoCusto,
+          combo_info: item.combo_info ? JSON.stringify(item.combo_info) : null
         };
       });
 
@@ -62,8 +65,8 @@ const pedidosRepository = {
       for (const item of itensValidados) {
         const itemRes = await client.query(
           `INSERT INTO expobai.pedido_itens (
-            pedido_id, produto_id, nome_produto, quantidade, preco_unitario, subtotal
-          ) VALUES ($1, $2, $3, $4, $5, $6)
+            pedido_id, produto_id, nome_produto, quantidade, preco_unitario, subtotal, preco_custo, combo_info
+          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
           RETURNING *`,
           [
             novoPedido.id,
@@ -71,7 +74,9 @@ const pedidosRepository = {
             item.nome_produto,
             item.quantidade,
             item.preco_unitario,
-            item.subtotal
+            item.subtotal,
+            item.preco_custo,
+            item.combo_info
           ]
         );
         itensSalvos.push(itemRes.rows[0]);
@@ -110,13 +115,16 @@ const pedidosRepository = {
           const qtd = Math.max(1, parseInt(item.quantidade, 10) || 1);
           const precoUnit = parseFloat(item.preco_unitario || item.preco);
           const subtotal = qtd * precoUnit;
+          const precoCusto = parseFloat(item.preco_custo) || 0;
           totalCalculado += subtotal;
           return {
             produto_id: item.produto_id || item.id || null,
             nome_produto: item.nome_produto || item.nome,
             quantidade: qtd,
             preco_unitario: precoUnit,
-            subtotal
+            subtotal,
+            preco_custo: precoCusto,
+            combo_info: item.combo_info ? JSON.stringify(item.combo_info) : null
           };
         });
       }
@@ -167,8 +175,8 @@ const pedidosRepository = {
         for (const item of itensValidados) {
           const itemRes = await client.query(
             `INSERT INTO expobai.pedido_itens (
-              pedido_id, produto_id, nome_produto, quantidade, preco_unitario, subtotal
-            ) VALUES ($1, $2, $3, $4, $5, $6)
+              pedido_id, produto_id, nome_produto, quantidade, preco_unitario, subtotal, preco_custo, combo_info
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
             RETURNING *`,
             [
               id,
@@ -176,7 +184,9 @@ const pedidosRepository = {
               item.nome_produto,
               item.quantidade,
               item.preco_unitario,
-              item.subtotal
+              item.subtotal,
+              item.preco_custo,
+              item.combo_info
             ]
           );
           itensSalvos.push(itemRes.rows[0]);

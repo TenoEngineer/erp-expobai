@@ -85,11 +85,12 @@ export default function PosPage({ config, onCartCountChange }) {
 
   // Ações do Carrinho
   const handleAddToCart = (product) => {
+    const itemKey = product.cart_id || product.id;
     setCart((prevCart) => {
-      const existing = prevCart.find((item) => item.id === product.id);
+      const existing = prevCart.find((item) => (item.cart_id || item.id) === itemKey);
       if (existing) {
         return prevCart.map((item) =>
-          item.id === product.id
+          (item.cart_id || item.id) === itemKey
             ? { ...item, quantidade: item.quantidade + 1 }
             : item
         );
@@ -97,31 +98,62 @@ export default function PosPage({ config, onCartCountChange }) {
       return [
         ...prevCart,
         {
-          id: product.id,
-          produto_id: product.id,
+          id: itemKey,
+          cart_id: itemKey,
+          produto_id: product.produto_id || product.id,
           nome: product.nome,
           preco: parseFloat(product.preco),
+          preco_custo: parseFloat(product.preco_custo || 0),
           quantidade: 1,
-          foto_url: product.foto_url
+          foto_url: product.foto_url,
+          combo_info: product.combo_info || null
         }
       ];
     });
   };
 
-  const handleUpdateQuantity = (productId, newQuantity) => {
+  const handleUpdateQuantity = (itemKey, newQuantity) => {
     if (newQuantity <= 0) {
-      handleRemoveItem(productId);
+      handleRemoveItem(itemKey);
       return;
     }
     setCart((prevCart) =>
       prevCart.map((item) =>
-        item.id === productId ? { ...item, quantidade: newQuantity } : item
+        (item.cart_id || item.id) === itemKey ? { ...item, quantidade: newQuantity } : item
       )
     );
   };
 
-  const handleRemoveItem = (productId) => {
-    setCart((prevCart) => prevCart.filter((item) => item.id !== productId));
+  const handleRemoveItem = (itemKey) => {
+    setCart((prevCart) => prevCart.filter((item) => (item.cart_id || item.id) !== itemKey));
+  };
+
+  const handleUpdatePrice = (itemKey, newPrice) => {
+    const parsed = parseFloat(newPrice);
+    if (isNaN(parsed) || parsed < 0) return;
+    setCart((prevCart) =>
+      prevCart.map((item) =>
+        (item.cart_id || item.id) === itemKey ? { ...item, preco: parsed } : item
+      )
+    );
+  };
+
+  const handleAddCustomCombo = ({ nome, preco, preco_custo = 0, quantidade = 1 }) => {
+    const uniqueKey = 'custom_' + Date.now();
+    setCart((prevCart) => [
+      ...prevCart,
+      {
+        id: uniqueKey,
+        cart_id: uniqueKey,
+        produto_id: null,
+        nome: nome || 'Combo Especial',
+        preco: parseFloat(preco) || 0,
+        preco_custo: parseFloat(preco_custo) || 0,
+        quantidade: parseInt(quantidade, 10) || 1,
+        foto_url: '',
+        combo_info: { is_custom: true, titulo: nome }
+      }
+    ]);
   };
 
   const handleClearCart = () => {
@@ -309,8 +341,10 @@ export default function PosPage({ config, onCartCountChange }) {
         <CartPanel
           cart={cart}
           onUpdateQuantity={handleUpdateQuantity}
+          onUpdatePrice={handleUpdatePrice}
           onRemoveItem={handleRemoveItem}
           onClearCart={handleClearCart}
+          onAddCustomCombo={handleAddCustomCombo}
           onOpenCheckout={() => setIsCheckoutOpen(true)}
         />
       </div>
