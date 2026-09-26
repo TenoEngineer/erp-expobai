@@ -120,11 +120,11 @@ export default function ReceiptModal({
             </h3>
 
             {/* Número do Pedido Grande */}
-            <div className="mt-2 bg-slate-950 border border-amber-500/40 px-4 py-1.5 sm:px-6 sm:py-2 rounded-2xl shadow-inner">
-              <span className="text-[10px] sm:text-xs text-slate-400 uppercase tracking-widest block font-bold">
+            <div className="mt-2 bg-slate-950 border border-amber-500/50 px-5 py-2 sm:px-6 sm:py-2.5 rounded-2xl shadow-inner">
+              <span className="text-xs text-slate-400 uppercase tracking-widest block font-bold">
                 Número da Comanda / Senha
               </span>
-              <span className="font-black text-4xl sm:text-6xl text-amber-400 font-mono tracking-tight">
+              <span className="font-black text-6xl sm:text-7xl text-amber-400 font-mono tracking-tight block">
                 #{numeroFormatado}
               </span>
             </div>
@@ -196,26 +196,26 @@ export default function ReceiptModal({
             </div>
           </div>
 
-          {/* Ações: Próximo Pedido Prioritário e Impressão Sob Demanda */}
+          {/* Ações: Próximo Pedido GIGANTE e Impressão Sob Demanda */}
           <div 
-            className="p-3 sm:p-4 bg-slate-950/95 border-t border-slate-800 flex flex-col gap-2 shrink-0"
-            style={{ paddingBottom: 'max(0.75rem, env(safe-area-inset-bottom))' }}
+            className="p-3 sm:p-4 bg-slate-950/95 border-t border-slate-800 flex flex-col gap-2.5 shrink-0"
+            style={{ paddingBottom: 'max(0.85rem, env(safe-area-inset-bottom))' }}
           >
-            {/* Botão Primário: Próximo Pedido */}
+            {/* Botão Primário GIGANTE: Próximo Pedido */}
             <button
               onClick={onClose}
               autoFocus
-              className="w-full py-3.5 px-4 bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-500 hover:to-green-500 active:scale-[0.98] text-white rounded-xl font-black text-sm uppercase tracking-wider flex items-center justify-center gap-2 shadow-lg shadow-emerald-950/40 border border-emerald-400/40 transition-all cursor-pointer"
+              className="w-full h-15 sm:h-16 px-4 bg-gradient-to-r from-emerald-500 to-green-500 active:from-emerald-400 active:to-green-400 active:scale-[0.98] text-slate-950 rounded-2xl font-black text-base sm:text-lg uppercase tracking-wider flex items-center justify-center gap-2 shadow-xl shadow-emerald-950 border-2 border-emerald-400/60 transition-all cursor-pointer"
             >
               <span>PRÓXIMO PEDIDO (ENTER)</span>
-              <ArrowRight className="w-4 h-4 text-emerald-200" />
+              <ArrowRight className="w-5 h-5 text-slate-950 stroke-[3]" />
             </button>
 
             {/* Botão Secundário: Imprimir Comandas */}
             <button
               onClick={handleImprimir}
               disabled={isImprimindo}
-              className="w-full py-2 px-3 bg-slate-800 hover:bg-slate-700 active:scale-[0.98] text-amber-300 rounded-xl font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 border border-slate-700 transition-all cursor-pointer disabled:opacity-50"
+              className="w-full h-11 px-3 bg-slate-800 active:bg-slate-700 active:scale-[0.98] text-amber-300 rounded-xl font-black text-xs sm:text-sm uppercase tracking-wider flex items-center justify-center gap-2 border border-slate-700 transition-all cursor-pointer disabled:opacity-50"
             >
               {isImprimindo ? (
                 <RefreshCw className="w-4 h-4 animate-spin text-amber-400" />

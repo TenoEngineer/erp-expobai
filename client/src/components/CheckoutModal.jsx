@@ -177,13 +177,13 @@ export default function CheckoutModal({
           </div>
 
           {/* Seletor de Modo: Pagamento Único vs Dividido em 2 Formas */}
-          <div className="grid grid-cols-2 gap-2 bg-slate-950 p-1 rounded-2xl border border-slate-800 text-xs font-bold">
+          <div className="grid grid-cols-2 gap-2 bg-slate-950 p-1.5 rounded-2xl border border-slate-800 text-xs sm:text-sm font-black">
             <button
               type="button"
               onClick={() => handleToggleSplit(false)}
-              className={`py-2 px-3 rounded-xl transition-all flex items-center justify-center gap-1.5 ${
+              className={`h-11 sm:h-12 rounded-xl transition-all flex items-center justify-center gap-2 ${
                 !isSplit
-                  ? 'bg-slate-800 text-white shadow'
+                  ? 'bg-slate-800 text-white shadow-md'
                   : 'text-slate-400 hover:text-slate-200'
               }`}
             >
@@ -194,74 +194,74 @@ export default function CheckoutModal({
             <button
               type="button"
               onClick={() => handleToggleSplit(true)}
-              className={`py-2 px-3 rounded-xl transition-all flex items-center justify-center gap-1.5 ${
+              className={`h-11 sm:h-12 rounded-xl transition-all flex items-center justify-center gap-2 ${
                 isSplit
-                  ? 'bg-amber-600 text-slate-950 font-black shadow-lg shadow-amber-950/50'
+                  ? 'bg-amber-500 text-slate-950 font-black shadow-lg shadow-amber-950/50'
                   : 'text-slate-400 hover:text-amber-300'
               }`}
             >
               <Layers className="w-4 h-4" />
-              <span>Dividir (2 Formas) ⚡</span>
+              <span>Dividir (2 Formas)</span>
             </button>
           </div>
 
           {/* MODO 1: PAGAMENTO ÚNICO */}
           {!isSplit && (
-            <div className="space-y-4">
-              <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider">
-                Forma de Pagamento:
+            <div className="space-y-3.5">
+              <label className="block text-xs font-black text-slate-300 uppercase tracking-wider">
+                Selecione a Forma de Pagamento:
               </label>
 
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
                 <button
                   type="button"
                   onClick={() => setPaymentMethod('pix')}
-                  className={`flex flex-col items-center justify-center gap-1.5 p-3 rounded-xl border font-bold text-xs transition-all ${
+                  className={`flex flex-col items-center justify-center gap-1.5 h-16 sm:h-20 rounded-2xl border-2 font-black text-sm sm:text-base transition-all active:scale-95 ${
                     paymentMethod === 'pix'
-                      ? 'bg-emerald-600/30 border-emerald-400 text-emerald-200 shadow-md shadow-emerald-950'
-                      : 'bg-slate-800/80 border-slate-700 text-slate-300 hover:bg-slate-800'
+                      ? 'bg-emerald-600/30 border-emerald-400 text-emerald-200 shadow-lg shadow-emerald-950/50 ring-1 ring-emerald-400'
+                      : 'bg-slate-800/80 border-slate-700/80 text-slate-300 active:bg-slate-800'
                   }`}
                 >
-                  <QrCode className="w-5 h-5 text-emerald-400" />
+                  <QrCode className="w-6 h-6 text-emerald-400" />
                   <span>PIX</span>
                 </button>
 
                 <button
                   type="button"
                   onClick={() => setPaymentMethod('dinheiro')}
-                  className={`flex flex-col items-center justify-center gap-1.5 p-3 rounded-xl border font-bold text-xs transition-all ${
+                  className={`flex flex-col items-center justify-center gap-1.5 h-16 sm:h-20 rounded-2xl border-2 font-black text-sm sm:text-base transition-all active:scale-95 ${
                     paymentMethod === 'dinheiro'
-                      ? 'bg-amber-600/30 border-amber-400 text-amber-200 shadow-md shadow-amber-950'
-                      : 'bg-slate-800/80 border-slate-700 text-slate-300 hover:bg-slate-800'
+                      ? 'bg-amber-600/30 border-amber-400 text-amber-200 shadow-lg shadow-amber-950/50 ring-1 ring-amber-400'
+                      : 'bg-slate-800/80 border-slate-700/80 text-slate-300 active:bg-slate-800'
                   }`}
                 >
-                  <Banknote className="w-5 h-5 text-amber-400" />
+                  <Banknote className="w-6 h-6 text-amber-400" />
                   <span>Dinheiro</span>
                 </button>
 
                 <button
                   type="button"
                   onClick={() => setPaymentMethod('debito')}
-                  className={`flex flex-col items-center justify-center gap-1.5 p-3 rounded-xl border font-bold text-xs transition-all ${
+                  className={`flex flex-col items-center justify-center gap-1.5 h-16 sm:h-20 rounded-2xl border-2 font-black text-sm sm:text-base transition-all active:scale-95 ${
                     paymentMethod === 'debito'
-                      ? 'bg-cyan-600/30 border-cyan-400 text-cyan-200 shadow-md shadow-cyan-950'
-                      : 'bg-slate-800/80 border-slate-700 text-slate-300 hover:bg-slate-800'
+                      ? 'bg-cyan-600/30 border-cyan-400 text-cyan-200 shadow-lg shadow-cyan-950/50 ring-1 ring-cyan-400'
+                      : 'bg-slate-800/80 border-slate-700/80 text-slate-300 active:bg-slate-800'
                   }`}
                 >
-                  <CreditCard className="w-5 h-5 text-cyan-400" />
+                  <CreditCard className="w-6 h-6 text-cyan-400" />
                   <span>Débito</span>
                 </button>
 
                 <button
                   type="button"
                   onClick={() => setPaymentMethod('credito')}
-                  className={`flex flex-col items-center justify-center gap-1.5 p-3 rounded-xl border font-bold text-xs transition-all ${
+                  className={`flex flex-col items-center justify-center gap-1.5 h-16 sm:h-20 rounded-2xl border-2 font-black text-sm sm:text-base transition-all active:scale-95 ${
                     paymentMethod === 'credito'
-                      ? 'bg-purple-600/30 border-purple-400 text-purple-200 shadow-md shadow-purple-950'
-                      : 'bg-slate-800/80 border-slate-700 text-slate-300 hover:bg-slate-800'
+                      ? 'bg-purple-600/30 border-purple-400 text-purple-200 shadow-lg shadow-purple-950/50 ring-1 ring-purple-400'
+                      : 'bg-slate-800/80 border-slate-700/80 text-slate-300 active:bg-slate-800'
                   }`}
                 >
-                  <CreditCard className="w-5 h-5 text-purple-400" />
+                  <CreditCard className="w-6 h-6 text-purple-400" />
                   <span>Crédito</span>
                 </button>
               </div>
@@ -294,22 +294,21 @@ export default function CheckoutModal({
                     </div>
                   </div>
 
-                  {/* Atalhos de Dinheiro */}
-                  <div className="flex flex-wrap gap-1.5 items-center">
-                    <span className="text-[10px] text-slate-500 font-medium mr-1">Atalhos:</span>
+                  {/* Atalhos de Dinheiro Touch-Friendly */}
+                  <div className="flex flex-wrap gap-2 items-center pt-1">
                     <button
                       type="button"
                       onClick={() => handleQuickCash(totalNum)}
-                      className="px-2 py-1 bg-slate-800 hover:bg-slate-700 text-xs font-bold text-amber-300 rounded-lg border border-slate-700"
+                      className="h-11 px-3.5 bg-amber-500/20 active:bg-amber-500 text-amber-300 active:text-slate-950 font-black text-sm rounded-xl border border-amber-500/50 shadow"
                     >
                       Exato ({formatPrice(totalNum)})
                     </button>
-                    {[10, 20, 50, 100].map(val => (
+                    {[5, 10, 20, 50, 100].map(val => (
                       <button
                         key={val}
                         type="button"
                         onClick={() => handleQuickCash(val)}
-                        className="px-2 py-1 bg-slate-800 hover:bg-slate-700 text-xs font-bold text-slate-300 rounded-lg border border-slate-700"
+                        className="h-11 px-3.5 bg-slate-800 active:bg-slate-700 text-sm font-black text-slate-100 rounded-xl border border-slate-700 active:scale-95 shadow"
                       >
                         R$ {val}
                       </button>
@@ -318,7 +317,7 @@ export default function CheckoutModal({
                       <button
                         type="button"
                         onClick={() => setCashReceived('')}
-                        className="px-2 py-1 bg-slate-900 hover:bg-slate-800 text-[10px] text-slate-400 rounded-lg border border-slate-700"
+                        className="h-11 px-3 bg-slate-900 active:bg-slate-800 text-xs font-bold text-slate-400 rounded-xl border border-slate-700"
                       >
                         Limpar
                       </button>
@@ -491,28 +490,28 @@ export default function CheckoutModal({
 
           </div>
 
-          {/* Rodapé Fixo / Sticky com Botão de Confirmação */}
+          {/* Rodapé Fixo / Sticky com Botão de Confirmação GIGANTE */}
           <div 
             className="p-3 sm:p-4 bg-slate-950 border-t border-slate-800 shrink-0"
-            style={{ paddingBottom: 'max(0.75rem, env(safe-area-inset-bottom))' }}
+            style={{ paddingBottom: 'max(0.85rem, env(safe-area-inset-bottom))' }}
           >
             <button
               type="submit"
               disabled={!canSubmit || isProcessing}
-              className={`w-full py-3.5 px-4 rounded-xl font-black text-sm sm:text-base uppercase tracking-wider flex items-center justify-center gap-2 shadow-xl transition-all ${
+              className={`w-full h-15 sm:h-16 py-3.5 px-4 rounded-2xl font-black text-base sm:text-lg uppercase tracking-wider flex items-center justify-center gap-2.5 shadow-2xl transition-all ${
                 canSubmit && !isProcessing
-                  ? 'bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-500 hover:to-green-500 text-white shadow-emerald-950/50 border border-emerald-400/40 cursor-pointer active:scale-[0.98]'
+                  ? 'bg-gradient-to-r from-emerald-500 to-green-500 active:from-emerald-400 active:to-green-400 text-slate-950 shadow-emerald-950 border-2 border-emerald-400/60 cursor-pointer active:scale-[0.98]'
                   : 'bg-slate-800 text-slate-500 border border-slate-700/40 cursor-not-allowed'
               }`}
             >
               {isProcessing ? (
                 <>
-                  <Loader2 className="w-5 h-5 animate-spin" />
+                  <Loader2 className="w-6 h-6 animate-spin text-slate-950" />
                   <span>Processando Venda...</span>
                 </>
               ) : (
                 <>
-                  <CheckCircle2 className="w-5 h-5" />
+                  <CheckCircle2 className="w-6 h-6 stroke-[3]" />
                   <span>CONFIRMAR VENDA (ENTER)</span>
                 </>
               )}

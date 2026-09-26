@@ -327,21 +327,21 @@ export default function PosPage({ config, onCartCountChange }) {
       <div className="flex-1 flex flex-col gap-3 min-w-0">
         
         {/* Barra Rápida de Ações do PDV & Horário Oficial MS */}
-        <div className="flex items-center justify-between gap-2 bg-slate-900 border border-slate-800 px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-2xl shadow">
+        <div className="flex items-center justify-between gap-2 bg-slate-900 border border-slate-800 px-3 py-2 rounded-2xl shadow">
           <button
             type="button"
             onClick={() => setIsRecentOrdersOpen(true)}
-            className="px-2.5 sm:px-3 py-1 sm:py-1.5 bg-slate-800 hover:bg-slate-700 text-amber-300 border border-amber-500/40 rounded-xl font-bold text-xs flex items-center gap-1.5 transition-all active:scale-95 shadow truncate"
+            className="h-11 px-3.5 bg-slate-800 active:bg-slate-700 text-amber-300 border border-amber-500/50 rounded-xl font-black text-xs sm:text-sm flex items-center gap-2 transition-all active:scale-95 shadow truncate"
             title="Ver vendas recentes para reimprimir ficha, editar itens ou excluir erro"
           >
-            <Receipt className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+            <Receipt className="w-4 h-4 text-amber-400 shrink-0" />
             <span className="truncate">⚡ Vendas Recentes <span className="hidden xs:inline">/ Correções</span></span>
           </button>
 
-          <div className="flex items-center gap-1.5 text-[10px] sm:text-[11px] text-slate-400 font-mono shrink-0">
-            <Clock className="w-3.5 h-3.5 text-slate-500 shrink-0" />
+          <div className="flex items-center gap-1.5 text-xs text-slate-400 font-mono shrink-0 bg-slate-950/80 px-2.5 py-1.5 rounded-xl border border-slate-800">
+            <Clock className="w-4 h-4 text-slate-400 shrink-0" />
             <span className="hidden sm:inline">Horário Oficial</span>
-            <span>MS (-1h BSB)</span>
+            <span className="font-bold text-slate-300">MS (-1h BSB)</span>
           </div>
         </div>
 
@@ -377,90 +377,96 @@ export default function PosPage({ config, onCartCountChange }) {
       </div>
 
       {/* ========================================================================= */}
-      {/* BARRA FLUTUANTE INFERIOR MOBILE (CELULAR) */}
-      {/* Permite vender pelo celular de forma rápida e intuitiva com 1 toque */}
+      {/* BARRA FLUTUANTE INFERIOR MOBILE (CELULAR ESTILO APLICATIVO) */}
+      {/* Botões gigantes de 56px de altura para o polegar com 1 toque no checkout */}
       {/* ========================================================================= */}
       {cart.length > 0 && (
         <div 
-          className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-slate-950/95 border-t-2 border-emerald-500/80 p-2 sm:p-2.5 backdrop-blur-xl shadow-[0_-8px_25px_rgba(0,0,0,0.6)] flex items-center justify-between gap-2 animate-in slide-in-from-bottom-4 duration-200"
-          style={{ paddingBottom: 'max(0.75rem, env(safe-area-inset-bottom))' }}
+          className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-slate-950/98 border-t-2 border-emerald-500 p-2.5 sm:p-3 backdrop-blur-xl shadow-[0_-12px_30px_rgba(0,0,0,0.8)] flex items-center justify-between gap-2.5 animate-in slide-in-from-bottom-4 duration-200"
+          style={{ paddingBottom: 'max(0.85rem, env(safe-area-inset-bottom))' }}
         >
           {/* Botão Ver Itens */}
           <button 
             type="button"
             onClick={() => setIsMobileCartOpen(true)}
-            className="flex items-center gap-2 bg-slate-900 hover:bg-slate-800 border border-slate-700/80 rounded-xl px-2.5 py-1.5 transition-colors text-left"
+            className="flex items-center gap-2 bg-slate-900 active:bg-slate-800 border border-slate-700/90 rounded-2xl px-3 h-14 transition-colors text-left shrink-0 active:scale-95 shadow"
           >
-            <div className="w-8 h-8 rounded-lg bg-emerald-600/30 border border-emerald-500/50 flex items-center justify-center text-emerald-400 font-black text-xs shrink-0">
+            <div className="w-9 h-9 rounded-xl bg-emerald-600/30 border border-emerald-500/50 flex items-center justify-center text-emerald-400 font-black text-sm shrink-0">
               🛒 {cartTotalItems}
             </div>
-            <div className="min-w-0">
-              <span className="text-[9px] text-slate-400 uppercase font-semibold block leading-none">
-                Ver Carrinho
+            <div className="min-w-0 pr-1">
+              <span className="text-[10px] text-slate-400 uppercase font-black block leading-none">
+                Carrinho
               </span>
-              <p className="text-xs font-bold text-slate-200 truncate">
+              <p className="text-xs font-black text-slate-200 truncate">
                 {cartTotalItems} {cartTotalItems === 1 ? 'item' : 'itens'}
               </p>
             </div>
           </button>
 
-          {/* Botão Principal de Cobrança Rápida - 1 Toque Direto no Checkout */}
+          {/* Botão Principal de Cobrança Rápida - GIGANTE ESTILO APLICATIVO */}
           <button
             type="button"
             onClick={() => setIsCheckoutOpen(true)}
-            className="flex-1 max-w-[240px] py-2.5 px-3.5 bg-gradient-to-r from-emerald-500 to-green-500 hover:from-emerald-400 hover:to-green-400 text-slate-950 font-black text-xs sm:text-sm uppercase tracking-wider rounded-xl shadow-lg shadow-emerald-950/80 flex items-center justify-center gap-2 active:scale-95 transition-all"
+            className="flex-1 h-14 bg-gradient-to-r from-emerald-500 to-green-500 active:from-emerald-400 active:to-green-400 text-slate-950 font-black text-base uppercase tracking-wider rounded-2xl shadow-xl shadow-emerald-950 flex items-center justify-center gap-2 active:scale-[0.98] transition-all"
           >
-            <span>Cobrar {formatPrice(cartTotal)}</span>
-            <ArrowRight className="w-4 h-4 text-slate-950 shrink-0" />
+            <span>COBRAR</span>
+            <span className="font-mono text-lg font-black bg-slate-950/20 px-2.5 py-0.5 rounded-lg text-slate-950">
+              {formatPrice(cartTotal)}
+            </span>
+            <ArrowRight className="w-5 h-5 text-slate-950 stroke-[3] shrink-0" />
           </button>
         </div>
       )}
 
       {/* MODAL / GAVETA DO CARRINHO MOBILE */}
       {isMobileCartOpen && (
-        <div className="lg:hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-end sm:items-center justify-center animate-in fade-in">
-          <div className="bg-slate-900 border-t sm:border border-slate-700 w-full sm:max-w-md rounded-t-3xl sm:rounded-3xl shadow-2xl p-4 max-h-[85vh] flex flex-col">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-800">
-              <div className="flex items-center gap-2">
-                <ShoppingBag className="w-5 h-5 text-emerald-400" />
-                <h3 className="font-extrabold text-base text-white">Itens do Pedido ({cartTotalItems})</h3>
+        <div className="lg:hidden fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-end sm:items-center justify-center animate-in fade-in">
+          <div className="bg-slate-900 border-t-2 sm:border border-slate-700 w-full sm:max-w-md rounded-t-3xl sm:rounded-3xl shadow-2xl p-4 sm:p-5 max-h-[88vh] flex flex-col">
+            <div className="flex items-center justify-between pb-3.5 border-b border-slate-800">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-xl bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center text-emerald-400">
+                  <ShoppingBag className="w-5 h-5" />
+                </div>
+                <h3 className="font-black text-lg text-white">Itens no Pedido ({cartTotalItems})</h3>
               </div>
               <button
                 onClick={() => setIsMobileCartOpen(false)}
-                className="p-1.5 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800"
+                className="w-10 h-10 flex items-center justify-center text-slate-400 hover:text-white rounded-xl bg-slate-800 active:bg-slate-700"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            <div className="flex-1 overflow-y-auto py-3 space-y-2">
+            <div className="flex-1 overflow-y-auto py-3 space-y-2.5">
               {cart.map((item) => (
-                <div key={item.id} className="bg-slate-950 border border-slate-800 p-2.5 rounded-xl flex items-center justify-between gap-2">
+                <div key={item.id} className="bg-slate-950 border border-slate-800 p-3 rounded-2xl flex items-center justify-between gap-2.5">
                   <div className="flex-1 min-w-0">
-                    <span className="font-bold text-slate-100 block text-xs truncate">{item.nome}</span>
-                    <span className="text-[11px] text-slate-400 font-mono">{formatPrice(item.preco)} cada</span>
+                    <span className="font-black text-sm sm:text-base text-slate-100 block truncate">{item.nome}</span>
+                    <span className="text-xs text-slate-400 font-mono">{formatPrice(item.preco)} cada</span>
                   </div>
 
-                  <div className="flex items-center gap-2">
-                    <div className="flex items-center bg-slate-900 border border-slate-700 rounded-lg">
+                  <div className="flex items-center gap-2.5">
+                    {/* Stepper Gigante Touch */}
+                    <div className="flex items-center bg-slate-900 border border-slate-700 rounded-xl p-0.5">
                       <button
                         onClick={() => handleUpdateQuantity(item.id, item.quantidade - 1)}
-                        className="w-7 h-7 flex items-center justify-center text-slate-400 hover:text-white"
+                        className="w-10 h-10 flex items-center justify-center rounded-lg bg-slate-800 text-amber-400 font-black text-lg active:bg-amber-600 active:text-slate-950"
                       >
                         -
                       </button>
-                      <span className="w-7 text-center font-mono font-bold text-xs text-white">
+                      <span className="w-9 text-center font-mono font-black text-lg text-white">
                         {item.quantidade}
                       </span>
                       <button
                         onClick={() => handleUpdateQuantity(item.id, item.quantidade + 1)}
-                        className="w-7 h-7 flex items-center justify-center text-slate-400 hover:text-white"
+                        className="w-10 h-10 flex items-center justify-center rounded-lg bg-amber-500 text-slate-950 font-black text-lg active:bg-amber-400"
                       >
                         +
                       </button>
                     </div>
 
-                    <span className="font-mono font-bold text-emerald-400 text-xs w-16 text-right">
+                    <span className="font-mono font-black text-emerald-400 text-sm sm:text-base w-20 text-right">
                       {formatPrice(item.quantidade * item.preco)}
                     </span>
                   </div>
@@ -468,18 +474,18 @@ export default function PosPage({ config, onCartCountChange }) {
               ))}
             </div>
 
-            <div className="pt-3 border-t border-slate-800 space-y-2">
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-slate-400 font-bold">Total:</span>
-                <span className="font-black text-xl text-emerald-400 font-mono">{formatPrice(cartTotal)}</span>
+            <div className="pt-3.5 border-t border-slate-800 space-y-3">
+              <div className="flex items-center justify-between text-base">
+                <span className="text-slate-300 font-bold">Total do Pedido:</span>
+                <span className="font-black text-2xl text-emerald-400 font-mono">{formatPrice(cartTotal)}</span>
               </div>
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-2 gap-2.5">
                 <button
                   type="button"
                   onClick={handleClearCart}
-                  className="py-2.5 bg-slate-800 hover:bg-rose-950/50 text-slate-300 hover:text-rose-400 text-xs font-bold rounded-xl border border-slate-700"
+                  className="h-14 bg-slate-800 active:bg-rose-950/60 text-slate-300 active:text-rose-400 text-sm font-black rounded-2xl border border-slate-700"
                 >
-                  Limpar Carrinho
+                  Limpar Tudo
                 </button>
                 <button
                   type="button"
@@ -487,9 +493,9 @@ export default function PosPage({ config, onCartCountChange }) {
                     setIsMobileCartOpen(false);
                     setIsCheckoutOpen(true);
                   }}
-                  className="py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs uppercase tracking-wider rounded-xl shadow-lg"
+                  className="h-14 bg-gradient-to-r from-emerald-500 to-green-500 text-slate-950 font-black text-base uppercase tracking-wider rounded-2xl shadow-xl shadow-emerald-950 active:scale-95"
                 >
-                  Ir Cobrar
+                  Cobrar Agora
                 </button>
               </div>
             </div>
