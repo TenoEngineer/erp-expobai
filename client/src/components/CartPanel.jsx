@@ -122,11 +122,11 @@ export default function CartPanel({
                 <div className="flex items-start justify-between gap-2">
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-1.5 flex-wrap">
-                      <h4 className="font-bold text-sm text-slate-100 leading-snug">
+                      <h4 className="font-black text-[15px] text-slate-100 leading-snug">
                         {item.nome}
                       </h4>
                       {item.combo_info && (
-                        <span className="px-1.5 py-0.2 rounded bg-purple-950/80 text-purple-300 border border-purple-500/40 text-[9px] font-black font-mono">
+                        <span className="px-1.5 py-0.5 rounded bg-purple-950/80 text-purple-300 border border-purple-500/40 text-[10px] font-black font-mono">
                           🎁 {item.combo_info.titulo || 'COMBO'}
                         </span>
                       )}
@@ -229,7 +229,7 @@ export default function CartPanel({
           </div>
           <div className="flex items-center justify-between">
             <span className="font-extrabold text-base text-slate-200">TOTAL:</span>
-            <span className="font-black text-2xl text-emerald-400 font-mono tracking-tight">
+            <span className="font-black text-2xl lg:text-3xl text-emerald-400 font-mono tracking-tight">
               {formatPrice(totalPrice)}
             </span>
           </div>
@@ -238,7 +238,7 @@ export default function CartPanel({
         <button
           onClick={onOpenCheckout}
           disabled={cart.length === 0}
-          className={`w-full py-3.5 px-4 rounded-xl font-black text-sm uppercase tracking-wider flex items-center justify-center gap-2 shadow-xl transition-all duration-200 ${
+          className={`w-full py-4 px-4 rounded-xl font-black text-base uppercase tracking-wider flex items-center justify-center gap-2 shadow-xl transition-all duration-200 ${
             cart.length > 0
               ? 'bg-gradient-to-r from-orange-600 via-amber-600 to-orange-600 hover:from-orange-500 hover:to-orange-500 text-white shadow-orange-950/50 border border-amber-400/40 hover:scale-[1.02] active:scale-[0.98] cursor-pointer'
               : 'bg-slate-800 text-slate-500 border border-slate-700/40 cursor-not-allowed'
@@ -246,7 +246,7 @@ export default function CartPanel({
         >
           <span>FINALIZAR PEDIDO</span>
           <span className="text-xs font-normal opacity-80">(F2)</span>
-          <ArrowRight className="w-4 h-4" />
+          <ArrowRight className="w-5 h-5 stroke-[2.5]" />
         </button>
       </div>
 
