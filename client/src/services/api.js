@@ -167,4 +167,47 @@ export const printOrderDirect = async (order) => {
   return data;
 };
 
+// =========================================================================
+// RATEIO & DIVISÃO DE SÓCIOS (Alex, Heitor, Pais)
+// =========================================================================
+export const getRateio = async (params = {}) => {
+  const { data } = await api.get('/rateio', { params });
+  return data;
+};
+
+export const getCustosEvento = async () => {
+  const { data } = await api.get('/rateio/custos');
+  return data;
+};
+
+export const createCustoEvento = async (custo) => {
+  const { data } = await api.post('/rateio/custos', custo);
+  return data;
+};
+
+export const updateCustoEvento = async (id, custo) => {
+  const { data } = await api.put(`/rateio/custos/${id}`, custo);
+  return data;
+};
+
+export const deleteCustoEvento = async (id) => {
+  const { data } = await api.delete(`/rateio/custos/${id}`);
+  return data;
+};
+
+export const getProdutosSocios = async () => {
+  const { data } = await api.get('/rateio/produtos-socios');
+  return data;
+};
+
+export const updateProdutoSocio = async (id, socio) => {
+  const { data } = await api.put(`/rateio/produtos-socios/${id}`, { socio });
+  return data;
+};
+
+export const autoAtribuirSocios = async () => {
+  const { data } = await api.post('/rateio/auto-atribuir');
+  return data;
+};
+
 export default api;

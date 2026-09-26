@@ -125,6 +125,57 @@ async function initDB() {
       SELECT 'Combos', 'sparkles', '#7C3AED', 0, 1
       WHERE NOT EXISTS (SELECT 1 FROM expobai.categorias WHERE LOWER(nome) = 'combos');
       ALTER TABLE expobai.pedidos ADD COLUMN IF NOT EXISTS origem VARCHAR(20) DEFAULT 'desktop';
+
+      -- Migrações v5: Rateio entre Sócios (Alex, Heitor, Pais) e Custos de Exposição da Tenda
+      ALTER TABLE expobai.produtos ADD COLUMN IF NOT EXISTS socio VARCHAR(20) DEFAULT 'alex';
+
+      -- Auto-classificação padrão dos produtos atuais
+      UPDATE expobai.produtos SET socio = 'alex' 
+      WHERE (LOWER(nome) LIKE '%espetinho%' OR categoria_id = 1) 
+        AND LOWER(nome) NOT LIKE '%pão%' AND LOWER(nome) NOT LIKE '%pao%';
+
+      UPDATE expobai.produtos SET socio = 'heitor' 
+      WHERE LOWER(nome) LIKE '%pão%' OR LOWER(nome) LIKE '%pao%' 
+         OR categoria_id IN (2, 4) 
+         OR LOWER(nome) LIKE '%agua%' OR LOWER(nome) LIKE '%água%' 
+         OR LOWER(nome) LIKE '%refrigerante%' OR LOWER(nome) LIKE '%suco%' 
+         OR LOWER(nome) LIKE '%soda%' OR LOWER(nome) LIKE '%cerveja%' 
+         OR LOWER(nome) LIKE '%amstel%' OR LOWER(nome) LIKE '%heineken%' 
+         OR LOWER(nome) LIKE '%chopp%' OR LOWER(nome) LIKE '%carregamento%';
+
+      UPDATE expobai.produtos SET socio = 'pais' 
+      WHERE LOWER(nome) LIKE '%cookie%' OR categoria_id = 3;
+
+      -- Tabela de Custos do Evento (Estande, Internet, Estacionamento, etc.)
+      CREATE TABLE IF NOT EXISTS expobai.custos_evento (
+        id SERIAL PRIMARY KEY,
+        descricao VARCHAR(150) NOT NULL,
+        valor NUMERIC(10, 2) NOT NULL,
+        divisao VARCHAR(30) DEFAULT 'alex_heitor', -- 'alex_heitor', 'todos', 'somente_alex', 'somente_heitor', 'somente_pais'
+        pago_por VARCHAR(20) DEFAULT 'caixa', -- 'caixa', 'alex', 'heitor', 'pais'
+        observacoes TEXT,
+        criado_em TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+      );
+
+      -- Inserir custos padrão iniciais se a tabela estiver vazia
+      INSERT INTO expobai.custos_evento (descricao, valor, divisao, pago_por, observacoes)
+      SELECT 'Aluguel do Estande / Tenda Expobai', 1800.00, 'alex_heitor', 'caixa', 'Custo de exposição da feira'
+      WHERE NOT EXISTS (SELECT 1 FROM expobai.custos_evento WHERE LOWER(descricao) LIKE '%estande%' OR LOWER(descricao) LIKE '%tenda%');
+
+      INSERT INTO expobai.custos_evento (descricao, valor, divisao, pago_por, observacoes)
+      SELECT 'Internet Wi-Fi da Feira', 150.00, 'alex_heitor', 'caixa', 'Ponto de internet para o estande'
+      WHERE NOT EXISTS (SELECT 1 FROM expobai.custos_evento WHERE LOWER(descricao) LIKE '%internet%');
+
+      INSERT INTO expobai.custos_evento (descricao, valor, divisao, pago_por, observacoes)
+      SELECT 'Estacionamento do Evento', 100.00, 'alex_heitor', 'caixa', 'Acesso de veículos da barraca'
+      WHERE NOT EXISTS (SELECT 1 FROM expobai.custos_evento WHERE LOWER(descricao) LIKE '%estacionamento%');
+
+      INSERT INTO expobai.configuracoes (chave, valor) VALUES ('rateio_conta_cartao', 'alex') ON CONFLICT (chave) DO NOTHING;
+      INSERT INTO expobai.configuracoes (chave, valor) VALUES ('rateio_conta_pix', 'pais') ON CONFLICT (chave) DO NOTHING;
+      INSERT INTO expobai.configuracoes (chave, valor) VALUES ('rateio_conta_dinheiro', 'caixa') ON CONFLICT (chave) DO NOTHING;
+      INSERT INTO expobai.configuracoes (chave, valor) VALUES ('rateio_pix_alex', '') ON CONFLICT (chave) DO NOTHING;
+      INSERT INTO expobai.configuracoes (chave, valor) VALUES ('rateio_pix_heitor', '') ON CONFLICT (chave) DO NOTHING;
+      INSERT INTO expobai.configuracoes (chave, valor) VALUES ('rateio_pix_pais', '') ON CONFLICT (chave) DO NOTHING;
     `);
 
     // 3. Seed inicial de categorias se estiver vazio

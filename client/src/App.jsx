@@ -2,10 +2,11 @@ import React, { useState, useEffect } from 'react';
 import Navbar from './components/Navbar';
 import PosPage from './pages/PosPage';
 import AdminPage from './pages/AdminPage';
+import RateioPage from './pages/RateioPage';
 import { getConfig } from './services/api';
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState('pos'); // 'pos' ou 'admin'
+  const [activeTab, setActiveTab] = useState('pos'); // 'pos', 'rateio' ou 'admin'
   const [config, setConfig] = useState(null);
   const [cartCount, setCartCount] = useState(0);
 
@@ -39,6 +40,8 @@ export default function App() {
             config={config}
             onCartCountChange={setCartCount}
           />
+        ) : activeTab === 'rateio' ? (
+          <RateioPage />
         ) : (
           <AdminPage
             config={config}

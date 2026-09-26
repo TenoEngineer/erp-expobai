@@ -13,6 +13,7 @@ const relatoriosRouter = require('./routes/relatorios');
 const configuracoesRouter = require('./routes/configuracoes');
 const impressaoRouter = require('./routes/impressao');
 const caixaRouter = require('./routes/caixa');
+const rateioRouter = require('./routes/rateio');
 
 const app = express();
 const PORT = process.env.PORT || 5002;
@@ -60,6 +61,7 @@ app.use('/api/relatorios', relatoriosRouter);
 app.use('/api/caixa', caixaRouter);
 app.use('/api/configuracoes', configuracoesRouter);
 app.use('/api/impressao', impressaoRouter);
+app.use('/api/rateio', rateioRouter);
 
 // Middleware global de tratamento de erros para rotas da API
 app.use('/api', (err, req, res, next) => {

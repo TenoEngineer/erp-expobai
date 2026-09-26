@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ShoppingCart, Settings, Clock, Sparkles } from 'lucide-react';
+import { ShoppingCart, Settings, Clock, Sparkles, Users } from 'lucide-react';
 import Logo from './Logo';
 
 export default function Navbar({ activeTab, setActiveTab, config, cartCount = 0 }) {
@@ -57,6 +57,19 @@ export default function Navbar({ activeTab, setActiveTab, config, cartCount = 0 
                 {cartCount}
               </span>
             )}
+          </button>
+
+          <button
+            onClick={() => setActiveTab('rateio')}
+            className={`flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-4 py-1.5 sm:py-2 rounded-xl text-xs sm:text-sm font-bold transition-all duration-200 ${
+              activeTab === 'rateio'
+                ? 'bg-gradient-to-r from-purple-600 via-indigo-600 to-purple-700 text-white shadow-lg shadow-purple-900/40 border border-purple-400/50'
+                : 'bg-slate-800/80 hover:bg-slate-800 text-slate-300 border border-slate-700/50 hover:text-white'
+            }`}
+          >
+            <Users className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-300" />
+            <span className="hidden xs:inline sm:inline">Rateio Sócios</span>
+            <span className="inline xs:hidden sm:hidden">Rateio</span>
           </button>
 
           <button
