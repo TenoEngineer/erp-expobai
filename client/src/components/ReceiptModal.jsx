@@ -12,6 +12,7 @@ export default function ReceiptModal({
   const [printStatus, setPrintStatus] = useState('idle'); // 'idle', 'printed', 'error'
   const [statusMessage, setStatusMessage] = useState('');
   const [isImprimindo, setIsImprimindo] = useState(false);
+  const isMobile = typeof window !== 'undefined' && (window.innerWidth < 1024 || /Android|iPhone|iPad|iPod/i.test(navigator.userAgent));
 
   useEffect(() => {
     if (isOpen && order) {
@@ -129,28 +130,28 @@ export default function ReceiptModal({
               </span>
             </div>
 
-            {/* Status da Impressão Térmica Automática */}
+            {/* Status da Impressão */}
             <div className="mt-2 w-full">
-              {printStatus === 'printed' && (
+              {isMobile ? (
+                <div className="bg-slate-950/80 border border-emerald-500/40 text-emerald-300 text-xs px-3 py-1.5 rounded-xl flex items-center justify-center gap-1.5">
+                  <span className="font-bold text-[11px] sm:text-xs">📱 Venda via Celular • Ficha impressa no computador do caixa</span>
+                </div>
+              ) : printStatus === 'printed' ? (
                 <div className="bg-emerald-950/70 border border-emerald-500/40 text-emerald-300 text-xs px-3 py-1 rounded-xl flex items-center justify-center gap-1.5 animate-in fade-in">
                   <Printer className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
                   <span className="font-medium text-[11px] sm:text-xs">{statusMessage}</span>
                 </div>
-              )}
-
-              {printStatus === 'printing_browser' && (
+              ) : printStatus === 'printing_browser' ? (
                 <div className="bg-amber-950/70 border border-amber-500/40 text-amber-300 text-xs px-3 py-1 rounded-xl flex items-center justify-center gap-1.5">
                   <RefreshCw className="w-3.5 h-3.5 animate-spin text-amber-400 shrink-0" />
                   <span className="font-medium text-[11px] sm:text-xs">Imprimindo pelo navegador automaticamente...</span>
                 </div>
-              )}
-
-              {printStatus === 'error' && (
+              ) : printStatus === 'error' ? (
                 <div className="bg-rose-950/70 border border-rose-500/40 text-rose-300 text-xs px-3 py-1 rounded-xl flex items-center justify-center gap-1.5">
                   <AlertCircle className="w-3.5 h-3.5 text-rose-400 shrink-0" />
                   <span className="font-medium text-[11px] sm:text-xs">{statusMessage}</span>
                 </div>
-              )}
+              ) : null}
             </div>
           </div>
 
@@ -196,9 +197,9 @@ export default function ReceiptModal({
             </div>
           </div>
 
-          {/* Ações: Próximo Pedido GIGANTE e Impressão Sob Demanda */}
+          {/* Ações: Próximo Pedido GIGANTE (Em celulares nao exibe impressao indevida) */}
           <div 
-            className="p-3 sm:p-4 bg-slate-950/95 border-t border-slate-800 flex flex-col gap-2.5 shrink-0"
+            className="p-3.5 sm:p-4 bg-slate-950/98 border-t border-slate-800 flex flex-col gap-2 shrink-0"
             style={{ paddingBottom: 'max(0.85rem, env(safe-area-inset-bottom))' }}
           >
             {/* Botão Primário GIGANTE: Próximo Pedido */}
@@ -211,19 +212,21 @@ export default function ReceiptModal({
               <ArrowRight className="w-5 h-5 text-slate-950 stroke-[3]" />
             </button>
 
-            {/* Botão Secundário: Imprimir Comandas */}
-            <button
-              onClick={handleImprimir}
-              disabled={isImprimindo}
-              className="w-full h-11 px-3 bg-slate-800 active:bg-slate-700 active:scale-[0.98] text-amber-300 rounded-xl font-black text-xs sm:text-sm uppercase tracking-wider flex items-center justify-center gap-2 border border-slate-700 transition-all cursor-pointer disabled:opacity-50"
-            >
-              {isImprimindo ? (
-                <RefreshCw className="w-4 h-4 animate-spin text-amber-400" />
-              ) : (
-                <Printer className="w-4 h-4 text-amber-400" />
-              )}
-              <span>{printStatus === 'printed' ? 'Reimprimir Comandas (P)' : '🖨️ Imprimir Comandas (P)'}</span>
-            </button>
+            {/* Botão Secundário: Imprimir Comandas (Apenas no Computador / Desktop) */}
+            {!isMobile && (
+              <button
+                onClick={handleImprimir}
+                disabled={isImprimindo}
+                className="w-full h-11 px-3 bg-slate-800 active:bg-slate-700 active:scale-[0.98] text-amber-300 rounded-xl font-black text-xs sm:text-sm uppercase tracking-wider flex items-center justify-center gap-2 border border-slate-700 transition-all cursor-pointer disabled:opacity-50"
+              >
+                {isImprimindo ? (
+                  <RefreshCw className="w-4 h-4 animate-spin text-amber-400" />
+                ) : (
+                  <Printer className="w-4 h-4 text-amber-400" />
+                )}
+                <span>{printStatus === 'printed' ? 'Reimprimir Comandas (P)' : '🖨️ Imprimir Comandas (P)'}</span>
+              </button>
+            )}
           </div>
 
         </div>

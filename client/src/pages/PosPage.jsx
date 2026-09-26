@@ -1,15 +1,17 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import CategoryTabs from '../components/CategoryTabs';
 import ProductGrid from '../components/ProductGrid';
 import CartPanel from '../components/CartPanel';
 import CheckoutModal from '../components/CheckoutModal';
 import ReceiptModal from '../components/ReceiptModal';
 import RecentOrdersModal from '../components/RecentOrdersModal';
-import { getCategorias, getProdutos, createPedido } from '../services/api';
+import { getCategorias, getProdutos, createPedido, getPedidos } from '../services/api';
 import { RefreshCw, CheckCircle2, Printer, X, Sparkles, Receipt, Trash2, Clock, ShoppingBag, ArrowRight } from 'lucide-react';
 import confetti from 'canvas-confetti';
 
 export default function PosPage({ config, onCartCountChange }) {
+  const isMobileClient = typeof window !== 'undefined' && (window.innerWidth < 1024 || /Android|iPhone|iPad|iPod/i.test(navigator.userAgent));
+
   const [categories, setCategories] = useState([]);
   const [products, setProducts] = useState([]);
   const [selectedCategory, setSelectedCategory] = useState(null);
@@ -24,6 +26,107 @@ export default function PosPage({ config, onCartCountChange }) {
   const [lastOrder, setLastOrder] = useState(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [orderNotification, setOrderNotification] = useState(null);
+
+  // Sincronização e Auto-impressão de vendas feitas no Celular para o Computador do Caixa
+  const [incomingMobileOrder, setIncomingMobileOrder] = useState(null);
+  const [autoPrintMobile, setAutoPrintMobile] = useState(() => {
+    try {
+      return localStorage.getItem('auto_print_mobile') !== 'false';
+    } catch {
+      return true;
+    }
+  });
+  const lastKnownOrderIdRef = useRef(null);
+
+  // Som suave de notificação usando Web Audio API (sem dependência de arquivo externo)
+  const playChimeSound = () => {
+    try {
+      const AudioCtx = window.AudioContext || window.webkitAudioContext;
+      if (!AudioCtx) return;
+      const ctx = new AudioCtx();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.type = 'sine';
+      const now = ctx.currentTime;
+      osc.frequency.setValueAtTime(587.33, now); // D5
+      osc.frequency.setValueAtTime(880.00, now + 0.12); // A5
+      gain.gain.setValueAtTime(0.3, now);
+      gain.gain.exponentialRampToValueAtTime(0.01, now + 0.35);
+      osc.start(now);
+      osc.stop(now + 0.36);
+    } catch (e) {
+      console.warn('Audio chime não disponível:', e);
+    }
+  };
+
+  const handleToggleAutoPrint = () => {
+    const nextVal = !autoPrintMobile;
+    setAutoPrintMobile(nextVal);
+    try {
+      localStorage.setItem('auto_print_mobile', String(nextVal));
+    } catch {}
+  };
+
+  // Polling em segundo plano apenas no Computador do Caixa para detectar vendas feitas pelo celular
+  useEffect(() => {
+    if (isMobileClient) return;
+
+    let isSubscribed = true;
+
+    // Inicializar o último ID conhecido
+    const initLastId = async () => {
+      try {
+        const res = await getPedidos({ limit: 1 });
+        const orders = res?.pedidos || (Array.isArray(res) ? res : []);
+        if (orders.length > 0 && lastKnownOrderIdRef.current === null) {
+          lastKnownOrderIdRef.current = orders[0].id;
+        }
+      } catch (e) {
+        console.warn('Erro ao inicializar listener de pedidos:', e);
+      }
+    };
+    initLastId();
+
+    const interval = setInterval(async () => {
+      if (!isSubscribed) return;
+      try {
+        const res = await getPedidos({ limit: 5 });
+        const orders = res?.pedidos || (Array.isArray(res) ? res : []);
+        if (!orders || orders.length === 0) return;
+
+        if (lastKnownOrderIdRef.current === null) {
+          lastKnownOrderIdRef.current = orders[0].id;
+          return;
+        }
+
+        const newOrders = orders.filter((o) => o.id > lastKnownOrderIdRef.current);
+        if (newOrders.length > 0) {
+          lastKnownOrderIdRef.current = Math.max(...newOrders.map((o) => o.id));
+
+          const mobileOrders = newOrders.filter((o) => o.origem === 'mobile');
+          if (mobileOrders.length > 0) {
+            const latestMobile = mobileOrders[0];
+            setIncomingMobileOrder(latestMobile);
+            playChimeSound();
+
+            if (autoPrintMobile) {
+              setLastOrder(latestMobile);
+              setIsReceiptOpen(true);
+            }
+          }
+        }
+      } catch (err) {
+        // Silencioso em caso de oscilação momentânea de rede
+      }
+    }, 3500);
+
+    return () => {
+      isSubscribed = false;
+      clearInterval(interval);
+    };
+  }, [isMobileClient, autoPrintMobile]);
 
   // Carregar Categorias e Produtos
   const loadData = async () => {
@@ -183,7 +286,10 @@ export default function PosPage({ config, onCartCountChange }) {
   const handleConfirmOrder = async (orderPayload) => {
     try {
       setIsProcessing(true);
-      const savedOrder = await createPedido(orderPayload);
+      const savedOrder = await createPedido({
+        ...orderPayload,
+        origem: isMobileClient ? 'mobile' : 'desktop'
+      });
       
       // 1. Atualiza último pedido e fecha modais
       setLastOrder(savedOrder);
@@ -270,6 +376,49 @@ export default function PosPage({ config, onCartCountChange }) {
   return (
     <div className="max-w-7xl mx-auto p-2 sm:p-4 flex flex-col lg:flex-row gap-3 sm:gap-4 relative pb-36 lg:pb-6">
       
+      {/* ALERTA DE NOVO PEDIDO CHEGANDO DO CELULAR NO COMPUTADOR DO CAIXA */}
+      {incomingMobileOrder && !isMobileClient && (
+        <div className="fixed top-16 left-1/2 -translate-x-1/2 z-50 bg-gradient-to-r from-amber-600 via-amber-500 to-yellow-500 text-slate-950 px-4 py-3 rounded-2xl shadow-2xl shadow-black/80 border-2 border-white/60 flex items-center gap-3 animate-in slide-in-from-top-4 duration-200">
+          <div className="w-10 h-10 rounded-xl bg-slate-950 text-amber-400 flex items-center justify-center font-black text-xl shrink-0">
+            📱
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="font-black text-sm uppercase tracking-wide">
+                Nova Venda pelo Celular!
+              </span>
+              <span className="font-mono font-black text-base bg-slate-950 text-amber-300 px-2 py-0.5 rounded-lg">
+                Comanda #{String(incomingMobileOrder.numero_pedido).padStart(3, '0')}
+              </span>
+            </div>
+            <p className="text-xs font-bold text-slate-900">
+              {formatPrice(incomingMobileOrder.total)} &bull; {incomingMobileOrder.forma_pagamento?.toUpperCase()}
+            </p>
+          </div>
+          <div className="flex items-center gap-1.5 ml-2">
+            <button
+              type="button"
+              onClick={() => {
+                handleReimprimir(incomingMobileOrder);
+                setIncomingMobileOrder(null);
+              }}
+              className="px-3 py-1.5 bg-slate-950 hover:bg-slate-900 active:scale-95 text-white font-black text-xs rounded-xl flex items-center gap-1.5 shadow"
+            >
+              <Printer className="w-3.5 h-3.5 text-amber-400" />
+              <span>Imprimir Ficha</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setIncomingMobileOrder(null)}
+              className="p-1.5 text-slate-950/70 hover:text-slate-950 rounded-lg hover:bg-black/10"
+              title="Fechar"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* NOTIFICAÇÃO FLUTUANTE ULTRA-RÁPIDA */}
       {orderNotification && (
         <div className="fixed top-16 right-3 sm:right-6 z-40 bg-slate-900/95 border-2 border-emerald-500/80 shadow-2xl shadow-emerald-950/80 rounded-2xl p-3 sm:p-3.5 max-w-sm sm:max-w-md animate-in slide-in-from-top-3 duration-200 backdrop-blur-md">
@@ -288,7 +437,7 @@ export default function PosPage({ config, onCartCountChange }) {
                   </span>
                 </div>
                 <p className="text-xs text-slate-300 font-medium mt-0.5">
-                  {formatPrice(orderNotification.total)} &bull; {orderNotification.printMessage || 'Impresso com sucesso!'}
+                  {formatPrice(orderNotification.total)} &bull; {orderNotification.printMessage || 'Salvo com sucesso!'}
                 </p>
               </div>
             </div>
@@ -311,14 +460,16 @@ export default function PosPage({ config, onCartCountChange }) {
               Pronto para o próximo cliente!
             </span>
 
-            <button
-              onClick={() => handleReimprimir()}
-              className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg font-bold flex items-center gap-1 border border-slate-700 hover:border-amber-500/50 text-[11px] transition-colors"
-              title="Reimprimir comanda do último pedido"
-            >
-              <Printer className="w-3 h-3 text-amber-400" />
-              <span>Reimprimir</span>
-            </button>
+            {!isMobileClient && (
+              <button
+                onClick={() => handleReimprimir()}
+                className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg font-bold flex items-center gap-1 border border-slate-700 hover:border-amber-500/50 text-[11px] transition-colors"
+                title="Reimprimir comanda do último pedido"
+              >
+                <Printer className="w-3 h-3 text-amber-400" />
+                <span>Reimprimir</span>
+              </button>
+            )}
           </div>
         </div>
       )}
@@ -327,16 +478,38 @@ export default function PosPage({ config, onCartCountChange }) {
       <div className="flex-1 flex flex-col gap-3 min-w-0">
         
         {/* Barra Rápida de Ações do PDV & Horário Oficial MS */}
-        <div className="flex items-center justify-between gap-2 bg-slate-900 border border-slate-800 px-3 py-2 rounded-2xl shadow">
-          <button
-            type="button"
-            onClick={() => setIsRecentOrdersOpen(true)}
-            className="h-11 px-3.5 bg-slate-800 active:bg-slate-700 text-amber-300 border border-amber-500/50 rounded-xl font-black text-xs sm:text-sm flex items-center gap-2 transition-all active:scale-95 shadow truncate"
-            title="Ver vendas recentes para reimprimir ficha, editar itens ou excluir erro"
-          >
-            <Receipt className="w-4 h-4 text-amber-400 shrink-0" />
-            <span className="truncate">⚡ Vendas Recentes <span className="hidden xs:inline">/ Correções</span></span>
-          </button>
+        <div className="flex flex-wrap items-center justify-between gap-2 bg-slate-900 border border-slate-800 px-3 py-2 rounded-2xl shadow">
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setIsRecentOrdersOpen(true)}
+              className="h-11 px-3.5 bg-slate-800 active:bg-slate-700 text-amber-300 border border-amber-500/50 rounded-xl font-black text-xs sm:text-sm flex items-center gap-2 transition-all active:scale-95 shadow truncate"
+              title="Ver vendas recentes para reimprimir ficha, editar itens ou excluir erro"
+            >
+              <Receipt className="w-4 h-4 text-amber-400 shrink-0" />
+              <span className="truncate">⚡ Vendas Recentes <span className="hidden xs:inline">/ Correções</span></span>
+            </button>
+
+            {/* Toggle de Auto-impressão do celular no Computador */}
+            {!isMobileClient && (
+              <button
+                type="button"
+                onClick={handleToggleAutoPrint}
+                className={`h-11 px-3 rounded-xl font-bold text-xs flex items-center gap-1.5 transition-all border ${
+                  autoPrintMobile 
+                    ? 'bg-emerald-950/80 text-emerald-300 border-emerald-500/50 hover:bg-emerald-900/80' 
+                    : 'bg-slate-800 text-slate-400 border-slate-700 hover:text-slate-200'
+                }`}
+                title="Quando ativado, vendas feitas pelo celular abrem automaticamente para impressão neste computador"
+              >
+                <Printer className="w-4 h-4 text-emerald-400" />
+                <span className="hidden md:inline">Auto-Imprimir Celular:</span>
+                <span className={`px-1.5 py-0.5 rounded text-[10px] font-black uppercase ${autoPrintMobile ? 'bg-emerald-500 text-slate-950' : 'bg-slate-700 text-slate-300'}`}>
+                  {autoPrintMobile ? 'LIGADO' : 'MANUAL'}
+                </span>
+              </button>
+            )}
+          </div>
 
           <div className="flex items-center gap-1.5 text-xs text-slate-400 font-mono shrink-0 bg-slate-950/80 px-2.5 py-1.5 rounded-xl border border-slate-800">
             <Clock className="w-4 h-4 text-slate-400 shrink-0" />

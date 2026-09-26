@@ -7,7 +7,7 @@ const printerService = require('../services/printerService');
 // Criar novo pedido / venda do caixa
 router.post('/', async (req, res) => {
   try {
-    const { itens, forma_pagamento, valor_pago, troco, observacoes, pagamentos } = req.body;
+    const { itens, forma_pagamento, valor_pago, troco, observacoes, pagamentos, origem } = req.body;
     if (!itens || !Array.isArray(itens) || itens.length === 0) {
       return res.status(400).json({ error: 'O pedido deve conter pelo menos um item' });
     }
@@ -21,7 +21,8 @@ router.post('/', async (req, res) => {
       valor_pago,
       troco,
       observacoes,
-      pagamentos
+      pagamentos,
+      origem: origem || 'desktop'
     });
 
     // Impressão automática instantânea se configurado Rede ou USB

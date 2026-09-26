@@ -224,6 +224,16 @@ export default function RecentOrdersModal({
                         
                         {renderPaymentBadge(order)}
 
+                        {order.origem === 'mobile' ? (
+                          <span className="px-2 py-0.5 rounded-md bg-purple-950 text-purple-300 border border-purple-500/40 text-[10px] font-black flex items-center gap-1">
+                            <span>📱 Celular</span>
+                          </span>
+                        ) : (
+                          <span className="px-2 py-0.5 rounded-md bg-slate-800 text-slate-400 border border-slate-700 text-[10px] font-bold">
+                            💻 Caixa
+                          </span>
+                        )}
+
                         <span className="text-[11px] text-slate-400 font-mono flex items-center gap-1">
                           <Clock className="w-3 h-3 text-slate-500" />
                           {formatTimeMS(order.data_hora)}

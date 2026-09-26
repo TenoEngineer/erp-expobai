@@ -1,7 +1,7 @@
 const { pool, query } = require('../db');
 
 const pedidosRepository = {
-  async createOrder({ itens, forma_pagamento, valor_pago = null, troco = 0, observacoes = '', pagamentos = null }) {
+  async createOrder({ itens, forma_pagamento, valor_pago = null, troco = 0, observacoes = '', pagamentos = null, origem = 'desktop' }) {
     const client = await pool.connect();
     try {
       await client.query('BEGIN');
@@ -40,11 +40,11 @@ const pedidosRepository = {
         jsonPagamentos = JSON.stringify([{ forma: forma_pagamento.toLowerCase(), valor: totalCalculado }]);
       }
 
-      // 3. Inserir Pedido
+      // 3. Inserir Pedido com identificação de Origem (Mobile vs Desktop)
       const pedidoRes = await client.query(
         `INSERT INTO expobai.pedidos (
-          numero_pedido, codigo_identificador, total, forma_pagamento, valor_pago, troco, status, observacoes, pagamentos
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+          numero_pedido, codigo_identificador, total, forma_pagamento, valor_pago, troco, status, observacoes, pagamentos, origem
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
         RETURNING *`,
         [
           numeroPedido,
@@ -55,7 +55,8 @@ const pedidosRepository = {
           parseFloat(troco) || 0,
           'concluido',
           observacoes || null,
-          jsonPagamentos
+          jsonPagamentos,
+          origem || 'desktop'
         ]
       );
       const novoPedido = pedidoRes.rows[0];
