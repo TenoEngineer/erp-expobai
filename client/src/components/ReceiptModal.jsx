@@ -121,11 +121,11 @@ export default function ReceiptModal({
             </h3>
 
             {/* Número do Pedido Grande */}
-            <div className="mt-2 bg-slate-950 border border-amber-500/50 px-5 py-2 sm:px-6 sm:py-2.5 rounded-2xl shadow-inner">
-              <span className="text-xs text-slate-400 uppercase tracking-widest block font-bold">
+            <div className="mt-2 bg-slate-950 border-2 border-amber-500/60 px-6 py-2.5 sm:px-8 sm:py-3 rounded-2xl shadow-inner">
+              <span className="text-xs sm:text-sm text-slate-400 uppercase tracking-widest block font-bold">
                 Número da Comanda / Senha
               </span>
-              <span className="font-black text-6xl sm:text-7xl text-amber-400 font-mono tracking-tight block">
+              <span className="font-black text-7xl sm:text-8xl text-amber-400 font-mono tracking-tight block">
                 #{numeroFormatado}
               </span>
             </div>
@@ -133,8 +133,8 @@ export default function ReceiptModal({
             {/* Status da Impressão */}
             <div className="mt-2 w-full">
               {isMobile ? (
-                <div className="bg-slate-950/80 border border-emerald-500/40 text-emerald-300 text-xs px-3 py-1.5 rounded-xl flex items-center justify-center gap-1.5">
-                  <span className="font-bold text-[11px] sm:text-xs">📱 Venda via Celular • Ficha impressa no computador do caixa</span>
+                <div className="bg-slate-950/80 border border-emerald-500/40 text-emerald-300 text-xs sm:text-sm px-3.5 py-2 rounded-xl flex items-center justify-center gap-1.5">
+                  <span className="font-bold text-xs sm:text-sm">📱 Venda via Celular • Ficha impressa no computador do caixa</span>
                 </div>
               ) : printStatus === 'printed' ? (
                 <div className="bg-emerald-950/70 border border-emerald-500/40 text-emerald-300 text-xs px-3 py-1 rounded-xl flex items-center justify-center gap-1.5 animate-in fade-in">
@@ -170,7 +170,7 @@ export default function ReceiptModal({
               
               <div className="space-y-1 max-h-24 overflow-y-auto pr-1">
                 {(order.itens || []).map((item, idx) => (
-                  <div key={idx} className="flex justify-between items-center text-xs">
+                  <div key={idx} className="flex justify-between items-center text-xs sm:text-sm">
                     <span className="text-slate-200 font-medium truncate max-w-[200px]">
                       <b className="text-amber-400 font-mono">{item.quantidade}x</b> {item.nome_produto}
                     </span>
@@ -199,17 +199,17 @@ export default function ReceiptModal({
 
           {/* Ações: Próximo Pedido GIGANTE (Em celulares nao exibe impressao indevida) */}
           <div 
-            className="p-3.5 sm:p-4 bg-slate-950/98 border-t border-slate-800 flex flex-col gap-2 shrink-0"
-            style={{ paddingBottom: 'max(0.85rem, env(safe-area-inset-bottom))' }}
+            className="p-3.5 sm:p-4 bg-slate-950/98 border-t border-slate-800 flex flex-col gap-2.5 shrink-0"
+            style={{ paddingBottom: 'max(1rem, env(safe-area-inset-bottom))' }}
           >
             {/* Botão Primário GIGANTE: Próximo Pedido */}
             <button
               onClick={onClose}
               autoFocus
-              className="w-full h-15 sm:h-16 px-4 bg-gradient-to-r from-emerald-500 to-green-500 active:from-emerald-400 active:to-green-400 active:scale-[0.98] text-slate-950 rounded-2xl font-black text-base sm:text-lg uppercase tracking-wider flex items-center justify-center gap-2 shadow-xl shadow-emerald-950 border-2 border-emerald-400/60 transition-all cursor-pointer"
+              className="w-full h-16 sm:h-18 px-4 bg-gradient-to-r from-emerald-500 to-green-500 active:from-emerald-400 active:to-green-400 active:scale-[0.98] text-slate-950 rounded-2xl font-black text-lg sm:text-xl uppercase tracking-wider flex items-center justify-center gap-2.5 shadow-xl shadow-emerald-950 border-2 border-emerald-400/60 transition-all cursor-pointer"
             >
               <span>PRÓXIMO PEDIDO (ENTER)</span>
-              <ArrowRight className="w-5 h-5 text-slate-950 stroke-[3]" />
+              <ArrowRight className="w-6 h-6 text-slate-950 stroke-[3]" />
             </button>
 
             {/* Botão Secundário: Imprimir Comandas (Apenas no Computador / Desktop) */}
@@ -217,7 +217,7 @@ export default function ReceiptModal({
               <button
                 onClick={handleImprimir}
                 disabled={isImprimindo}
-                className="w-full h-11 px-3 bg-slate-800 active:bg-slate-700 active:scale-[0.98] text-amber-300 rounded-xl font-black text-xs sm:text-sm uppercase tracking-wider flex items-center justify-center gap-2 border border-slate-700 transition-all cursor-pointer disabled:opacity-50"
+                className="w-full h-13 px-4 bg-slate-800 active:bg-slate-700 active:scale-[0.98] text-amber-300 rounded-xl font-black text-sm sm:text-base uppercase tracking-wider flex items-center justify-center gap-2 border border-slate-700 transition-all cursor-pointer disabled:opacity-50"
               >
                 {isImprimindo ? (
                   <RefreshCw className="w-4 h-4 animate-spin text-amber-400" />

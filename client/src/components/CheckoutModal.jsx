@@ -176,31 +176,31 @@ export default function CheckoutModal({
             </span>
           </div>
 
-          {/* Seletor de Modo: Pagamento Único vs Dividido em 2 Formas */}
-          <div className="grid grid-cols-2 gap-2 bg-slate-950 p-1.5 rounded-2xl border border-slate-800 text-xs sm:text-sm font-black">
+          {/* Seletor de Modo: Pagamento Único vs Dividir em 2 Formas */}
+          <div className="grid grid-cols-2 gap-2 bg-slate-950 p-1.5 rounded-2xl border border-slate-800 text-sm sm:text-base font-black">
             <button
               type="button"
               onClick={() => handleToggleSplit(false)}
-              className={`h-11 sm:h-12 rounded-xl transition-all flex items-center justify-center gap-2 ${
+              className={`h-13 sm:h-13 rounded-xl transition-all flex items-center justify-center gap-2 ${
                 !isSplit
                   ? 'bg-slate-800 text-white shadow-md'
                   : 'text-slate-400 hover:text-slate-200'
               }`}
             >
-              <Banknote className="w-4 h-4 text-emerald-400" />
+              <Banknote className="w-5 h-5 text-emerald-400" />
               <span>Pagamento Único</span>
             </button>
 
             <button
               type="button"
               onClick={() => handleToggleSplit(true)}
-              className={`h-11 sm:h-12 rounded-xl transition-all flex items-center justify-center gap-2 ${
+              className={`h-13 sm:h-13 rounded-xl transition-all flex items-center justify-center gap-2 ${
                 isSplit
                   ? 'bg-amber-500 text-slate-950 font-black shadow-lg shadow-amber-950/50'
                   : 'text-slate-400 hover:text-amber-300'
               }`}
             >
-              <Layers className="w-4 h-4" />
+              <Layers className="w-5 h-5" />
               <span>Dividir (2 Formas)</span>
             </button>
           </div>
@@ -208,7 +208,7 @@ export default function CheckoutModal({
           {/* MODO 1: PAGAMENTO ÚNICO */}
           {!isSplit && (
             <div className="space-y-3.5">
-              <label className="block text-xs font-black text-slate-300 uppercase tracking-wider">
+              <label className="block text-xs sm:text-sm font-black text-slate-300 uppercase tracking-wider">
                 Selecione a Forma de Pagamento:
               </label>
 
@@ -216,52 +216,52 @@ export default function CheckoutModal({
                 <button
                   type="button"
                   onClick={() => setPaymentMethod('pix')}
-                  className={`flex flex-col items-center justify-center gap-1.5 h-16 sm:h-20 rounded-2xl border-2 font-black text-sm sm:text-base transition-all active:scale-95 ${
+                  className={`flex flex-col items-center justify-center gap-1.5 h-20 sm:h-22 rounded-2xl border-2 font-black text-base sm:text-lg transition-all active:scale-95 ${
                     paymentMethod === 'pix'
                       ? 'bg-emerald-600/30 border-emerald-400 text-emerald-200 shadow-lg shadow-emerald-950/50 ring-1 ring-emerald-400'
                       : 'bg-slate-800/80 border-slate-700/80 text-slate-300 active:bg-slate-800'
                   }`}
                 >
-                  <QrCode className="w-6 h-6 text-emerald-400" />
+                  <QrCode className="w-7 h-7 sm:w-8 sm:h-8 text-emerald-400" />
                   <span>PIX</span>
                 </button>
 
                 <button
                   type="button"
                   onClick={() => setPaymentMethod('dinheiro')}
-                  className={`flex flex-col items-center justify-center gap-1.5 h-16 sm:h-20 rounded-2xl border-2 font-black text-sm sm:text-base transition-all active:scale-95 ${
+                  className={`flex flex-col items-center justify-center gap-1.5 h-20 sm:h-22 rounded-2xl border-2 font-black text-base sm:text-lg transition-all active:scale-95 ${
                     paymentMethod === 'dinheiro'
                       ? 'bg-amber-600/30 border-amber-400 text-amber-200 shadow-lg shadow-amber-950/50 ring-1 ring-amber-400'
                       : 'bg-slate-800/80 border-slate-700/80 text-slate-300 active:bg-slate-800'
                   }`}
                 >
-                  <Banknote className="w-6 h-6 text-amber-400" />
+                  <Banknote className="w-7 h-7 sm:w-8 sm:h-8 text-amber-400" />
                   <span>Dinheiro</span>
                 </button>
 
                 <button
                   type="button"
                   onClick={() => setPaymentMethod('debito')}
-                  className={`flex flex-col items-center justify-center gap-1.5 h-16 sm:h-20 rounded-2xl border-2 font-black text-sm sm:text-base transition-all active:scale-95 ${
+                  className={`flex flex-col items-center justify-center gap-1.5 h-20 sm:h-22 rounded-2xl border-2 font-black text-base sm:text-lg transition-all active:scale-95 ${
                     paymentMethod === 'debito'
                       ? 'bg-cyan-600/30 border-cyan-400 text-cyan-200 shadow-lg shadow-cyan-950/50 ring-1 ring-cyan-400'
                       : 'bg-slate-800/80 border-slate-700/80 text-slate-300 active:bg-slate-800'
                   }`}
                 >
-                  <CreditCard className="w-6 h-6 text-cyan-400" />
+                  <CreditCard className="w-7 h-7 sm:w-8 sm:h-8 text-cyan-400" />
                   <span>Débito</span>
                 </button>
 
                 <button
                   type="button"
                   onClick={() => setPaymentMethod('credito')}
-                  className={`flex flex-col items-center justify-center gap-1.5 h-16 sm:h-20 rounded-2xl border-2 font-black text-sm sm:text-base transition-all active:scale-95 ${
+                  className={`flex flex-col items-center justify-center gap-1.5 h-20 sm:h-22 rounded-2xl border-2 font-black text-base sm:text-lg transition-all active:scale-95 ${
                     paymentMethod === 'credito'
                       ? 'bg-purple-600/30 border-purple-400 text-purple-200 shadow-lg shadow-purple-950/50 ring-1 ring-purple-400'
                       : 'bg-slate-800/80 border-slate-700/80 text-slate-300 active:bg-slate-800'
                   }`}
                 >
-                  <CreditCard className="w-6 h-6 text-purple-400" />
+                  <CreditCard className="w-7 h-7 sm:w-8 sm:h-8 text-purple-400" />
                   <span>Crédito</span>
                 </button>
               </div>
@@ -279,7 +279,7 @@ export default function CheckoutModal({
                       </span>
                     </div>
                     <div className="relative">
-                      <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-sm font-bold text-slate-400 font-mono">
+                      <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-base font-bold text-slate-400 font-mono">
                         R$
                       </span>
                       <input
@@ -289,17 +289,17 @@ export default function CheckoutModal({
                         placeholder={`Valor exato (${totalNum.toFixed(2)}) ou digite o valor recebido`}
                         value={cashReceived}
                         onChange={(e) => setCashReceived(e.target.value)}
-                        className="w-full bg-slate-900 border border-slate-700 rounded-xl pl-10 pr-4 py-2.5 text-base sm:text-lg font-black text-slate-100 font-mono focus:outline-none focus:border-amber-500 placeholder:text-slate-500 placeholder:font-normal placeholder:text-xs"
+                        className="w-full h-14 bg-slate-900 border-2 border-slate-700 rounded-xl pl-11 pr-4 text-xl sm:text-2xl font-black text-slate-100 font-mono focus:outline-none focus:border-amber-500 placeholder:text-slate-500 placeholder:font-normal placeholder:text-sm"
                       />
                     </div>
                   </div>
 
                   {/* Atalhos de Dinheiro Touch-Friendly */}
-                  <div className="flex flex-wrap gap-2 items-center pt-1">
+                  <div className="flex flex-wrap gap-2.5 items-center pt-1">
                     <button
                       type="button"
                       onClick={() => handleQuickCash(totalNum)}
-                      className="h-11 px-3.5 bg-amber-500/20 active:bg-amber-500 text-amber-300 active:text-slate-950 font-black text-sm rounded-xl border border-amber-500/50 shadow"
+                      className="h-13 px-4 bg-amber-500/20 active:bg-amber-500 text-amber-300 active:text-slate-950 font-black text-base rounded-xl border border-amber-500/50 shadow"
                     >
                       Exato ({formatPrice(totalNum)})
                     </button>
@@ -308,7 +308,7 @@ export default function CheckoutModal({
                         key={val}
                         type="button"
                         onClick={() => handleQuickCash(val)}
-                        className="h-11 px-3.5 bg-slate-800 active:bg-slate-700 text-sm font-black text-slate-100 rounded-xl border border-slate-700 active:scale-95 shadow"
+                        className="h-13 px-4 bg-slate-800 active:bg-slate-700 text-base font-black text-slate-100 rounded-xl border border-slate-700 active:scale-95 shadow"
                       >
                         R$ {val}
                       </button>
@@ -317,7 +317,7 @@ export default function CheckoutModal({
                       <button
                         type="button"
                         onClick={() => setCashReceived('')}
-                        className="h-11 px-3 bg-slate-900 active:bg-slate-800 text-xs font-bold text-slate-400 rounded-xl border border-slate-700"
+                        className="h-13 px-3.5 bg-slate-900 active:bg-slate-800 text-sm font-bold text-slate-400 rounded-xl border border-slate-700"
                       >
                         Limpar
                       </button>
@@ -493,12 +493,12 @@ export default function CheckoutModal({
           {/* Rodapé Fixo / Sticky com Botão de Confirmação GIGANTE */}
           <div 
             className="p-3 sm:p-4 bg-slate-950 border-t border-slate-800 shrink-0"
-            style={{ paddingBottom: 'max(0.85rem, env(safe-area-inset-bottom))' }}
+            style={{ paddingBottom: 'max(1rem, env(safe-area-inset-bottom))' }}
           >
             <button
               type="submit"
               disabled={!canSubmit || isProcessing}
-              className={`w-full h-15 sm:h-16 py-3.5 px-4 rounded-2xl font-black text-base sm:text-lg uppercase tracking-wider flex items-center justify-center gap-2.5 shadow-2xl transition-all ${
+              className={`w-full h-16 sm:h-18 py-3.5 px-4 rounded-2xl font-black text-lg sm:text-xl uppercase tracking-wider flex items-center justify-center gap-2.5 shadow-2xl transition-all ${
                 canSubmit && !isProcessing
                   ? 'bg-gradient-to-r from-emerald-500 to-green-500 active:from-emerald-400 active:to-green-400 text-slate-950 shadow-emerald-950 border-2 border-emerald-400/60 cursor-pointer active:scale-[0.98]'
                   : 'bg-slate-800 text-slate-500 border border-slate-700/40 cursor-not-allowed'
@@ -506,12 +506,12 @@ export default function CheckoutModal({
             >
               {isProcessing ? (
                 <>
-                  <Loader2 className="w-6 h-6 animate-spin text-slate-950" />
+                  <Loader2 className="w-7 h-7 animate-spin text-slate-950" />
                   <span>Processando Venda...</span>
                 </>
               ) : (
                 <>
-                  <CheckCircle2 className="w-6 h-6 stroke-[3]" />
+                  <CheckCircle2 className="w-7 h-7 stroke-[3]" />
                   <span>CONFIRMAR VENDA (ENTER)</span>
                 </>
               )}

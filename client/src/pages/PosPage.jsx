@@ -478,15 +478,15 @@ export default function PosPage({ config, onCartCountChange }) {
       <div className="flex-1 flex flex-col gap-3 min-w-0">
         
         {/* Barra Rápida de Ações do PDV & Horário Oficial MS */}
-        <div className="flex flex-wrap items-center justify-between gap-2 bg-slate-900 border border-slate-800 px-3 py-2 rounded-2xl shadow">
+        <div className="flex flex-wrap items-center justify-between gap-2.5 bg-slate-900 border border-slate-800 px-3.5 py-2.5 rounded-2xl shadow">
           <div className="flex items-center gap-2">
             <button
               type="button"
               onClick={() => setIsRecentOrdersOpen(true)}
-              className="h-11 px-3.5 bg-slate-800 active:bg-slate-700 text-amber-300 border border-amber-500/50 rounded-xl font-black text-xs sm:text-sm flex items-center gap-2 transition-all active:scale-95 shadow truncate"
+              className="h-13 sm:h-12 px-4 bg-slate-800 active:bg-slate-700 text-amber-300 border border-amber-500/50 rounded-xl font-black text-sm sm:text-base flex items-center gap-2 transition-all active:scale-95 shadow truncate"
               title="Ver vendas recentes para reimprimir ficha, editar itens ou excluir erro"
             >
-              <Receipt className="w-4 h-4 text-amber-400 shrink-0" />
+              <Receipt className="w-5 h-5 text-amber-400 shrink-0" />
               <span className="truncate">⚡ Vendas Recentes <span className="hidden xs:inline">/ Correções</span></span>
             </button>
 
@@ -495,7 +495,7 @@ export default function PosPage({ config, onCartCountChange }) {
               <button
                 type="button"
                 onClick={handleToggleAutoPrint}
-                className={`h-11 px-3 rounded-xl font-bold text-xs flex items-center gap-1.5 transition-all border ${
+                className={`h-13 sm:h-12 px-3.5 rounded-xl font-bold text-xs sm:text-sm flex items-center gap-2 transition-all border ${
                   autoPrintMobile 
                     ? 'bg-emerald-950/80 text-emerald-300 border-emerald-500/50 hover:bg-emerald-900/80' 
                     : 'bg-slate-800 text-slate-400 border-slate-700 hover:text-slate-200'
@@ -504,14 +504,14 @@ export default function PosPage({ config, onCartCountChange }) {
               >
                 <Printer className="w-4 h-4 text-emerald-400" />
                 <span className="hidden md:inline">Auto-Imprimir Celular:</span>
-                <span className={`px-1.5 py-0.5 rounded text-[10px] font-black uppercase ${autoPrintMobile ? 'bg-emerald-500 text-slate-950' : 'bg-slate-700 text-slate-300'}`}>
+                <span className={`px-2 py-0.5 rounded text-[11px] font-black uppercase ${autoPrintMobile ? 'bg-emerald-500 text-slate-950' : 'bg-slate-700 text-slate-300'}`}>
                   {autoPrintMobile ? 'LIGADO' : 'MANUAL'}
                 </span>
               </button>
             )}
           </div>
 
-          <div className="flex items-center gap-1.5 text-xs text-slate-400 font-mono shrink-0 bg-slate-950/80 px-2.5 py-1.5 rounded-xl border border-slate-800">
+          <div className="flex items-center gap-2 text-xs sm:text-sm text-slate-400 font-mono shrink-0 bg-slate-950/80 px-3 py-2 rounded-xl border border-slate-800">
             <Clock className="w-4 h-4 text-slate-400 shrink-0" />
             <span className="hidden sm:inline">Horário Oficial</span>
             <span className="font-bold text-slate-300">MS (-1h BSB)</span>
@@ -551,27 +551,27 @@ export default function PosPage({ config, onCartCountChange }) {
 
       {/* ========================================================================= */}
       {/* BARRA FLUTUANTE INFERIOR MOBILE (CELULAR ESTILO APLICATIVO) */}
-      {/* Botões gigantes de 56px de altura para o polegar com 1 toque no checkout */}
+      {/* Botões gigantes de 64px de altura para o polegar com 1 toque no checkout */}
       {/* ========================================================================= */}
       {cart.length > 0 && (
         <div 
-          className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-slate-950/98 border-t-2 border-emerald-500 p-2.5 sm:p-3 backdrop-blur-xl shadow-[0_-12px_30px_rgba(0,0,0,0.8)] flex items-center justify-between gap-2.5 animate-in slide-in-from-bottom-4 duration-200"
-          style={{ paddingBottom: 'max(0.85rem, env(safe-area-inset-bottom))' }}
+          className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-slate-950/98 border-t-2 border-emerald-500 p-2.5 sm:p-3.5 backdrop-blur-xl shadow-[0_-12px_30px_rgba(0,0,0,0.8)] flex items-center justify-between gap-3 animate-in slide-in-from-bottom-4 duration-200"
+          style={{ paddingBottom: 'max(1rem, env(safe-area-inset-bottom))' }}
         >
           {/* Botão Ver Itens */}
           <button 
             type="button"
             onClick={() => setIsMobileCartOpen(true)}
-            className="flex items-center gap-2 bg-slate-900 active:bg-slate-800 border border-slate-700/90 rounded-2xl px-3 h-14 transition-colors text-left shrink-0 active:scale-95 shadow"
+            className="flex items-center gap-2.5 bg-slate-900 active:bg-slate-800 border border-slate-700/90 rounded-2xl px-3.5 h-16 transition-colors text-left shrink-0 active:scale-95 shadow"
           >
-            <div className="w-9 h-9 rounded-xl bg-emerald-600/30 border border-emerald-500/50 flex items-center justify-center text-emerald-400 font-black text-sm shrink-0">
+            <div className="w-10 h-10 rounded-xl bg-emerald-600/30 border border-emerald-500/50 flex items-center justify-center text-emerald-400 font-black text-base shrink-0">
               🛒 {cartTotalItems}
             </div>
             <div className="min-w-0 pr-1">
-              <span className="text-[10px] text-slate-400 uppercase font-black block leading-none">
+              <span className="text-[11px] text-slate-400 uppercase font-black block leading-none">
                 Carrinho
               </span>
-              <p className="text-xs font-black text-slate-200 truncate">
+              <p className="text-sm font-black text-slate-200 truncate">
                 {cartTotalItems} {cartTotalItems === 1 ? 'item' : 'itens'}
               </p>
             </div>
@@ -581,13 +581,13 @@ export default function PosPage({ config, onCartCountChange }) {
           <button
             type="button"
             onClick={() => setIsCheckoutOpen(true)}
-            className="flex-1 h-14 bg-gradient-to-r from-emerald-500 to-green-500 active:from-emerald-400 active:to-green-400 text-slate-950 font-black text-base uppercase tracking-wider rounded-2xl shadow-xl shadow-emerald-950 flex items-center justify-center gap-2 active:scale-[0.98] transition-all"
+            className="flex-1 h-16 bg-gradient-to-r from-emerald-500 to-green-500 active:from-emerald-400 active:to-green-400 text-slate-950 font-black text-lg uppercase tracking-wider rounded-2xl shadow-xl shadow-emerald-950 flex items-center justify-center gap-2.5 active:scale-[0.98] transition-all"
           >
             <span>COBRAR</span>
-            <span className="font-mono text-lg font-black bg-slate-950/20 px-2.5 py-0.5 rounded-lg text-slate-950">
+            <span className="font-mono text-xl font-black bg-slate-950/20 px-3 py-0.5 rounded-lg text-slate-950">
               {formatPrice(cartTotal)}
             </span>
-            <ArrowRight className="w-5 h-5 text-slate-950 stroke-[3] shrink-0" />
+            <ArrowRight className="w-6 h-6 text-slate-950 stroke-[3] shrink-0" />
           </button>
         </div>
       )}
@@ -598,25 +598,25 @@ export default function PosPage({ config, onCartCountChange }) {
           <div className="bg-slate-900 border-t-2 sm:border border-slate-700 w-full sm:max-w-md rounded-t-3xl sm:rounded-3xl shadow-2xl p-4 sm:p-5 max-h-[88vh] flex flex-col">
             <div className="flex items-center justify-between pb-3.5 border-b border-slate-800">
               <div className="flex items-center gap-2.5">
-                <div className="w-9 h-9 rounded-xl bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center text-emerald-400">
-                  <ShoppingBag className="w-5 h-5" />
+                <div className="w-10 h-10 rounded-xl bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center text-emerald-400">
+                  <ShoppingBag className="w-6 h-6" />
                 </div>
-                <h3 className="font-black text-lg text-white">Itens no Pedido ({cartTotalItems})</h3>
+                <h3 className="font-black text-xl text-white">Itens no Pedido ({cartTotalItems})</h3>
               </div>
               <button
                 onClick={() => setIsMobileCartOpen(false)}
-                className="w-10 h-10 flex items-center justify-center text-slate-400 hover:text-white rounded-xl bg-slate-800 active:bg-slate-700"
+                className="w-11 h-11 flex items-center justify-center text-slate-400 hover:text-white rounded-xl bg-slate-800 active:bg-slate-700"
               >
-                <X className="w-5 h-5" />
+                <X className="w-6 h-6" />
               </button>
             </div>
 
-            <div className="flex-1 overflow-y-auto py-3 space-y-2.5">
+            <div className="flex-1 overflow-y-auto py-3 space-y-3">
               {cart.map((item) => (
-                <div key={item.id} className="bg-slate-950 border border-slate-800 p-3 rounded-2xl flex items-center justify-between gap-2.5">
+                <div key={item.id} className="bg-slate-950 border border-slate-800 p-3.5 rounded-2xl flex items-center justify-between gap-3">
                   <div className="flex-1 min-w-0">
-                    <span className="font-black text-sm sm:text-base text-slate-100 block truncate">{item.nome}</span>
-                    <span className="text-xs text-slate-400 font-mono">{formatPrice(item.preco)} cada</span>
+                    <span className="font-black text-base sm:text-lg text-slate-100 block truncate">{item.nome}</span>
+                    <span className="text-xs sm:text-sm text-slate-400 font-mono">{formatPrice(item.preco)} cada</span>
                   </div>
 
                   <div className="flex items-center gap-2.5">
@@ -624,22 +624,22 @@ export default function PosPage({ config, onCartCountChange }) {
                     <div className="flex items-center bg-slate-900 border border-slate-700 rounded-xl p-0.5">
                       <button
                         onClick={() => handleUpdateQuantity(item.id, item.quantidade - 1)}
-                        className="w-10 h-10 flex items-center justify-center rounded-lg bg-slate-800 text-amber-400 font-black text-lg active:bg-amber-600 active:text-slate-950"
+                        className="w-11 h-11 flex items-center justify-center rounded-lg bg-slate-800 text-amber-400 font-black text-xl active:bg-amber-600 active:text-slate-950"
                       >
                         -
                       </button>
-                      <span className="w-9 text-center font-mono font-black text-lg text-white">
+                      <span className="w-10 text-center font-mono font-black text-xl text-white">
                         {item.quantidade}
                       </span>
                       <button
                         onClick={() => handleUpdateQuantity(item.id, item.quantidade + 1)}
-                        className="w-10 h-10 flex items-center justify-center rounded-lg bg-amber-500 text-slate-950 font-black text-lg active:bg-amber-400"
+                        className="w-11 h-11 flex items-center justify-center rounded-lg bg-amber-500 text-slate-950 font-black text-xl active:bg-amber-400"
                       >
                         +
                       </button>
                     </div>
 
-                    <span className="font-mono font-black text-emerald-400 text-sm sm:text-base w-20 text-right">
+                    <span className="font-mono font-black text-emerald-400 text-base sm:text-lg w-22 text-right">
                       {formatPrice(item.quantidade * item.preco)}
                     </span>
                   </div>
@@ -648,15 +648,15 @@ export default function PosPage({ config, onCartCountChange }) {
             </div>
 
             <div className="pt-3.5 border-t border-slate-800 space-y-3">
-              <div className="flex items-center justify-between text-base">
+              <div className="flex items-center justify-between text-lg">
                 <span className="text-slate-300 font-bold">Total do Pedido:</span>
-                <span className="font-black text-2xl text-emerald-400 font-mono">{formatPrice(cartTotal)}</span>
+                <span className="font-black text-3xl text-emerald-400 font-mono">{formatPrice(cartTotal)}</span>
               </div>
               <div className="grid grid-cols-2 gap-2.5">
                 <button
                   type="button"
                   onClick={handleClearCart}
-                  className="h-14 bg-slate-800 active:bg-rose-950/60 text-slate-300 active:text-rose-400 text-sm font-black rounded-2xl border border-slate-700"
+                  className="h-15 sm:h-16 bg-slate-800 active:bg-rose-950/60 text-slate-300 active:text-rose-400 text-base font-black rounded-2xl border border-slate-700"
                 >
                   Limpar Tudo
                 </button>
@@ -666,7 +666,7 @@ export default function PosPage({ config, onCartCountChange }) {
                     setIsMobileCartOpen(false);
                     setIsCheckoutOpen(true);
                   }}
-                  className="h-14 bg-gradient-to-r from-emerald-500 to-green-500 text-slate-950 font-black text-base uppercase tracking-wider rounded-2xl shadow-xl shadow-emerald-950 active:scale-95"
+                  className="h-15 sm:h-16 bg-gradient-to-r from-emerald-500 to-green-500 text-slate-950 font-black text-lg uppercase tracking-wider rounded-2xl shadow-xl shadow-emerald-950 active:scale-95"
                 >
                   Cobrar Agora
                 </button>
