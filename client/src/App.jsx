@@ -23,7 +23,7 @@ export default function App() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans">
+    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans overflow-x-hidden w-full max-w-full">
       {/* Barra de Navegação Superior */}
       <Navbar
         activeTab={activeTab}
@@ -33,7 +33,7 @@ export default function App() {
       />
 
       {/* Conteúdo Principal */}
-      <main className="flex-1 flex flex-col">
+      <main className="flex-1 flex flex-col overflow-x-hidden w-full max-w-full">
         {activeTab === 'pos' ? (
           <PosPage
             config={config}

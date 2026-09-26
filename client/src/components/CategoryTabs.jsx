@@ -34,7 +34,7 @@ export default function CategoryTabs({ categories = [], selectedCategory, onSele
   };
 
   return (
-    <div className="flex items-center gap-2.5 overflow-x-auto py-1 scrollbar-none select-none -mx-2 px-2 sm:mx-0 sm:px-0">
+    <div className="flex items-center gap-2.5 overflow-x-auto py-1 scrollbar-none select-none w-full max-w-full touch-pan-x">
       {/* Botão "Todos" */}
       <button
         onClick={() => onSelectCategory(null)}

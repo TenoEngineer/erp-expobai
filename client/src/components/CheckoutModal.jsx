@@ -130,7 +130,7 @@ export default function CheckoutModal({
   const showPixQr = (!isSplit && paymentMethod === 'pix') || (isSplit && (splitMethod1 === 'pix' || splitMethod2 === 'pix'));
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/85 backdrop-blur-sm animate-in fade-in duration-150">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/85 backdrop-blur-sm animate-in fade-in duration-150 overflow-x-hidden">
       <div className="bg-slate-900 border border-slate-700/80 rounded-3xl w-full max-w-lg shadow-2xl overflow-hidden flex flex-col max-h-[92vh]">
         
         {/* Header do Modal */}
@@ -159,7 +159,7 @@ export default function CheckoutModal({
 
         {/* Corpo do Modal */}
         <form onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0 overflow-hidden">
-          <div className="p-3.5 sm:p-5 overflow-y-auto space-y-3.5 sm:space-y-4 flex-1">
+          <div className="p-3.5 sm:p-5 overflow-y-auto overflow-x-hidden space-y-3.5 sm:space-y-4 flex-1">
             
             {/* Card de Valor Total */}
             <div className="bg-gradient-to-br from-emerald-950/70 via-slate-900 to-slate-950 p-3 sm:p-4 rounded-2xl border border-emerald-500/30 flex items-center justify-between">
@@ -448,39 +448,40 @@ export default function CheckoutModal({
 
           {/* Painel do QR CODE PIX (se PIX for selecionado) */}
           {showPixQr && (
-            <div className="bg-slate-950/90 p-3 sm:p-4 rounded-2xl border border-emerald-500/30 flex flex-col items-center text-center space-y-2">
-              <div className="w-32 h-32 sm:w-44 sm:h-44 bg-white p-1.5 sm:p-2 rounded-2xl shadow-xl flex items-center justify-center overflow-hidden border-2 border-emerald-500">
+            <div className="bg-slate-950/90 p-4 sm:p-5 rounded-3xl border-2 border-emerald-500/50 flex flex-col items-center text-center space-y-3 shadow-2xl">
+              <div className="w-64 h-64 sm:w-72 sm:h-72 max-w-[80vw] bg-white p-3 rounded-3xl shadow-2xl flex items-center justify-center overflow-hidden border-4 border-emerald-400 shrink-0">
                 <img
                   src={config?.pix_qrcode_url || '/img/pix-qrcode.jpeg'}
                   alt="QR Code Pix"
-                  className="w-full h-full object-contain rounded-xl"
+                  draggable={false}
+                  className="w-full h-full object-contain pointer-events-none select-none rounded-xl"
                   onError={(e) => {
                     if (pixKey) {
-                      e.target.src = `https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=${encodeURIComponent(pixKey)}`;
+                      e.target.src = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(pixKey)}`;
                     }
                   }}
                 />
               </div>
 
               <div>
-                <p className="text-[11px] sm:text-xs font-bold text-emerald-400">
+                <p className="text-sm sm:text-base font-black text-emerald-400">
                   Aponte a câmera do aplicativo do banco para pagar
                 </p>
                 {pixKey ? (
-                  <div className="flex items-center justify-center gap-2 mt-1.5 bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1 font-mono text-xs text-slate-300">
-                    <span className="text-[10px] sm:text-[11px] text-slate-400">Chave/CNPJ:</span>
-                    <span className="text-emerald-400 font-bold truncate max-w-[160px] sm:max-w-none">{pixKey}</span>
+                  <div className="flex items-center justify-center gap-2 mt-2 bg-slate-900 border border-slate-700 rounded-xl px-3 py-1.5 font-mono text-xs sm:text-sm text-slate-200">
+                    <span className="text-[11px] sm:text-xs text-slate-400">Chave/CNPJ:</span>
+                    <span className="text-emerald-400 font-bold truncate max-w-[200px] sm:max-w-none">{pixKey}</span>
                     <button
                       type="button"
                       onClick={handleCopyPix}
-                      className="text-slate-400 hover:text-white transition-colors shrink-0"
+                      className="text-slate-400 hover:text-white transition-colors shrink-0 p-1"
                       title="Copiar Chave"
                     >
-                      {copiedPix ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+                      {copiedPix ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
                     </button>
                   </div>
                 ) : (
-                  <p className="text-[10px] sm:text-[11px] text-slate-500 mt-0.5">
+                  <p className="text-xs text-slate-500 mt-1">
                     (CNPJ da chave pode ser cadastrado nas Configurações)
                   </p>
                 )}
