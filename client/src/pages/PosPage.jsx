@@ -478,15 +478,15 @@ export default function PosPage({ config, onCartCountChange }) {
       <div className="flex-1 flex flex-col gap-3 min-w-0">
         
         {/* Barra Rápida de Ações do PDV & Horário Oficial MS */}
-        <div className="flex flex-wrap items-center justify-between gap-2.5 bg-slate-900 border border-slate-800 px-3.5 py-2.5 rounded-2xl shadow">
+        <div className="flex flex-wrap items-center justify-between gap-2.5 bg-slate-900 border border-slate-800 px-3.5 py-2.5 lg:px-3 lg:py-2 rounded-2xl shadow">
           <div className="flex items-center gap-2">
             <button
               type="button"
               onClick={() => setIsRecentOrdersOpen(true)}
-              className="h-13 sm:h-12 px-4 bg-slate-800 active:bg-slate-700 text-amber-300 border border-amber-500/50 rounded-xl font-black text-sm sm:text-base flex items-center gap-2 transition-all active:scale-95 shadow truncate"
+              className="h-13 sm:h-12 lg:h-9 px-4 lg:px-3 bg-slate-800 active:bg-slate-700 text-amber-300 border border-amber-500/50 rounded-xl font-black lg:font-bold text-sm sm:text-base lg:text-xs flex items-center gap-2 lg:gap-1.5 transition-all active:scale-95 shadow truncate"
               title="Ver vendas recentes para reimprimir ficha, editar itens ou excluir erro"
             >
-              <Receipt className="w-5 h-5 text-amber-400 shrink-0" />
+              <Receipt className="w-5 h-5 lg:w-4 lg:h-4 text-amber-400 shrink-0" />
               <span className="truncate">⚡ Vendas Recentes <span className="hidden xs:inline">/ Correções</span></span>
             </button>
 
@@ -495,7 +495,7 @@ export default function PosPage({ config, onCartCountChange }) {
               <button
                 type="button"
                 onClick={handleToggleAutoPrint}
-                className={`h-13 sm:h-12 px-3.5 rounded-xl font-bold text-xs sm:text-sm flex items-center gap-2 transition-all border ${
+                className={`h-13 sm:h-12 lg:h-9 px-3.5 lg:px-2.5 rounded-xl font-bold text-xs sm:text-sm lg:text-xs flex items-center gap-2 lg:gap-1.5 transition-all border ${
                   autoPrintMobile 
                     ? 'bg-emerald-950/80 text-emerald-300 border-emerald-500/50 hover:bg-emerald-900/80' 
                     : 'bg-slate-800 text-slate-400 border-slate-700 hover:text-slate-200'
@@ -511,15 +511,24 @@ export default function PosPage({ config, onCartCountChange }) {
             )}
           </div>
 
-          <div className="flex items-center gap-2 text-xs sm:text-sm text-slate-400 font-mono shrink-0 bg-slate-950/80 px-3 py-2 rounded-xl border border-slate-800">
-            <Clock className="w-4 h-4 text-slate-400 shrink-0" />
+          <div className="flex items-center gap-2 text-xs sm:text-sm lg:text-[11px] text-slate-400 font-mono shrink-0 bg-slate-950/80 px-3 py-2 lg:py-1.5 rounded-xl border border-slate-800">
+            <Clock className="w-4 h-4 lg:w-3.5 lg:h-3.5 text-slate-400 shrink-0" />
             <span className="hidden sm:inline">Horário Oficial</span>
             <span className="font-bold text-slate-300">MS (-1h BSB)</span>
           </div>
         </div>
 
-        {/* Barra de Filtros Fixa no Topo ao Rolar a Tela (Apenas no Mobile) */}
-        <div className="lg:static sticky top-[64px] z-20 bg-slate-950/98 lg:bg-transparent backdrop-blur-xl lg:backdrop-blur-none py-2 px-1 lg:p-0 w-full max-w-full border-b border-slate-800/90 lg:border-none shadow-lg lg:shadow-none">
+        {/* Barra de Filtros: No Desktop fica no fluxo normal; No Mobile é Fixa no Topo ao Rolar */}
+        <div className="hidden lg:block">
+          <CategoryTabs
+            categories={categories}
+            selectedCategory={selectedCategory}
+            onSelectCategory={setSelectedCategory}
+            productsCountByCat={productsCountByCat}
+          />
+        </div>
+
+        <div className="lg:hidden sticky top-[64px] z-20 bg-slate-950/98 backdrop-blur-xl py-2 px-1 w-full max-w-full border-b border-slate-800/90 shadow-lg">
           <CategoryTabs
             categories={categories}
             selectedCategory={selectedCategory}
