@@ -261,7 +261,10 @@ export default function RateioPage() {
       {/* ========================================================================= */}
       {/* NAVEGAÇÃO DE SUB-ABAS (Resumo & Acerto | Custos da Tenda | Produtos por Sócio) */}
       {/* ========================================================================= */}
-      <div className="flex items-center gap-2 border-b border-slate-800 pb-2 overflow-x-auto scrollbar-none">
+      <div 
+        className="flex items-center gap-2 border-b border-slate-800 pb-2 overflow-x-auto touch-pan-x scrollbar-none"
+        style={{ WebkitOverflowScrolling: 'touch' }}
+      >
         <button
           onClick={() => setActiveSubTab('resumo')}
           className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-black text-sm whitespace-nowrap transition-all shadow-sm ${

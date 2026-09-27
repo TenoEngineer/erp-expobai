@@ -391,8 +391,8 @@ export default function SalesReport({ config, onNavigateToCustos }) {
 
         {/* SELETOR DE VISUALIZAÇÃO: CAIXA ATUAL / CAIXAS FECHADOS / DATAS */}
         <div className="pt-3 border-t border-slate-800 flex flex-wrap items-center justify-between gap-3 text-xs">
-          <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-slate-400 font-bold uppercase tracking-wider text-[11px] flex items-center gap-1">
+          <div className="flex items-center gap-2 overflow-x-auto touch-pan-x flex-nowrap pb-1.5 w-full sm:w-auto scrollbar-none">
+            <span className="text-slate-400 font-bold uppercase tracking-wider text-[11px] flex items-center gap-1 shrink-0">
               <Filter className="w-3.5 h-3.5 text-amber-400" />
               Visualizar:
             </span>

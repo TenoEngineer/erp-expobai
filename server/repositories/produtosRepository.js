@@ -40,10 +40,10 @@ const produtosRepository = {
     return res.rows[0] || null;
   },
 
-  async create({ categoria_id, nome, descricao = '', preco, preco_custo = 0, foto_url = '', ordem = 0, combos = [], is_combo = false, itens_combo = [] }) {
+  async create({ categoria_id, nome, descricao = '', preco, preco_custo = 0, foto_url = '', ordem = 0, combos = [], is_combo = false, itens_combo = [], socio = 'alex' }) {
     const res = await query(
-      `INSERT INTO expobai.produtos (categoria_id, nome, descricao, preco, preco_custo, foto_url, ordem, combos, is_combo, itens_combo)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+      `INSERT INTO expobai.produtos (categoria_id, nome, descricao, preco, preco_custo, foto_url, ordem, combos, is_combo, itens_combo, socio)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
        RETURNING *`,
       [
         Number(categoria_id), 
@@ -55,13 +55,14 @@ const produtosRepository = {
         Number(ordem) || 0,
         JSON.stringify(combos || []),
         Boolean(is_combo),
-        JSON.stringify(itens_combo || [])
+        JSON.stringify(itens_combo || []),
+        socio || 'alex'
       ]
     );
     return res.rows[0];
   },
 
-  async update(id, { categoria_id, nome, descricao, preco, preco_custo, foto_url, ativo, ordem, combos, is_combo, itens_combo }) {
+  async update(id, { categoria_id, nome, descricao, preco, preco_custo, foto_url, ativo, ordem, combos, is_combo, itens_combo, socio }) {
     const res = await query(
       `UPDATE expobai.produtos
        SET categoria_id = COALESCE($1, categoria_id),
@@ -74,8 +75,9 @@ const produtosRepository = {
            ordem = COALESCE($8, ordem),
            combos = COALESCE($9, combos),
            is_combo = COALESCE($10, is_combo),
-           itens_combo = COALESCE($11, itens_combo)
-       WHERE id = $12
+           itens_combo = COALESCE($11, itens_combo),
+           socio = COALESCE($12, socio)
+       WHERE id = $13
        RETURNING *`,
       [
         categoria_id !== undefined ? Number(categoria_id) : null,
@@ -89,6 +91,7 @@ const produtosRepository = {
         combos !== undefined ? JSON.stringify(combos) : null,
         is_combo !== undefined ? Boolean(is_combo) : null,
         itens_combo !== undefined ? JSON.stringify(itens_combo) : null,
+        socio !== undefined ? socio : null,
         id
       ]
     );

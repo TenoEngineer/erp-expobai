@@ -35,7 +35,8 @@ export default function ProductManagement({ products = [], categories = [], onRe
     ordem: 0,
     combos: [],
     is_combo: false,
-    itens_combo: []
+    itens_combo: [],
+    socio: 'alex'
   });
   const [isUploading, setIsUploading] = useState(false);
   const [editingPriceId, setEditingPriceId] = useState(null);
@@ -44,8 +45,10 @@ export default function ProductManagement({ products = [], categories = [], onRe
   const parseJsonField = (val) => {
     if (!val) return [];
     if (Array.isArray(val)) return val;
+    if (typeof val === 'object') return [];
     try {
-      return JSON.parse(val);
+      const parsed = JSON.parse(val);
+      return Array.isArray(parsed) ? parsed : [];
     } catch {
       return [];
     }
@@ -63,7 +66,8 @@ export default function ProductManagement({ products = [], categories = [], onRe
       ordem: 0,
       combos: [],
       is_combo: false,
-      itens_combo: []
+      itens_combo: [],
+      socio: 'alex'
     });
     setIsModalOpen(true);
   };
@@ -80,7 +84,8 @@ export default function ProductManagement({ products = [], categories = [], onRe
       ordem: prod.ordem || 0,
       combos: parseJsonField(prod.combos),
       is_combo: Boolean(prod.is_combo),
-      itens_combo: parseJsonField(prod.itens_combo)
+      itens_combo: parseJsonField(prod.itens_combo),
+      socio: prod.socio || 'alex'
     });
     setIsModalOpen(true);
   };
@@ -254,13 +259,14 @@ export default function ProductManagement({ products = [], categories = [], onRe
 
       {/* Tabela de Produtos */}
       <div className="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-xl">
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto touch-pan-x">
           <table className="w-full text-left text-xs text-slate-300">
             <thead className="bg-slate-950/80 text-slate-400 uppercase font-mono tracking-wider border-b border-slate-800">
               <tr>
                 <th className="p-3.5 w-16">Foto</th>
                 <th className="p-3.5">Nome do Produto</th>
                 <th className="p-3.5">Categoria</th>
+                <th className="p-3.5">Sócio</th>
                 <th className="p-3.5">Preço Venda</th>
                 <th className="p-3.5">Custo Unit.</th>
                 <th className="p-3.5 text-center">Margem Est.</th>
@@ -307,6 +313,19 @@ export default function ProductManagement({ products = [], categories = [], onRe
                   <td className="p-3">
                     <span className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-slate-800 text-amber-300 border border-slate-700">
                       {prod.categoria_nome || 'Sem Categoria'}
+                    </span>
+                  </td>
+
+                  {/* Sócio Responsável */}
+                  <td className="p-3">
+                    <span className={`px-2 py-0.5 rounded-lg text-[10px] font-bold font-mono border ${
+                      prod.socio === 'alex'
+                        ? 'bg-amber-950/80 text-amber-300 border-amber-500/40'
+                        : prod.socio === 'pais'
+                        ? 'bg-emerald-950/80 text-emerald-300 border-emerald-500/40'
+                        : 'bg-cyan-950/80 text-cyan-300 border-cyan-500/40'
+                    }`}>
+                      {prod.socio === 'alex' ? '🥩 Alex' : prod.socio === 'pais' ? '🍪 Pais' : '🥤 Heitor'}
                     </span>
                   </td>
 
@@ -449,7 +468,7 @@ export default function ProductManagement({ products = [], categories = [], onRe
                 />
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs font-bold text-slate-300 mb-1">
                     Categoria *
@@ -465,6 +484,23 @@ export default function ProductManagement({ products = [], categories = [], onRe
                   </select>
                 </div>
 
+                <div>
+                  <label className="block text-xs font-bold text-amber-300 mb-1">
+                    Sócio Responsável (Rateio / Destino) *
+                  </label>
+                  <select
+                    value={formData.socio || 'alex'}
+                    onChange={(e) => setFormData({ ...formData, socio: e.target.value })}
+                    className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-500 font-bold"
+                  >
+                    <option value="alex">🥩 Alex (Espetinhos • Cartão Débito/Crédito)</option>
+                    <option value="heitor">🥤 Heitor (Bebidas & Pão de Queijo)</option>
+                    <option value="pais">🍪 Pais (Cookies • Conta PIX)</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs font-bold text-emerald-400 mb-1">
                     Preço de Venda Unit. (R$) *

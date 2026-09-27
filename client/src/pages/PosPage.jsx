@@ -6,6 +6,7 @@ import CheckoutModal from '../components/CheckoutModal';
 import ReceiptModal from '../components/ReceiptModal';
 import RecentOrdersModal from '../components/RecentOrdersModal';
 import { getCategorias, getProdutos, createPedido, getPedidos } from '../services/api';
+import { executeOrderPrint } from '../services/printManager';
 import { RefreshCw, CheckCircle2, Printer, X, Sparkles, Receipt, Trash2, Clock, ShoppingBag, ArrowRight } from 'lucide-react';
 import confetti from 'canvas-confetti';
 
@@ -321,12 +322,14 @@ export default function PosPage({ config, onCartCountChange }) {
     }
   };
 
-  // Reimprimir comandas reabrindo a tela de recibo
+  // Reimprimir comandas diretamente sem abrir modal obstrutivo
   const handleReimprimir = (orderToReprint) => {
     const target = orderToReprint || lastOrder;
     if (!target) return;
     setLastOrder(target);
-    setIsReceiptOpen(true);
+    setTimeout(async () => {
+      await executeOrderPrint(target, config);
+    }, 60);
   };
 
   // Categoria de Combos

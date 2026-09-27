@@ -112,22 +112,42 @@ const pedidosRepository = {
 
       if (Array.isArray(itens) && itens.length > 0) {
         totalCalculado = 0;
-        itensValidados = itens.map(item => {
+        itensValidados = [];
+
+        for (const item of itens) {
           const qtd = Math.max(1, parseInt(item.quantidade, 10) || 1);
-          const precoUnit = parseFloat(item.preco_unitario || item.preco);
+          const precoUnit = parseFloat(item.preco_unitario || item.preco || 0);
           const subtotal = qtd * precoUnit;
-          const precoCusto = parseFloat(item.preco_custo) || 0;
+          const precoCusto = parseFloat(item.preco_custo || 0);
           totalCalculado += subtotal;
-          return {
-            produto_id: item.produto_id || item.id || null,
-            nome_produto: item.nome_produto || item.nome,
+
+          let validProdId = null;
+          // Se produto_id foi explicitamente fornecido, verificar se existe na tabela produtos
+          if (item.produto_id && !isNaN(Number(item.produto_id))) {
+            const check = await client.query('SELECT id FROM expobai.produtos WHERE id = $1', [Number(item.produto_id)]);
+            if (check.rows.length > 0) {
+              validProdId = check.rows[0].id;
+            }
+          }
+
+          // Se não encontrado por id, tentar encontrar por nome do produto
+          if (!validProdId && item.nome_produto) {
+            const checkNome = await client.query('SELECT id FROM expobai.produtos WHERE LOWER(TRIM(nome)) = LOWER(TRIM($1)) LIMIT 1', [item.nome_produto]);
+            if (checkNome.rows.length > 0) {
+              validProdId = checkNome.rows[0].id;
+            }
+          }
+
+          itensValidados.push({
+            produto_id: validProdId, // NUNCA usa item.id (que seria o ID da tabela pedido_itens)
+            nome_produto: item.nome_produto || item.nome || 'Item',
             quantidade: qtd,
             preco_unitario: precoUnit,
             subtotal,
             preco_custo: precoCusto,
-            combo_info: item.combo_info ? JSON.stringify(item.combo_info) : null
-          };
-        });
+            combo_info: item.combo_info ? (typeof item.combo_info === 'string' ? item.combo_info : JSON.stringify(item.combo_info)) : null
+          });
+        }
       }
 
       const formaFinal = (forma_pagamento || existing.forma_pagamento).toLowerCase();
@@ -159,7 +179,7 @@ const pedidosRepository = {
         [
           totalCalculado,
           formaFinal,
-          valor_pago !== undefined && valor_pago !== null ? parseFloat(valor_pago) : null,
+          valor_pago !== undefined && valor_pago !== null ? parseFloat(valor_pago) : totalCalculado,
           parseFloat(troco) || 0,
           observacoes !== undefined ? observacoes : existing.observacoes,
           jsonPagamentos,
@@ -214,10 +234,13 @@ const pedidosRepository = {
         COALESCE(json_agg(
           json_build_object(
             'id', i.id,
+            'produto_id', i.produto_id,
             'nome_produto', i.nome_produto,
             'quantidade', i.quantidade,
             'preco_unitario', i.preco_unitario,
-            'subtotal', i.subtotal
+            'subtotal', i.subtotal,
+            'preco_custo', i.preco_custo,
+            'combo_info', i.combo_info
           )
         ) FILTER (WHERE i.id IS NOT NULL), '[]') as itens
        FROM expobai.pedidos p
@@ -236,10 +259,13 @@ const pedidosRepository = {
         COALESCE(json_agg(
           json_build_object(
             'id', i.id,
+            'produto_id', i.produto_id,
             'nome_produto', i.nome_produto,
             'quantidade', i.quantidade,
             'preco_unitario', i.preco_unitario,
-            'subtotal', i.subtotal
+            'subtotal', i.subtotal,
+            'preco_custo', i.preco_custo,
+            'combo_info', i.combo_info
           )
         ) FILTER (WHERE i.id IS NOT NULL), '[]') as itens
        FROM expobai.pedidos p

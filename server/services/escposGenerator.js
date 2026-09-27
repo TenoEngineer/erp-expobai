@@ -155,13 +155,13 @@ function buildTicketCliente(order, config = {}, largura = '80mm', cortar = true)
 
   b.align('center');
   b.bold(true);
-  b.size('double');
+  b.size('normal');
   b.line(nomeEstande.toUpperCase());
 
-  // NÚMERO GIGANTE DA SENHA
-  b.size('quad'); // 4x tamanho
+  // NÚMERO CENTRALIZADO COM TAMANHO EQUILIBRADO
+  b.size('double');
   b.bold(true);
-  b.line(`#${numStr}`);
+  b.line(`SENHA #${numStr}`);
 
   b.size('normal');
   b.bold(false);
@@ -176,51 +176,48 @@ function buildTicketCliente(order, config = {}, largura = '80mm', cortar = true)
 
 /**
  * 2. TICKET DA COZINHA / PRODUÇÃO / ORGANIZAÇÃO INTERNA
- * Exibe o número do pedido + lista de itens pedidos com quantidade e observações.
+ * Totalmente centralizado para evitar cortes na bobina de impressão.
  */
 function buildTicketProducao(order, config = {}, largura = '80mm', cortar = true) {
   const b = new EscposBuilder();
   const nomeEstande = config.nome_estande || 'TENDA DOS MULLER';
   const numStr = String(order.numero_pedido).padStart(3, '0');
-  const codigo = order.codigo_identificador || `EXP-${numStr}`;
   const dataHora = order.data_hora 
     ? new Date(order.data_hora).toLocaleString('pt-BR') 
     : new Date().toLocaleString('pt-BR');
 
+  // Cabeçalho Centralizado
   b.align('center');
   b.bold(true);
-  b.size('double');
-  b.line('*** VIA DA COZINHA ***');
   b.size('normal');
-  b.line('CONTROLE DE PRODUCAO / PREPARO');
+  b.line(nomeEstande.toUpperCase());
+  b.line('*** VIA DA COZINHA ***');
   b.divider('=', largura);
 
-  // Número do Pedido em Destaque
-  b.size('triple');
+  // Número do Pedido Centralizado
+  b.size('double');
   b.bold(true);
   b.line(`PEDIDO #${numStr}`);
   b.size('normal');
   b.bold(false);
-  b.line(`Identificador: ${codigo}`);
   b.line(`Horario: ${dataHora}`);
   b.divider('-', largura);
 
-  // Cabeçalho dos Itens
-  b.align('left');
+  // Cabeçalho dos Itens Centralizado
+  b.align('center');
   b.bold(true);
   b.line('ITENS DO PEDIDO:');
   b.divider('-', largura);
 
-  // Lista dos Itens
+  // Lista dos Itens Centralizados com tamanho equilibrado
   const itens = order.itens || [];
   itens.forEach((item) => {
     const qtd = item.quantidade || 1;
     const nome = item.nome_produto || item.nome || 'Item';
     
-    b.size('double_w'); // Largura dupla para destacar a quantidade e item
+    b.align('center');
     b.bold(true);
     b.line(`[ ${qtd}x ] ${nome}`);
-    b.size('normal');
     b.bold(false);
 
     let comboInfo = item.combo_info;
@@ -229,17 +226,20 @@ function buildTicketProducao(order, config = {}, largura = '80mm', cortar = true
     }
     if (comboInfo?.itens && Array.isArray(comboInfo.itens) && comboInfo.itens.length > 0) {
       const breakdown = comboInfo.itens.map(it => `${it.quantidade}x ${it.nome}`).join(' + ');
-      b.line(`  Inclui: ${breakdown}`);
+      b.line(`(${breakdown})`);
     }
   });
 
   b.divider('-', largura);
 
-  // Informações Financeiras para conferência
-  b.align('left');
+  // Informações Financeiras Centralizadas
+  b.align('center');
   const formaPag = (order.forma_pagamento || 'PIX').toUpperCase();
   const totalFormatado = formatMoeda(order.total);
-  b.line(`Pagamento: ${formaPag} | Total: ${totalFormatado}`);
+  b.line(`Pagamento: ${formaPag}`);
+  b.bold(true);
+  b.line(`Total: ${totalFormatado}`);
+  b.bold(false);
   if (order.troco && parseFloat(order.troco) > 0) {
     b.line(`Troco: ${formatMoeda(order.troco)}`);
   }

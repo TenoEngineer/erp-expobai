@@ -29,6 +29,7 @@ export default function RecentOrdersModal({
   const [actionInProgress, setActionInProgress] = useState(null);
   const [editingOrder, setEditingOrder] = useState(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [printedOrderId, setPrintedOrderId] = useState(null);
 
   const fetchRecentOrders = async () => {
     try {
@@ -101,11 +102,15 @@ export default function RecentOrdersModal({
   const handleReprint = async (order) => {
     try {
       setActionInProgress(order.id);
+      setPrintedOrderId(order.id);
       if (onReprintOrder) {
         onReprintOrder(order);
-        return;
+      } else {
+        await executeOrderPrint(order, config);
       }
-      await executeOrderPrint(order, config);
+      setTimeout(() => {
+        setPrintedOrderId((prev) => (prev === order.id ? null : prev));
+      }, 2500);
     } catch (err) {
       alert('Erro ao reimprimir pedido: ' + err.message);
     } finally {
@@ -268,11 +273,15 @@ export default function RecentOrdersModal({
                             type="button"
                             onClick={() => handleReprint(order)}
                             disabled={isProcessing}
-                            className="px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 hover:border-amber-400/50 rounded-xl font-bold flex items-center gap-1 text-[11px] transition-colors active:scale-95"
+                            className={`px-2.5 py-1.5 border rounded-xl font-bold flex items-center gap-1 text-[11px] transition-all active:scale-95 ${
+                              printedOrderId === order.id
+                                ? 'bg-emerald-950 text-emerald-300 border-emerald-500/50 shadow'
+                                : 'bg-slate-800 hover:bg-slate-700 text-slate-200 border-slate-700 hover:border-amber-400/50'
+                            }`}
                             title="Reimprimir comanda/ficha"
                           >
-                            <Printer className="w-3.5 h-3.5 text-amber-400" />
-                            <span className="hidden sm:inline">Reimprimir</span>
+                            <Printer className={`w-3.5 h-3.5 ${printedOrderId === order.id ? 'text-emerald-400 animate-pulse' : 'text-amber-400'}`} />
+                            <span>{printedOrderId === order.id ? 'Imprimindo...' : 'Reimprimir'}</span>
                           </button>
 
                           {/* Botão Editar Venda */}

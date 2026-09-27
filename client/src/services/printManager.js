@@ -50,8 +50,13 @@ export async function executeOrderPrint(order, config) {
 function triggerBrowserPrint() {
   setTimeout(() => {
     try {
+      document.body.classList.add('printing-receipt');
       window.print();
+      setTimeout(() => {
+        document.body.classList.remove('printing-receipt');
+      }, 1500);
     } catch (e) {
+      document.body.classList.remove('printing-receipt');
       console.error('Erro ao acionar window.print():', e);
     }
   }, 100);
