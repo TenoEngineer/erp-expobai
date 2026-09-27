@@ -122,8 +122,9 @@ async function initDB() {
 
       -- Migrações v4: Categoria Combos Pré-Prontos e Origem da Venda (Desktop vs Mobile)
       INSERT INTO expobai.categorias (nome, icone, cor, ordem, ativo)
-      SELECT 'Combos', 'sparkles', '#7C3AED', 0, 1
+      SELECT 'Combos', 'sparkles', '#7C3AED', 999, 1
       WHERE NOT EXISTS (SELECT 1 FROM expobai.categorias WHERE LOWER(nome) = 'combos');
+      UPDATE expobai.categorias SET ordem = 999 WHERE LOWER(nome) LIKE '%combo%';
       ALTER TABLE expobai.pedidos ADD COLUMN IF NOT EXISTS origem VARCHAR(20) DEFAULT 'desktop';
 
       -- Migrações v5: Rateio entre Sócios (Alex, Heitor, Pais) e Custos de Exposição da Tenda

@@ -28,6 +28,20 @@ const iconMap = {
 export default function CategoryTabs({ categories = [], selectedCategory, onSelectCategory, productsCountByCat = {} }) {
   const totalProducts = Object.values(productsCountByCat).reduce((a, b) => a + b, 0);
 
+  const isComboCategory = (cat) => {
+    const n = (cat?.nome || '').toLowerCase().trim();
+    return n === 'combos' || n.includes('combo');
+  };
+
+  // Garante que o filtro de "Combos" fique sempre por último
+  const sortedCategories = [...categories].sort((a, b) => {
+    const isACombo = isComboCategory(a);
+    const isBCombo = isComboCategory(b);
+    if (isACombo && !isBCombo) return 1;
+    if (!isACombo && isBCombo) return -1;
+    return (a.ordem || 0) - (b.ordem || 0);
+  });
+
   const renderIcon = (iconName, className = "w-4 h-4") => {
     const IconComponent = iconMap[iconName?.toLowerCase()] || Utensils;
     return <IconComponent className={className} />;
@@ -57,11 +71,11 @@ export default function CategoryTabs({ categories = [], selectedCategory, onSele
           </span>
         </button>
 
-        {/* Categorias Desktop */}
-        {categories.map((cat) => {
+        {/* Categorias Desktop (Combos por último) */}
+        {sortedCategories.map((cat) => {
           const isSelected = selectedCategory === cat.id;
           const count = productsCountByCat[cat.id] || 0;
-          const isCombo = cat.nome.toLowerCase() === 'combos';
+          const isCombo = isComboCategory(cat);
 
           return (
             <button
@@ -117,11 +131,11 @@ export default function CategoryTabs({ categories = [], selectedCategory, onSele
           </span>
         </button>
 
-        {/* Categorias Mobile */}
-        {categories.map((cat) => {
+        {/* Categorias Mobile (Combos por último) */}
+        {sortedCategories.map((cat) => {
           const isSelected = selectedCategory === cat.id;
           const count = productsCountByCat[cat.id] || 0;
-          const isCombo = cat.nome.toLowerCase() === 'combos';
+          const isCombo = isComboCategory(cat);
 
           return (
             <button
