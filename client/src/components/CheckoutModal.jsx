@@ -70,8 +70,6 @@ export default function CheckoutModal({
     setSplitAmount2(restante.toFixed(2));
   };
 
-  if (!isOpen) return null;
-
   const cashNum = parseFloat(cashReceived) || 0;
   const hasCashInput = Boolean(cashReceived && cashReceived.trim() !== '');
   const troco = paymentMethod === 'dinheiro' && hasCashInput && cashNum > totalNum ? cashNum - totalNum : 0;
@@ -192,6 +190,8 @@ export default function CheckoutModal({
     window.addEventListener('keydown', handleModalKeyDown, true); // capture: true para garantir interceptação prioritária
     return () => window.removeEventListener('keydown', handleModalKeyDown, true);
   }, [isOpen, canSubmit, isProcessing, isSplit, paymentMethod, val1, val2, splitMethod1, splitMethod2, cashReceived, cartItems, totalNum, troco, hasCashInput, cashNum]);
+
+  if (!isOpen) return null;
 
   const showPixQr = (!isSplit && paymentMethod === 'pix') || (isSplit && (splitMethod1 === 'pix' || splitMethod2 === 'pix'));
 
