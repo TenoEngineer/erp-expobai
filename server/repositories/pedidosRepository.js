@@ -1,7 +1,7 @@
 const { pool, query } = require('../db');
 
 const pedidosRepository = {
-  async createOrder({ itens, forma_pagamento, valor_pago = null, troco = 0, observacoes = '', pagamentos = null, origem = 'desktop' }) {
+  async createOrder({ itens, forma_pagamento, valor_pago = null, troco = 0, observacoes = '', pagamentos = null, origem = 'desktop', data_hora = null }) {
     const client = await pool.connect();
     try {
       await client.query('BEGIN');
@@ -40,24 +40,32 @@ const pedidosRepository = {
         jsonPagamentos = JSON.stringify([{ forma: forma_pagamento.toLowerCase(), valor: totalCalculado }]);
       }
 
-      // 3. Inserir Pedido com identificação de Origem (Mobile vs Desktop)
+      // 3. Inserir Pedido com identificação de Origem e Data/Hora (permite retroativo)
+      const insertParams = [
+        numeroPedido,
+        codigoIdentificador,
+        totalCalculado,
+        forma_pagamento.toLowerCase(),
+        valor_pago ? parseFloat(valor_pago) : null,
+        parseFloat(troco) || 0,
+        'concluido',
+        observacoes || null,
+        jsonPagamentos,
+        origem || 'desktop'
+      ];
+
+      let dataHoraFragment = 'CURRENT_TIMESTAMP';
+      if (data_hora) {
+        insertParams.push(new Date(data_hora).toISOString());
+        dataHoraFragment = `$${insertParams.length}`;
+      }
+
       const pedidoRes = await client.query(
         `INSERT INTO expobai.pedidos (
-          numero_pedido, codigo_identificador, total, forma_pagamento, valor_pago, troco, status, observacoes, pagamentos, origem
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+          numero_pedido, codigo_identificador, total, forma_pagamento, valor_pago, troco, status, observacoes, pagamentos, origem, data_hora
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, ${dataHoraFragment})
         RETURNING *`,
-        [
-          numeroPedido,
-          codigoIdentificador,
-          totalCalculado,
-          forma_pagamento.toLowerCase(),
-          valor_pago ? parseFloat(valor_pago) : null,
-          parseFloat(troco) || 0,
-          'concluido',
-          observacoes || null,
-          jsonPagamentos,
-          origem || 'desktop'
-        ]
+        insertParams
       );
       const novoPedido = pedidoRes.rows[0];
 
@@ -94,7 +102,7 @@ const pedidosRepository = {
     }
   },
 
-  async updateOrder(id, { itens, forma_pagamento, valor_pago = null, troco = 0, observacoes = '', pagamentos = null, motivo_edicao = 'Alteração manual de lançamento' }) {
+  async updateOrder(id, { itens, forma_pagamento, valor_pago = null, troco = 0, observacoes = '', pagamentos = null, motivo_edicao = 'Alteração manual de lançamento', data_hora = null }) {
     const client = await pool.connect();
     try {
       await client.query('BEGIN');
@@ -162,7 +170,7 @@ const pedidosRepository = {
         jsonPagamentos = existing.pagamentos ? JSON.stringify(existing.pagamentos) : JSON.stringify([{ forma: formaFinal, valor: totalCalculado }]);
       }
 
-      // 3. Atualizar Pedido com tag editado
+      // 3. Atualizar Pedido com tag editado e data/hora opcional
       const updateRes = await client.query(
         `UPDATE expobai.pedidos
          SET total = $1,
@@ -171,10 +179,11 @@ const pedidosRepository = {
              troco = $4,
              observacoes = $5,
              pagamentos = $6,
+             data_hora = COALESCE($7, data_hora),
              editado = TRUE,
              editado_em = NOW(),
-             motivo_edicao = $7
-         WHERE id = $8
+             motivo_edicao = $8
+         WHERE id = $9
          RETURNING *`,
         [
           totalCalculado,
@@ -183,6 +192,7 @@ const pedidosRepository = {
           parseFloat(troco) || 0,
           observacoes !== undefined ? observacoes : existing.observacoes,
           jsonPagamentos,
+          data_hora ? new Date(data_hora).toISOString() : null,
           motivo_edicao || 'Alteração manual de lançamento',
           id
         ]

@@ -10,8 +10,23 @@ import {
   Calculator,
   Loader2,
   Layers,
-  ArrowRight
+  ArrowRight,
+  Calendar,
+  Clock
 } from 'lucide-react';
+
+const formatDateTimeLocalInput = (dateVal) => {
+  if (!dateVal) return '';
+  const d = new Date(dateVal);
+  if (isNaN(d.getTime())) return '';
+  const pad = (n) => String(n).padStart(2, '0');
+  const year = d.getFullYear();
+  const month = pad(d.getMonth() + 1);
+  const day = pad(d.getDate());
+  const hours = pad(d.getHours());
+  const minutes = pad(d.getMinutes());
+  return `${year}-${month}-${day}T${hours}:${minutes}`;
+};
 
 export default function CheckoutModal({
   isOpen,
@@ -33,6 +48,10 @@ export default function CheckoutModal({
   const [splitMethod2, setSplitMethod2] = useState('pix');
   const [splitAmount2, setSplitAmount2] = useState('');
 
+  // Estados para Data/Hora Retroativa (Opcional)
+  const [isRetroactive, setIsRetroactive] = useState(false);
+  const [retroactiveDateTime, setRetroactiveDateTime] = useState('');
+
   const pixKey = config?.pix_cnpj || config?.chave_pix || '';
   const totalNum = parseFloat(total) || 0;
 
@@ -46,6 +65,8 @@ export default function CheckoutModal({
       setSplitAmount1('');
       setSplitMethod2('pix');
       setSplitAmount2('');
+      setIsRetroactive(false);
+      setRetroactiveDateTime('');
     }
   }, [isOpen, total]);
 
@@ -100,6 +121,10 @@ export default function CheckoutModal({
   const executeSubmit = () => {
     if (!canSubmit || isProcessing) return;
 
+    const dataHoraPayload = isRetroactive && retroactiveDateTime 
+      ? new Date(retroactiveDateTime).toISOString() 
+      : null;
+
     if (isSplit) {
       onConfirmOrder({
         itens: cartItems,
@@ -109,7 +134,8 @@ export default function CheckoutModal({
           { forma: splitMethod2, valor: val2 }
         ],
         valor_pago: totalNum,
-        troco: 0
+        troco: 0,
+        data_hora: dataHoraPayload
       });
     } else {
       onConfirmOrder({
@@ -119,7 +145,8 @@ export default function CheckoutModal({
           { forma: paymentMethod, valor: totalNum }
         ],
         valor_pago: paymentMethod === 'dinheiro' ? (hasCashInput ? cashNum : totalNum) : totalNum,
-        troco: troco
+        troco: troco,
+        data_hora: dataHoraPayload
       });
     }
   };
@@ -189,7 +216,7 @@ export default function CheckoutModal({
 
     window.addEventListener('keydown', handleModalKeyDown, true); // capture: true para garantir interceptação prioritária
     return () => window.removeEventListener('keydown', handleModalKeyDown, true);
-  }, [isOpen, canSubmit, isProcessing, isSplit, paymentMethod, val1, val2, splitMethod1, splitMethod2, cashReceived, cartItems, totalNum, troco, hasCashInput, cashNum]);
+  }, [isOpen, canSubmit, isProcessing, isSplit, paymentMethod, val1, val2, splitMethod1, splitMethod2, cashReceived, cartItems, totalNum, troco, hasCashInput, cashNum, isRetroactive, retroactiveDateTime]);
 
   if (!isOpen) return null;
 
@@ -616,6 +643,82 @@ export default function CheckoutModal({
               </div>
             </div>
           )}
+
+          {/* Opção de Data/Hora Retroativa (Opcional) */}
+          <div className="bg-slate-950/80 rounded-xl border border-slate-800 p-2.5">
+            <button
+              type="button"
+              onClick={() => {
+                const nextVal = !isRetroactive;
+                setIsRetroactive(nextVal);
+                if (nextVal && !retroactiveDateTime) {
+                  setRetroactiveDateTime(formatDateTimeLocalInput(new Date()));
+                }
+              }}
+              className="w-full flex items-center justify-between text-xs font-bold text-slate-300 hover:text-amber-400 transition-colors"
+            >
+              <div className="flex items-center gap-1.5">
+                <Calendar className="w-3.5 h-3.5 text-amber-400" />
+                <span>Lançar com Data/Hora Retroativa</span>
+              </div>
+              <span className={`text-[10px] px-2 py-0.5 rounded-full border ${
+                isRetroactive 
+                  ? 'bg-amber-950 text-amber-300 border-amber-500/50' 
+                  : 'bg-slate-900 text-slate-500 border-slate-800'
+              }`}>
+                {isRetroactive ? 'ATIVO' : 'OPCIONAL'}
+              </span>
+            </button>
+
+            {isRetroactive && (
+              <div className="mt-2.5 pt-2 border-t border-slate-800 space-y-2">
+                <div className="flex items-center gap-2">
+                  <input
+                    type="datetime-local"
+                    value={retroactiveDateTime}
+                    onChange={(e) => setRetroactiveDateTime(e.target.value)}
+                    className="flex-1 bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-white font-mono focus:border-amber-500 focus:outline-none"
+                  />
+                </div>
+                
+                {/* Atalhos Rápidos dos Caixas da Expobai */}
+                <div className="flex flex-wrap items-center gap-1.5">
+                  <span className="text-[10px] text-slate-400 flex items-center gap-1">
+                    <Clock className="w-3 h-3 text-slate-500" />
+                    Atalhos:
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setRetroactiveDateTime('2026-09-24T21:00')}
+                    className="px-2 py-0.5 bg-slate-900 hover:bg-slate-800 border border-slate-700 hover:border-amber-500 text-slate-300 hover:text-amber-300 rounded text-[10px] font-mono transition-colors"
+                  >
+                    Caixa 1 (24/09 21:00)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setRetroactiveDateTime('2026-09-25T21:00')}
+                    className="px-2 py-0.5 bg-slate-900 hover:bg-slate-800 border border-slate-700 hover:border-amber-500 text-slate-300 hover:text-amber-300 rounded text-[10px] font-mono transition-colors"
+                  >
+                    Caixa 2 (25/09 21:00)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setRetroactiveDateTime('2026-09-26T21:00')}
+                    className="px-2 py-0.5 bg-slate-900 hover:bg-slate-800 border border-slate-700 hover:border-amber-500 text-slate-300 hover:text-amber-300 rounded text-[10px] font-mono transition-colors"
+                  >
+                    Caixa 3 (26/09 21:00)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setRetroactiveDateTime(formatDateTimeLocalInput(new Date()))}
+                    className="px-2 py-0.5 bg-slate-900 hover:bg-slate-800 border border-slate-700 text-slate-400 hover:text-white rounded text-[10px] font-mono transition-colors"
+                  >
+                    Agora
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
 
           </div>
 

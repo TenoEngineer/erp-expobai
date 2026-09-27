@@ -13,9 +13,24 @@ import {
   Banknote, 
   QrCode,
   Layers,
-  Edit3
+  Edit3,
+  Calendar,
+  Clock
 } from 'lucide-react';
 import { updatePedido, getProdutos } from '../services/api';
+
+const formatDateTimeLocalInput = (dateVal) => {
+  if (!dateVal) return '';
+  const d = new Date(dateVal);
+  if (isNaN(d.getTime())) return '';
+  const pad = (n) => String(n).padStart(2, '0');
+  const year = d.getFullYear();
+  const month = pad(d.getMonth() + 1);
+  const day = pad(d.getDate());
+  const hours = pad(d.getHours());
+  const minutes = pad(d.getMinutes());
+  return `${year}-${month}-${day}T${hours}:${minutes}`;
+};
 
 export default function EditOrderModal({
   isOpen,
@@ -29,6 +44,7 @@ export default function EditOrderModal({
   const [splitAmount1, setSplitAmount1] = useState('');
   const [splitMethod2, setSplitMethod2] = useState('pix');
   const [splitAmount2, setSplitAmount2] = useState('');
+  const [orderDateTime, setOrderDateTime] = useState('');
   const [notes, setNotes] = useState('');
   const [editReason, setEditReason] = useState('');
   const [availableProducts, setAvailableProducts] = useState([]);
@@ -68,6 +84,7 @@ export default function EditOrderModal({
 
       setNotes(order.observacoes || '');
       setEditReason(order.motivo_edicao || '');
+      setOrderDateTime(formatDateTimeLocalInput(order.data_hora));
 
       // Carregar produtos disponíveis para adicionar itens
       loadProducts();
@@ -227,7 +244,8 @@ export default function EditOrderModal({
         troco: 0,
         observacoes: notes,
         pagamentos: pagamentosPayload,
-        motivo_edicao: motivoFinal
+        motivo_edicao: motivoFinal,
+        data_hora: orderDateTime ? new Date(orderDateTime).toISOString() : order.data_hora
       };
 
       const res = await updatePedido(order.id, payload);
@@ -290,6 +308,67 @@ export default function EditOrderModal({
             <div className="text-right">
               <span className="text-emerald-400 block text-[11px] font-bold">Novo Valor Total:</span>
               <span className="font-mono text-emerald-400 font-black text-lg">{formatPrice(currentTotal)}</span>
+            </div>
+          </div>
+
+          {/* Seção Data e Hora do Pedido (Ajuste Retroativo / Caixa) */}
+          <div className="bg-slate-950 p-3 rounded-xl border border-slate-800 space-y-2">
+            <div className="flex items-center justify-between">
+              <label className="font-bold text-slate-200 uppercase tracking-wider text-[11px] flex items-center gap-1.5">
+                <Calendar className="w-3.5 h-3.5 text-amber-400" />
+                <span>Data e Hora do Lançamento:</span>
+              </label>
+              <span className="text-[10px] text-amber-400 font-medium">
+                Vincula ao fechamento do respectivo caixa
+              </span>
+            </div>
+
+            <div className="flex flex-col sm:flex-row gap-2">
+              <input
+                type="datetime-local"
+                value={orderDateTime}
+                onChange={(e) => setOrderDateTime(e.target.value)}
+                className="flex-1 bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white font-mono focus:border-amber-500 focus:outline-none"
+              />
+            </div>
+
+            {/* Atalhos Rápidos dos 3 Fechamentos da Expobai */}
+            <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
+              <span className="text-[10px] text-slate-400 mr-1 flex items-center gap-1">
+                <Clock className="w-3 h-3 text-slate-500" />
+                Atalhos:
+              </span>
+              <button
+                type="button"
+                onClick={() => setOrderDateTime('2026-09-24T21:00')}
+                className="px-2 py-1 bg-slate-900 hover:bg-slate-800 border border-slate-700 hover:border-amber-500 text-slate-300 hover:text-amber-300 rounded text-[10px] font-mono transition-colors"
+                title="Quinta-feira (Caixa 1)"
+              >
+                Caixa 1 (24/09 21:00)
+              </button>
+              <button
+                type="button"
+                onClick={() => setOrderDateTime('2026-09-25T21:00')}
+                className="px-2 py-1 bg-slate-900 hover:bg-slate-800 border border-slate-700 hover:border-amber-500 text-slate-300 hover:text-amber-300 rounded text-[10px] font-mono transition-colors"
+                title="Sexta-feira (Caixa 2)"
+              >
+                Caixa 2 (25/09 21:00)
+              </button>
+              <button
+                type="button"
+                onClick={() => setOrderDateTime('2026-09-26T21:00')}
+                className="px-2 py-1 bg-slate-900 hover:bg-slate-800 border border-slate-700 hover:border-amber-500 text-slate-300 hover:text-amber-300 rounded text-[10px] font-mono transition-colors"
+                title="Sábado (Caixa 3)"
+              >
+                Caixa 3 (26/09 21:00)
+              </button>
+              <button
+                type="button"
+                onClick={() => setOrderDateTime(formatDateTimeLocalInput(new Date()))}
+                className="px-2 py-1 bg-slate-900 hover:bg-slate-800 border border-slate-700 text-slate-400 hover:text-white rounded text-[10px] font-mono transition-colors"
+              >
+                Agora
+              </button>
             </div>
           </div>
 

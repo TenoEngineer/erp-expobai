@@ -7,7 +7,7 @@ const printerService = require('../services/printerService');
 // Criar novo pedido / venda do caixa
 router.post('/', async (req, res) => {
   try {
-    const { itens, forma_pagamento, valor_pago, troco, observacoes, pagamentos, origem } = req.body;
+    const { itens, forma_pagamento, valor_pago, troco, observacoes, pagamentos, origem, data_hora } = req.body;
     if (!itens || !Array.isArray(itens) || itens.length === 0) {
       return res.status(400).json({ error: 'O pedido deve conter pelo menos um item' });
     }
@@ -22,7 +22,8 @@ router.post('/', async (req, res) => {
       troco,
       observacoes,
       pagamentos,
-      origem: origem || 'desktop'
+      origem: origem || 'desktop',
+      data_hora
     });
 
     // Impressão automática instantânea se configurado Rede ou USB
@@ -99,11 +100,11 @@ router.patch('/:id/cancelar', async (req, res) => {
   }
 });
 
-// Editar pedido (itens, valores, forma de pagamento, observações)
+// Editar pedido (itens, valores, forma de pagamento, observações, data/hora)
 router.put('/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    const { itens, forma_pagamento, valor_pago, troco, observacoes, pagamentos, motivo_edicao } = req.body;
+    const { itens, forma_pagamento, valor_pago, troco, observacoes, pagamentos, motivo_edicao, data_hora } = req.body;
     if (itens && (!Array.isArray(itens) || itens.length === 0)) {
       return res.status(400).json({ error: 'O pedido deve conter pelo menos um item' });
     }
@@ -115,7 +116,8 @@ router.put('/:id', async (req, res) => {
       troco,
       observacoes,
       pagamentos,
-      motivo_edicao
+      motivo_edicao,
+      data_hora
     });
 
     if (!atualizado) {
