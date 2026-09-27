@@ -1,14 +1,21 @@
 import React, { useState } from 'react';
 import { Search, Plus, Minus, Utensils, Sparkles, LayoutGrid, List } from 'lucide-react';
 
+export const PRODUCT_SHORTCUT_KEYS = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '0', 'Q', 'W', 'E', 'R', 'T', 'Y', 'U', 'I', 'O', 'P'];
+
 export default function ProductGrid({ 
   products = [], 
   onAddToCart, 
   onUpdateQuantity, 
   onRemoveItem, 
-  cartItems = [] 
+  cartItems = [],
+  searchTerm: externalSearchTerm,
+  onSearchChange: externalOnSearchChange
 }) {
-  const [searchTerm, setSearchTerm] = useState('');
+  const [internalSearchTerm, setInternalSearchTerm] = useState('');
+  const searchTerm = externalSearchTerm !== undefined ? externalSearchTerm : internalSearchTerm;
+  const setSearchTerm = externalOnSearchChange || setInternalSearchTerm;
+
   const [mobileViewMode, setMobileViewMode] = useState(() => {
     try {
       return localStorage.getItem('pos_mobile_view_mode') || 'list';
@@ -92,6 +99,12 @@ export default function ProductGrid({
             placeholder="Buscar produto (ex: espetinho, chopp, suco)..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Escape') {
+                setSearchTerm('');
+                e.target.blur();
+              }
+            }}
             className="w-full bg-slate-900/90 border border-slate-700/80 rounded-xl pl-11 pr-4 py-3 text-base text-slate-100 placeholder-slate-400 focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 transition-all shadow-inner font-medium"
           />
           {searchTerm && (
@@ -104,6 +117,25 @@ export default function ProductGrid({
           )}
         </div>
 
+        {/* Barra Informativa de Atalhos de Teclado no Desktop */}
+        <div className="flex items-center justify-between px-3.5 py-2 bg-slate-900/70 border border-slate-800 rounded-xl text-xs text-slate-400">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="font-bold text-amber-400 flex items-center gap-1">
+              ⌨️ Atalhos Rápidos:
+            </span>
+            <span className="text-slate-300">
+              Teclas <b className="text-amber-300 font-mono">1 a 9</b>, <b className="text-amber-300 font-mono">0</b> e <b className="text-amber-300 font-mono">Q a P</b> adicionam ao carrinho
+            </span>
+            <span className="text-slate-600">&bull;</span>
+            <span className="text-slate-300">
+              <b className="text-emerald-400 font-mono">[ENTER]</b> fecha a venda
+            </span>
+          </div>
+          <span className="text-[11px] font-mono text-slate-500 hidden xl:inline">
+            [+] / [-] quantidade
+          </span>
+        </div>
+
         {/* Grid de Produtos Desktop com Fotos */}
         {filteredProducts.length === 0 ? (
           <div className="flex flex-col items-center justify-center p-12 bg-slate-900/40 rounded-2xl border border-dashed border-slate-800 text-center">
@@ -113,7 +145,8 @@ export default function ProductGrid({
           </div>
         ) : (
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 gap-3.5">
-            {filteredProducts.map((prod) => {
+            {filteredProducts.map((prod, idx) => {
+              const shortcutKey = idx < PRODUCT_SHORTCUT_KEYS.length ? PRODUCT_SHORTCUT_KEYS[idx] : null;
               const cartItem = getCartItem(prod.id);
               const qtyInCart = cartItem ? cartItem.quantidade : 0;
               const combos = getProductCombos(prod);
@@ -139,13 +172,20 @@ export default function ProductGrid({
                     </div>
                   )}
 
-                  {/* Badge de Combo */}
-                  {isCombo && (
-                    <div className="absolute top-2 left-2 z-10 bg-gradient-to-r from-purple-600 to-indigo-600 text-white font-black text-[10px] px-2 py-0.5 rounded-md shadow-md flex items-center gap-1 border border-purple-400/50">
-                      <Sparkles className="w-3 h-3 text-amber-300" />
-                      <span>COMBO</span>
-                    </div>
-                  )}
+                  {/* Badges no Topo da Imagem: Atalho de Teclado e Combo */}
+                  <div className="absolute top-2 left-2 z-10 flex items-center gap-1.5 flex-wrap max-w-[80%]">
+                    {shortcutKey && (
+                      <span className="bg-slate-950/90 backdrop-blur-sm text-amber-300 font-mono font-black text-xs px-2 py-0.5 rounded-lg border border-amber-500/40 shadow-md flex items-center gap-1">
+                        <span className="text-[10px] text-slate-400">⌨</span> {shortcutKey}
+                      </span>
+                    )}
+                    {isCombo && (
+                      <div className="bg-gradient-to-r from-purple-600 to-indigo-600 text-white font-black text-[10px] px-2 py-0.5 rounded-md shadow-md flex items-center gap-1 border border-purple-400/50">
+                        <Sparkles className="w-3 h-3 text-amber-300" />
+                        <span>COMBO</span>
+                      </div>
+                    )}
+                  </div>
 
                   {/* Imagem do Produto Original */}
                   <div className="w-full aspect-[4/3] rounded-xl overflow-hidden bg-slate-900 mb-2.5 relative flex items-center justify-center border border-slate-700/50">
@@ -176,9 +216,16 @@ export default function ProductGrid({
                   {/* Detalhes com Tipografia Confortável para Notebook */}
                   <div className="flex-1 flex flex-col justify-between">
                     <div>
-                      <h3 className="font-black text-base text-slate-100 leading-snug group-hover:text-amber-400 transition-colors line-clamp-2">
-                        {prod.nome}
-                      </h3>
+                      <div className="flex items-start justify-between gap-1.5">
+                        <h3 className="font-black text-base text-slate-100 leading-snug group-hover:text-amber-400 transition-colors line-clamp-2 flex-1">
+                          {prod.nome}
+                        </h3>
+                        {shortcutKey && (
+                          <span className="shrink-0 bg-slate-950/80 text-amber-300 font-mono font-black text-[11px] px-1.5 py-0.5 rounded border border-amber-500/30 shadow-sm hidden sm:inline-block">
+                            ⌨ {shortcutKey}
+                          </span>
+                        )}
+                      </div>
                       
                       {/* Pills de itens inclusos no combo */}
                       {isCombo && itensCombo.length > 0 && (
@@ -282,6 +329,12 @@ export default function ProductGrid({
               placeholder="Buscar produto..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Escape') {
+                  setSearchTerm('');
+                  e.target.blur();
+                }
+              }}
               className="w-full h-14 bg-slate-900 border-2 border-slate-700/80 rounded-2xl pl-12 pr-12 text-base text-slate-100 placeholder-slate-400 focus:outline-none focus:border-amber-500 transition-all shadow-inner font-bold"
             />
             {searchTerm && (
@@ -335,7 +388,8 @@ export default function ProductGrid({
         ) : mobileViewMode === 'list' ? (
           /* MODO LISTA RÁPIDA MOBILE */
           <div className="flex flex-col gap-3">
-            {filteredProducts.map((prod) => {
+            {filteredProducts.map((prod, idx) => {
+              const shortcutKey = idx < PRODUCT_SHORTCUT_KEYS.length ? PRODUCT_SHORTCUT_KEYS[idx] : null;
               const cartItem = getCartItem(prod.id);
               const qtyInCart = cartItem ? cartItem.quantidade : 0;
               const combos = getProductCombos(prod);
@@ -360,6 +414,11 @@ export default function ProductGrid({
                     {/* Informações: Nome Grande e Preço Destacado */}
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
+                        {shortcutKey && (
+                          <span className="bg-slate-950 text-amber-300 font-mono font-black text-xs px-2 py-0.5 rounded-lg border border-amber-500/40">
+                            ⌨ {shortcutKey}
+                          </span>
+                        )}
                         <h3 className="font-black text-lg sm:text-xl text-white leading-tight">
                           {prod.nome}
                         </h3>
@@ -477,7 +536,8 @@ export default function ProductGrid({
         ) : (
           /* MODO TECLAS GRANDES MOBILE (TECLADO PDV 2 COLUNAS SEM FOTO) */
           <div className="grid grid-cols-2 gap-2.5">
-            {filteredProducts.map((prod) => {
+            {filteredProducts.map((prod, idx) => {
+              const shortcutKey = idx < PRODUCT_SHORTCUT_KEYS.length ? PRODUCT_SHORTCUT_KEYS[idx] : null;
               const cartItem = getCartItem(prod.id);
               const qtyInCart = cartItem ? cartItem.quantidade : 0;
               const combos = getProductCombos(prod);
@@ -497,11 +557,18 @@ export default function ProductGrid({
                 >
                   <div>
                     <div className="flex items-center justify-between gap-1 mb-1.5">
-                      {isCombo ? (
-                        <span className="bg-purple-900/80 text-purple-200 border border-purple-400/40 text-xs font-black px-2 py-0.5 rounded-lg">
-                          COMBO
-                        </span>
-                      ) : <span />}
+                      <div className="flex items-center gap-1.5">
+                        {shortcutKey && (
+                          <span className="bg-slate-950 text-amber-300 font-mono font-black text-xs px-2 py-0.5 rounded-lg border border-amber-500/40">
+                            ⌨ {shortcutKey}
+                          </span>
+                        )}
+                        {isCombo && (
+                          <span className="bg-purple-900/80 text-purple-200 border border-purple-400/40 text-xs font-black px-2 py-0.5 rounded-lg">
+                            COMBO
+                          </span>
+                        )}
+                      </div>
                       {qtyInCart > 0 && (
                         <span className="bg-amber-500 text-slate-950 font-black text-xs sm:text-sm px-2.5 py-0.5 rounded-full shadow">
                           {qtyInCart}x

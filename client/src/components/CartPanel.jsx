@@ -245,7 +245,9 @@ export default function CartPanel({
           }`}
         >
           <span>FINALIZAR PEDIDO</span>
-          <span className="text-xs font-normal opacity-80">(F2)</span>
+          <span className="text-xs font-mono font-bold bg-black/40 px-2 py-0.5 rounded border border-white/20">
+            [ENTER ↵]
+          </span>
           <ArrowRight className="w-5 h-5 stroke-[2.5]" />
         </button>
       </div>

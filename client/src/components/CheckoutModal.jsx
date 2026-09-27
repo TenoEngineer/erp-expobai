@@ -99,8 +99,7 @@ export default function CheckoutModal({
     setCashReceived(amount.toFixed(2));
   };
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
+  const executeSubmit = () => {
     if (!canSubmit || isProcessing) return;
 
     if (isSplit) {
@@ -127,6 +126,73 @@ export default function CheckoutModal({
     }
   };
 
+  const handleSubmit = (e) => {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    executeSubmit();
+  };
+
+  // Atalhos de teclado no Fechamento do Pedido (Enter confirma o pedido sem re-clicar botão, 1-5 seleciona método, Esc cancela)
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const handleModalKeyDown = (e) => {
+      // 1. Tecla ENTER: Confirma a venda imediatamente e previne re-clique no botão focado
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        e.stopPropagation();
+        executeSubmit();
+        return;
+      }
+
+      // 2. Tecla ESC: Fecha o modal de fechamento
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        e.stopPropagation();
+        onClose();
+        return;
+      }
+
+      // 3. Se estiver digitando em um input de texto/número (ex: valor entregue em dinheiro), não tratar números como atalhos
+      if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA')) {
+        return;
+      }
+
+      // 4. Atalhos rápidos para as formas de pagamento: 1 (Pix), 2 (Dinheiro), 3 (Débito), 4 (Crédito), 5 (Misto)
+      const k = e.key.toLowerCase();
+      if (k === '1' || k === 'p') {
+        e.preventDefault();
+        e.stopPropagation();
+        setIsSplit(false);
+        setPaymentMethod('pix');
+      } else if (k === '2' || k === 'd') {
+        e.preventDefault();
+        e.stopPropagation();
+        setIsSplit(false);
+        setPaymentMethod('dinheiro');
+      } else if (k === '3' || k === 'e' || k === 'b') {
+        e.preventDefault();
+        e.stopPropagation();
+        setIsSplit(false);
+        setPaymentMethod('debito');
+      } else if (k === '4' || k === 'c') {
+        e.preventDefault();
+        e.stopPropagation();
+        setIsSplit(false);
+        setPaymentMethod('credito');
+      } else if (k === '5' || k === 'm') {
+        e.preventDefault();
+        e.stopPropagation();
+        handleToggleSplit(true);
+      }
+    };
+
+    window.addEventListener('keydown', handleModalKeyDown, true); // capture: true para garantir interceptação prioritária
+    return () => window.removeEventListener('keydown', handleModalKeyDown, true);
+  }, [isOpen, canSubmit, isProcessing, isSplit, paymentMethod, val1, val2, splitMethod1, splitMethod2, cashReceived, cartItems, totalNum, troco, hasCashInput, cashNum]);
+
   const showPixQr = (!isSplit && paymentMethod === 'pix') || (isSplit && (splitMethod1 === 'pix' || splitMethod2 === 'pix'));
 
   return (
@@ -151,8 +217,12 @@ export default function CheckoutModal({
 
           <button
             onClick={onClose}
-            className="text-slate-400 hover:text-white p-1.5 rounded-xl hover:bg-slate-800 transition-colors"
+            className="text-slate-400 hover:text-white p-1.5 rounded-xl hover:bg-slate-800 transition-colors flex items-center gap-1.5"
+            title="Fechar (Esc)"
           >
+            <span className="hidden sm:inline text-[10px] font-mono text-slate-500 bg-slate-900 px-1.5 py-0.5 rounded border border-slate-800">
+              Esc
+            </span>
             <X className="w-5 h-5" />
           </button>
         </div>
@@ -180,7 +250,10 @@ export default function CheckoutModal({
           <div className="grid grid-cols-2 gap-1.5 bg-slate-950 p-1 rounded-xl border border-slate-800 text-xs md:text-xs font-bold">
             <button
               type="button"
-              onClick={() => handleToggleSplit(false)}
+              onClick={(e) => {
+                handleToggleSplit(false);
+                e.currentTarget.blur();
+              }}
               className={`h-11 md:h-8.5 rounded-lg transition-all flex items-center justify-center gap-1.5 ${
                 !isSplit
                   ? 'bg-slate-800 text-white shadow-md'
@@ -193,7 +266,10 @@ export default function CheckoutModal({
 
             <button
               type="button"
-              onClick={() => handleToggleSplit(true)}
+              onClick={(e) => {
+                handleToggleSplit(true);
+                e.currentTarget.blur();
+              }}
               className={`h-11 md:h-8.5 rounded-lg transition-all flex items-center justify-center gap-1.5 ${
                 isSplit
                   ? 'bg-amber-500 text-slate-950 font-black shadow-lg shadow-amber-950/50'
@@ -202,65 +278,101 @@ export default function CheckoutModal({
             >
               <Layers className="w-4 h-4" />
               <span>Dividir (2 Formas)</span>
+              <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-slate-900/90 text-amber-300 border border-amber-500/40">
+                ⌨ 5
+              </span>
             </button>
           </div>
 
           {/* MODO 1: PAGAMENTO ÚNICO */}
           {!isSplit && (
             <div className="space-y-2.5">
-              <label className="block text-[11px] md:text-xs font-bold text-slate-300 uppercase tracking-wider">
-                Selecione a Forma de Pagamento:
-              </label>
+              <div className="flex items-center justify-between">
+                <label className="block text-[11px] md:text-xs font-bold text-slate-300 uppercase tracking-wider">
+                  Forma de Pagamento:
+                </label>
+                <span className="text-[10px] text-amber-400 font-mono font-bold bg-slate-950 px-2 py-0.5 rounded border border-slate-800">
+                  ⌨️ Teclas 1, 2, 3, 4 &bull; [Enter] Confirma
+                </span>
+              </div>
 
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                {/* PIX (Tecla 1) */}
                 <button
                   type="button"
-                  onClick={() => setPaymentMethod('pix')}
-                  className={`flex flex-col items-center justify-center gap-1 h-18 md:h-14 rounded-xl border-2 font-bold text-sm md:text-xs transition-all active:scale-95 ${
+                  onClick={(e) => {
+                    setPaymentMethod('pix');
+                    e.currentTarget.blur();
+                  }}
+                  className={`flex flex-col items-center justify-center gap-1 h-18 md:h-14 rounded-xl border-2 font-bold text-sm md:text-xs transition-all active:scale-95 relative ${
                     paymentMethod === 'pix'
                       ? 'bg-emerald-600/30 border-emerald-400 text-emerald-200 shadow-md ring-1 ring-emerald-400'
                       : 'bg-slate-800/80 border-slate-700/80 text-slate-300 active:bg-slate-800'
                   }`}
                 >
+                  <span className="absolute top-1 right-1.5 text-[9px] font-mono font-bold px-1.5 py-0.2 rounded bg-slate-950/80 text-emerald-300 border border-emerald-500/30">
+                    ⌨ 1
+                  </span>
                   <QrCode className="w-6 h-6 md:w-4.5 md:h-4.5 text-emerald-400" />
                   <span>PIX</span>
                 </button>
 
+                {/* Dinheiro (Tecla 2) */}
                 <button
                   type="button"
-                  onClick={() => setPaymentMethod('dinheiro')}
-                  className={`flex flex-col items-center justify-center gap-1 h-18 md:h-14 rounded-xl border-2 font-bold text-sm md:text-xs transition-all active:scale-95 ${
+                  onClick={(e) => {
+                    setPaymentMethod('dinheiro');
+                    e.currentTarget.blur();
+                  }}
+                  className={`flex flex-col items-center justify-center gap-1 h-18 md:h-14 rounded-xl border-2 font-bold text-sm md:text-xs transition-all active:scale-95 relative ${
                     paymentMethod === 'dinheiro'
                       ? 'bg-amber-600/30 border-amber-400 text-amber-200 shadow-md ring-1 ring-amber-400'
                       : 'bg-slate-800/80 border-slate-700/80 text-slate-300 active:bg-slate-800'
                   }`}
                 >
+                  <span className="absolute top-1 right-1.5 text-[9px] font-mono font-bold px-1.5 py-0.2 rounded bg-slate-950/80 text-amber-300 border border-amber-500/30">
+                    ⌨ 2
+                  </span>
                   <Banknote className="w-6 h-6 md:w-4.5 md:h-4.5 text-amber-400" />
                   <span>Dinheiro</span>
                 </button>
 
+                {/* Débito (Tecla 3) */}
                 <button
                   type="button"
-                  onClick={() => setPaymentMethod('debito')}
-                  className={`flex flex-col items-center justify-center gap-1 h-18 md:h-14 rounded-xl border-2 font-bold text-sm md:text-xs transition-all active:scale-95 ${
+                  onClick={(e) => {
+                    setPaymentMethod('debito');
+                    e.currentTarget.blur();
+                  }}
+                  className={`flex flex-col items-center justify-center gap-1 h-18 md:h-14 rounded-xl border-2 font-bold text-sm md:text-xs transition-all active:scale-95 relative ${
                     paymentMethod === 'debito'
                       ? 'bg-cyan-600/30 border-cyan-400 text-cyan-200 shadow-md ring-1 ring-cyan-400'
                       : 'bg-slate-800/80 border-slate-700/80 text-slate-300 active:bg-slate-800'
                   }`}
                 >
+                  <span className="absolute top-1 right-1.5 text-[9px] font-mono font-bold px-1.5 py-0.2 rounded bg-slate-950/80 text-cyan-300 border border-cyan-500/30">
+                    ⌨ 3
+                  </span>
                   <CreditCard className="w-6 h-6 md:w-4.5 md:h-4.5 text-cyan-400" />
                   <span>Débito</span>
                 </button>
 
+                {/* Crédito (Tecla 4) */}
                 <button
                   type="button"
-                  onClick={() => setPaymentMethod('credito')}
-                  className={`flex flex-col items-center justify-center gap-1 h-18 md:h-14 rounded-xl border-2 font-bold text-sm md:text-xs transition-all active:scale-95 ${
+                  onClick={(e) => {
+                    setPaymentMethod('credito');
+                    e.currentTarget.blur();
+                  }}
+                  className={`flex flex-col items-center justify-center gap-1 h-18 md:h-14 rounded-xl border-2 font-bold text-sm md:text-xs transition-all active:scale-95 relative ${
                     paymentMethod === 'credito'
                       ? 'bg-purple-600/30 border-purple-400 text-purple-200 shadow-md ring-1 ring-purple-400'
                       : 'bg-slate-800/80 border-slate-700/80 text-slate-300 active:bg-slate-800'
                   }`}
                 >
+                  <span className="absolute top-1 right-1.5 text-[9px] font-mono font-bold px-1.5 py-0.2 rounded bg-slate-950/80 text-purple-300 border border-purple-500/30">
+                    ⌨ 4
+                  </span>
                   <CreditCard className="w-6 h-6 md:w-4.5 md:h-4.5 text-purple-400" />
                   <span>Crédito</span>
                 </button>
@@ -289,6 +401,13 @@ export default function CheckoutModal({
                         placeholder={`Valor exato (${totalNum.toFixed(2)}) ou digite o valor recebido`}
                         value={cashReceived}
                         onChange={(e) => setCashReceived(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            executeSubmit();
+                          }
+                        }}
                         className="w-full h-12 md:h-9.5 bg-slate-900 border-2 border-slate-700 rounded-xl pl-9 pr-3 text-lg md:text-base font-black text-slate-100 font-mono focus:outline-none focus:border-amber-500 placeholder:text-slate-500 placeholder:font-normal placeholder:text-xs"
                       />
                     </div>
@@ -298,7 +417,10 @@ export default function CheckoutModal({
                   <div className="flex flex-wrap gap-1.5 md:gap-2 items-center pt-0.5">
                     <button
                       type="button"
-                      onClick={() => handleQuickCash(totalNum)}
+                      onClick={(e) => {
+                        handleQuickCash(totalNum);
+                        e.currentTarget.blur();
+                      }}
                       className="h-10 md:h-7.5 px-3 md:px-2.5 bg-amber-500/20 active:bg-amber-500 text-amber-300 active:text-slate-950 font-bold text-xs rounded-lg border border-amber-500/50 shadow"
                     >
                       Exato ({formatPrice(totalNum)})
@@ -307,7 +429,10 @@ export default function CheckoutModal({
                       <button
                         key={val}
                         type="button"
-                        onClick={() => handleQuickCash(val)}
+                        onClick={(e) => {
+                          handleQuickCash(val);
+                          e.currentTarget.blur();
+                        }}
                         className="h-10 md:h-7.5 px-2.5 md:px-2 bg-slate-800 active:bg-slate-700 text-xs font-bold text-slate-100 rounded-lg border border-slate-700 active:scale-95 shadow"
                       >
                         R$ {val}
@@ -316,7 +441,10 @@ export default function CheckoutModal({
                     {hasCashInput && (
                       <button
                         type="button"
-                        onClick={() => setCashReceived('')}
+                        onClick={(e) => {
+                          setCashReceived('');
+                          e.currentTarget.blur();
+                        }}
                         className="h-10 md:h-7.5 px-2.5 md:px-2 bg-slate-900 active:bg-slate-800 text-[11px] font-bold text-slate-400 rounded-lg border border-slate-700"
                       >
                         Limpar
@@ -513,7 +641,7 @@ export default function CheckoutModal({
               ) : (
                 <>
                   <CheckCircle2 className="w-5 h-5 stroke-[2.5]" />
-                  <span>CONFIRMAR VENDA (ENTER)</span>
+                  <span>CONFIRMAR VENDA [ENTER ↵]</span>
                 </>
               )}
             </button>
