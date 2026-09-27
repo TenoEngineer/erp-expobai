@@ -159,75 +159,6 @@ export default function PosPage({ config, onCartCountChange }) {
     }
   }, [cart, onCartCountChange]);
 
-  // Atalhos de teclado no PDV: 1-9, 0, Q-P adicionam produtos; Enter/Espaço/F2 abre cobrança; +/- ajusta quantidade
-  useEffect(() => {
-    const handleKeyDown = (e) => {
-      // Se qualquer modal estiver aberto (Cobrança, Recibo, Pedidos Recentes), não processar atalhos da tela de produtos
-      if (isCheckoutOpen || isReceiptOpen || isRecentOrdersOpen) return;
-
-      // Se o usuário estiver digitando em um campo de texto/número, não interceptar como atalho de produto
-      if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.isContentEditable)) {
-        if (e.key === 'Escape') {
-          e.target.blur();
-          setSearchTerm('');
-        }
-        return;
-      }
-
-      // Enter, Espaço ou F2 abre o fechamento se houver itens no carrinho
-      if (e.key === 'Enter' || e.key === ' ' || e.key === 'F2') {
-        if (cart.length > 0) {
-          e.preventDefault();
-          e.stopPropagation();
-          setIsCheckoutOpen(true);
-        }
-        return;
-      }
-
-      // Tecla + ou = aumenta a quantidade do último item adicionado
-      if (e.key === '+' || e.key === '=') {
-        if (cart.length > 0) {
-          e.preventDefault();
-          const lastItem = cart[cart.length - 1];
-          handleUpdateQuantity(lastItem.cart_id || lastItem.id, lastItem.quantidade + 1);
-        }
-        return;
-      }
-
-      // Tecla - ou _ diminui a quantidade do último item adicionado
-      if (e.key === '-' || e.key === '_') {
-        if (cart.length > 0) {
-          e.preventDefault();
-          const lastItem = cart[cart.length - 1];
-          handleUpdateQuantity(lastItem.cart_id || lastItem.id, lastItem.quantidade - 1);
-        }
-        return;
-      }
-
-      // Atalhos de produtos: Teclas 1 a 9, 0, Q, W, E, R, T, Y, U, I, O, P
-      const SHORTCUT_KEYS = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '0', 'q', 'w', 'e', 'r', 't', 'y', 'u', 'i', 'o', 'p'];
-      const key = e.key.toLowerCase();
-      const shortcutIndex = SHORTCUT_KEYS.indexOf(key);
-
-      if (shortcutIndex !== -1 && shortcutIndex < filteredProducts.length) {
-        e.preventDefault();
-        e.stopPropagation();
-        const targetProduct = filteredProducts[shortcutIndex];
-        if (targetProduct) {
-          handleAddToCart(targetProduct);
-        }
-        return;
-      }
-
-      // Tecla Escape fecha drawer mobile
-      if (e.key === 'Escape') {
-        if (isMobileCartOpen) setIsMobileCartOpen(false);
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [filteredProducts, cart, isCheckoutOpen, isReceiptOpen, isRecentOrdersOpen, isMobileCartOpen]);
 
   // Auto-dismiss da notificação rápida de pedido concluído
   useEffect(() => {
@@ -424,6 +355,76 @@ export default function PosPage({ config, onCartCountChange }) {
       currency: 'BRL'
     });
   };
+
+  // Atalhos de teclado no PDV: 1-9, 0, Q-P adicionam produtos; Enter/Espaço/F2 abre cobrança; +/- ajusta quantidade
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      // Se qualquer modal estiver aberto (Cobrança, Recibo, Pedidos Recentes), não processar atalhos da tela de produtos
+      if (isCheckoutOpen || isReceiptOpen || isRecentOrdersOpen) return;
+
+      // Se o usuário estiver digitando em um campo de texto/número, não interceptar como atalho de produto
+      if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.isContentEditable)) {
+        if (e.key === 'Escape') {
+          e.target.blur();
+          setSearchTerm('');
+        }
+        return;
+      }
+
+      // Enter, Espaço ou F2 abre o fechamento se houver itens no carrinho
+      if (e.key === 'Enter' || e.key === ' ' || e.key === 'F2') {
+        if (cart.length > 0) {
+          e.preventDefault();
+          e.stopPropagation();
+          setIsCheckoutOpen(true);
+        }
+        return;
+      }
+
+      // Tecla + ou = aumenta a quantidade do último item adicionado
+      if (e.key === '+' || e.key === '=') {
+        if (cart.length > 0) {
+          e.preventDefault();
+          const lastItem = cart[cart.length - 1];
+          handleUpdateQuantity(lastItem.cart_id || lastItem.id, lastItem.quantidade + 1);
+        }
+        return;
+      }
+
+      // Tecla - ou _ diminui a quantidade do último item adicionado
+      if (e.key === '-' || e.key === '_') {
+        if (cart.length > 0) {
+          e.preventDefault();
+          const lastItem = cart[cart.length - 1];
+          handleUpdateQuantity(lastItem.cart_id || lastItem.id, lastItem.quantidade - 1);
+        }
+        return;
+      }
+
+      // Atalhos de produtos: Teclas 1 a 9, 0, Q, W, E, R, T, Y, U, I, O, P
+      const SHORTCUT_KEYS = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '0', 'q', 'w', 'e', 'r', 't', 'y', 'u', 'i', 'o', 'p'];
+      const key = e.key.toLowerCase();
+      const shortcutIndex = SHORTCUT_KEYS.indexOf(key);
+
+      if (shortcutIndex !== -1 && shortcutIndex < filteredProducts.length) {
+        e.preventDefault();
+        e.stopPropagation();
+        const targetProduct = filteredProducts[shortcutIndex];
+        if (targetProduct) {
+          handleAddToCart(targetProduct);
+        }
+        return;
+      }
+
+      // Tecla Escape fecha drawer mobile
+      if (e.key === 'Escape') {
+        if (isMobileCartOpen) setIsMobileCartOpen(false);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [filteredProducts, cart, isCheckoutOpen, isReceiptOpen, isRecentOrdersOpen, isMobileCartOpen]);
 
   if (loading && products.length === 0) {
     return (
