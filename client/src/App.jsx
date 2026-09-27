@@ -2,11 +2,12 @@ import React, { useState, useEffect } from 'react';
 import Navbar from './components/Navbar';
 import PosPage from './pages/PosPage';
 import AdminPage from './pages/AdminPage';
-import RateioPage from './pages/RateioPage';
+import AnalisePage from './pages/AnalisePage';
+import SalesReport from './components/admin/SalesReport';
 import { getConfig } from './services/api';
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState('pos'); // 'pos', 'rateio' ou 'admin'
+  const [activeTab, setActiveTab] = useState('pos'); // 'pos', 'fechamento', 'analise' ou 'configuracoes'
   const [config, setConfig] = useState(null);
   const [cartCount, setCartCount] = useState(0);
 
@@ -40,8 +41,15 @@ export default function App() {
             config={config}
             onCartCountChange={setCartCount}
           />
-        ) : activeTab === 'rateio' ? (
-          <RateioPage />
+        ) : activeTab === 'fechamento' ? (
+          <div className="max-w-7xl mx-auto p-4 sm:p-6 w-full">
+            <SalesReport 
+              config={config}
+              onNavigateToCustos={() => setActiveTab('analise')}
+            />
+          </div>
+        ) : activeTab === 'analise' ? (
+          <AnalisePage config={config} />
         ) : (
           <AdminPage
             config={config}

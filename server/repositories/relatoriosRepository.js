@@ -336,6 +336,292 @@ const relatoriosRepository = {
       })),
       ultimos_pedidos: pedidosAuditRes.rows
     };
+  },
+
+  // 7. Relatório Detalhado de Todos os Lançamentos por Tipo de Pagamento (Conferência Bancária e Maquininha)
+  async getLancamentosPorPagamento({ forma_pagamento, data_inicio, data_fim, periodo, sessao_id } = {}) {
+    let whereConditions = ["p.status = 'concluido'"];
+    const params = [];
+
+    // 1. Filtragem por Sessão de Caixa específica
+    if (sessao_id) {
+      const sessRes = await query('SELECT * FROM expobai.sessoes_caixa WHERE id = $1', [sessao_id]);
+      if (sessRes.rows.length > 0) {
+        const sessao = sessRes.rows[0];
+        params.push(sessao.aberto_em);
+        whereConditions.push(`p.data_hora >= $${params.length}`);
+        if (sessao.fechado_em) {
+          params.push(sessao.fechado_em);
+          whereConditions.push(`p.data_hora <= $${params.length}`);
+        }
+      }
+    }
+    // 2. Filtragem por Período / Datas (Timezone oficial Amambai/MS: America/Campo_Grande)
+    else if (data_inicio && data_fim) {
+      if (data_inicio.includes(':') || data_fim.includes(':')) {
+        const start = data_inicio.includes(':') ? data_inicio.replace('T', ' ') : `${data_inicio} 00:00:00`;
+        const end = data_fim.includes(':') ? data_fim.replace('T', ' ') : `${data_fim} 23:59:59.999`;
+        params.push(start);
+        params.push(end);
+        whereConditions.push(`(p.data_hora AT TIME ZONE 'America/Campo_Grande') >= $${params.length - 1}::timestamp AND (p.data_hora AT TIME ZONE 'America/Campo_Grande') <= $${params.length}::timestamp`);
+      } else {
+        params.push(data_inicio);
+        params.push(data_fim);
+        whereConditions.push(`((p.data_hora AT TIME ZONE 'America/Campo_Grande') - INTERVAL '6 hours')::date >= $${params.length - 1}::date AND ((p.data_hora AT TIME ZONE 'America/Campo_Grande') - INTERVAL '6 hours')::date <= $${params.length}::date`);
+      }
+    } else if (data_inicio) {
+      if (data_inicio.includes(':')) {
+        params.push(data_inicio.replace('T', ' '));
+        whereConditions.push(`(p.data_hora AT TIME ZONE 'America/Campo_Grande') >= $${params.length}::timestamp`);
+      } else {
+        params.push(data_inicio);
+        whereConditions.push(`((p.data_hora AT TIME ZONE 'America/Campo_Grande') - INTERVAL '6 hours')::date = $${params.length}::date`);
+      }
+    } else if (periodo) {
+      if (periodo === 'hoje') {
+        whereConditions.push("((p.data_hora AT TIME ZONE 'America/Campo_Grande') - INTERVAL '6 hours')::date = ((NOW() AT TIME ZONE 'America/Campo_Grande') - INTERVAL '6 hours')::date");
+      } else if (periodo === 'ontem') {
+        whereConditions.push("((p.data_hora AT TIME ZONE 'America/Campo_Grande') - INTERVAL '6 hours')::date = (((NOW() AT TIME ZONE 'America/Campo_Grande') - INTERVAL '6 hours') - INTERVAL '1 day')::date");
+      } else if (periodo === '7dias') {
+        whereConditions.push("((p.data_hora AT TIME ZONE 'America/Campo_Grande') - INTERVAL '6 hours')::date >= (((NOW() AT TIME ZONE 'America/Campo_Grande') - INTERVAL '6 hours') - INTERVAL '7 days')::date");
+      } else if (periodo === 'mes') {
+        whereConditions.push("(p.data_hora AT TIME ZONE 'America/Campo_Grande') >= date_trunc('month', NOW() AT TIME ZONE 'America/Campo_Grande')");
+      }
+    }
+
+    const whereClause = `WHERE ${whereConditions.join(' AND ')}`;
+
+    // Buscar todos os pedidos do período selecionado
+    const sql = `
+      SELECT 
+        p.id, 
+        p.numero_pedido, 
+        p.codigo_identificador, 
+        p.total, 
+        p.forma_pagamento, 
+        p.valor_pago,
+        p.troco, 
+        p.status,
+        p.observacoes,
+        p.pagamentos,
+        p.editado,
+        p.editado_em,
+        to_char(p.editado_em AT TIME ZONE 'America/Campo_Grande', 'DD/MM/YYYY HH24:MI') as editado_em_ms,
+        p.motivo_edicao,
+        p.data_hora,
+        to_char(p.data_hora AT TIME ZONE 'America/Campo_Grande', 'DD/MM/YYYY HH24:MI:SS') as data_hora_ms,
+        to_char(p.data_hora AT TIME ZONE 'America/Campo_Grande', 'HH24:MI:SS') as hora_ms,
+        to_char(p.data_hora AT TIME ZONE 'America/Campo_Grande', 'DD/MM/YYYY') as data_ms,
+        COALESCE(string_agg(i.quantidade || 'x ' || i.nome_produto, ', '), 'Itens diversos') as itens_resumo,
+        COALESCE(SUM(i.quantidade), 0) as total_itens,
+        COALESCE(json_agg(
+          json_build_object(
+            'id', i.id,
+            'produto_id', i.produto_id,
+            'nome_produto', i.nome_produto,
+            'quantidade', i.quantidade,
+            'preco_unitario', i.preco_unitario,
+            'subtotal', i.subtotal,
+            'socio', pr.socio
+          )
+        ) FILTER (WHERE i.id IS NOT NULL), '[]') as itens_detalhes
+      FROM expobai.pedidos p
+      LEFT JOIN expobai.pedido_itens i ON i.pedido_id = p.id
+      LEFT JOIN expobai.produtos pr ON i.produto_id = pr.id
+      ${whereClause}
+      GROUP BY p.id
+      ORDER BY p.data_hora DESC, p.id DESC
+    `;
+
+    const res = await query(sql, params);
+    const target = forma_pagamento ? forma_pagamento.toLowerCase().trim() : 'todos';
+
+    let totalGeralPedidos = 0;
+    let faturamentoTotal = 0;
+    let totalPix = 0;
+    let qtdPix = 0;
+    let totalDebito = 0;
+    let qtdDebito = 0;
+    let totalCredito = 0;
+    let qtdCredito = 0;
+    let totalDinheiro = 0;
+    let qtdDinheiro = 0;
+
+    const lancamentos = [];
+
+    res.rows.forEach(p => {
+      totalGeralPedidos++;
+      const total = parseFloat(p.total) || 0;
+      faturamentoTotal += total;
+
+      // Calcular montantes por forma neste pedido
+      let pixVal = 0;
+      let debitoVal = 0;
+      let creditoVal = 0;
+      let dinheiroVal = 0;
+
+      if (p.pagamentos && Array.isArray(p.pagamentos) && p.pagamentos.length > 0) {
+        p.pagamentos.forEach(pg => {
+          const v = parseFloat(pg.valor) || 0;
+          const forma = (pg.forma || '').toLowerCase();
+          if (forma === 'pix') pixVal += v;
+          else if (forma === 'debito') debitoVal += v;
+          else if (forma === 'credito') creditoVal += v;
+          else if (forma === 'dinheiro') dinheiroVal += v;
+        });
+      } else {
+        const forma = (p.forma_pagamento || '').toLowerCase();
+        if (forma === 'pix') pixVal = total;
+        else if (forma === 'debito') debitoVal = total;
+        else if (forma === 'credito') creditoVal = total;
+        else if (forma === 'dinheiro') dinheiroVal = total;
+      }
+
+      if (pixVal > 0) { totalPix += pixVal; qtdPix++; }
+      if (debitoVal > 0) { totalDebito += debitoVal; qtdDebito++; }
+      if (creditoVal > 0) { totalCredito += creditoVal; qtdCredito++; }
+      if (dinheiroVal > 0) { totalDinheiro += dinheiroVal; qtdDinheiro++; }
+
+      // Verificar se este pedido entra no filtro do método
+      let match = false;
+      let valorEfetivo = total;
+
+      if (target === 'todos') {
+        match = true;
+        valorEfetivo = total;
+      } else if (target === 'pix' && pixVal > 0) {
+        match = true;
+        valorEfetivo = pixVal;
+      } else if (target === 'debito' && debitoVal > 0) {
+        match = true;
+        valorEfetivo = debitoVal;
+      } else if (target === 'credito' && creditoVal > 0) {
+        match = true;
+        valorEfetivo = creditoVal;
+      } else if (target === 'cartao' && (debitoVal + creditoVal) > 0) {
+        match = true;
+        valorEfetivo = debitoVal + creditoVal;
+      } else if (target === 'dinheiro' && dinheiroVal > 0) {
+        match = true;
+        valorEfetivo = dinheiroVal;
+      }
+
+      if (match) {
+        // Calcular sócios envolvidos nos itens
+        let alexSub = 0;
+        let heitorSub = 0;
+        let paisSub = 0;
+        if (Array.isArray(p.itens_detalhes)) {
+          p.itens_detalhes.forEach(it => {
+            const sub = parseFloat(it.subtotal) || 0;
+            const socio = (it.socio || '').toLowerCase();
+            if (socio === 'alex') alexSub += sub;
+            else if (socio === 'heitor') heitorSub += sub;
+            else if (socio === 'pais') paisSub += sub;
+            else {
+              const n = (it.nome_produto || '').toLowerCase();
+              if (n.includes('cookie')) paisSub += sub;
+              else if (n.includes('espet')) alexSub += sub;
+              else heitorSub += sub;
+            }
+          });
+        }
+
+        const sociosParts = [];
+        if (alexSub > 0) sociosParts.push(`Alex: R$ ${alexSub.toFixed(2).replace('.', ',')}`);
+        if (heitorSub > 0) sociosParts.push(`Heitor: R$ ${heitorSub.toFixed(2).replace('.', ',')}`);
+        if (paisSub > 0) sociosParts.push(`Pais: R$ ${paisSub.toFixed(2).replace('.', ',')}`);
+
+        lancamentos.push({
+          ...p,
+          total: total,
+          valor_efetivo: valorEfetivo,
+          valor_pix: pixVal,
+          valor_debito: debitoVal,
+          valor_credito: creditoVal,
+          valor_dinheiro: dinheiroVal,
+          is_misto: p.forma_pagamento === 'misto' || (p.pagamentos && p.pagamentos.length > 1),
+          socios_resumo: sociosParts.join(' | ') || 'Geral'
+        });
+      }
+    });
+
+    const valorFiltrado = lancamentos.reduce((acc, l) => acc + l.valor_efetivo, 0);
+    const qtdFiltrado = lancamentos.length;
+    const ticketMedioFiltrado = qtdFiltrado > 0 ? (valorFiltrado / qtdFiltrado) : 0;
+
+    let contaDestino = {
+      tipo: target,
+      titulo: 'Todos os Métodos',
+      responsavel: 'Visão Geral Consolidada',
+      descricao: 'Visão unificada de todos os recebimentos realizados no caixa.'
+    };
+
+    if (target === 'pix') {
+      contaDestino = {
+        tipo: 'pix',
+        titulo: '📱 PIX (QR Code / Celular)',
+        responsavel: 'Conta Bancária dos Pais',
+        descricao: 'Valores caíram na conta dos pais via Pix. Valide comparando item a item com o extrato bancário (Nubank/Banco do Brasil).'
+      };
+    } else if (target === 'debito') {
+      contaDestino = {
+        tipo: 'debito',
+        titulo: '💳 Cartão de Débito',
+        responsavel: 'Maquininha de Cartão do Alex',
+        descricao: 'Valores passados no débito na maquininha do Alex. Valide comparando com o extrato/relatório diário da maquininha.'
+      };
+    } else if (target === 'credito') {
+      contaDestino = {
+        tipo: 'credito',
+        titulo: '💳 Cartão de Crédito',
+        responsavel: 'Maquininha de Cartão do Alex',
+        descricao: 'Valores passados no crédito na maquininha do Alex. Valide comparando com o fechamento de lote da maquininha.'
+      };
+    } else if (target === 'cartao') {
+      contaDestino = {
+        tipo: 'cartao',
+        titulo: '💳 Cartões (Débito + Crédito)',
+        responsavel: 'Maquininha de Cartão do Alex',
+        descricao: 'Total recebido na maquininha de cartão do Alex (Débito + Crédito).'
+      };
+    } else if (target === 'dinheiro') {
+      contaDestino = {
+        tipo: 'dinheiro',
+        titulo: '💵 Dinheiro em Espécie',
+        responsavel: 'Gaveta Física do Caixa',
+        descricao: 'Valores recebidos em cédulas/moedas. Valide com a contagem física do dinheiro no caixa.'
+      };
+    }
+
+    return {
+      filtro: {
+        forma_pagamento: target,
+        periodo: periodo || (data_inicio ? 'personalizado' : 'todos'),
+        data_inicio: data_inicio || null,
+        data_fim: data_fim || null,
+        sessao_id: sessao_id || null
+      },
+      conta_destino: contaDestino,
+      metricas: {
+        valor_filtrado: valorFiltrado,
+        qtd_filtrado: qtdFiltrado,
+        ticket_medio_filtrado: ticketMedioFiltrado,
+        faturamento_total: faturamentoTotal,
+        total_pedidos: totalGeralPedidos,
+        total_pix: totalPix,
+        qtd_pix: qtdPix,
+        total_debito: totalDebito,
+        qtd_debito: qtdDebito,
+        total_credito: totalCredito,
+        qtd_credito: qtdCredito,
+        total_cartao: totalDebito + totalCredito,
+        qtd_cartao: qtdDebito + qtdCredito,
+        total_dinheiro: totalDinheiro,
+        qtd_dinheiro: qtdDinheiro
+      },
+      lancamentos
+    };
   }
 };
 

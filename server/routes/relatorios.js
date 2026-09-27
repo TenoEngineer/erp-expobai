@@ -14,4 +14,22 @@ router.get('/fechamento', async (req, res) => {
   }
 });
 
+// Relatório detalhado de todos os lançamentos por tipo de pagamento para conciliação (Pix, Débito, Crédito, Dinheiro)
+router.get('/lancamentos-pagamento', async (req, res) => {
+  try {
+    const { forma_pagamento, data_inicio, data_fim, periodo, sessao_id } = req.query;
+    const dados = await relatoriosRepo.getLancamentosPorPagamento({
+      forma_pagamento,
+      data_inicio,
+      data_fim,
+      periodo,
+      sessao_id
+    });
+    res.json(dados);
+  } catch (err) {
+    console.error('Erro ao buscar lançamentos por pagamento:', err);
+    res.status(500).json({ error: 'Erro ao buscar lançamentos por pagamento' });
+  }
+});
+
 module.exports = router;

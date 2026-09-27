@@ -35,11 +35,13 @@ import {
 import ExecutiveReportPrintView from './ExecutiveReportPrintView';
 import EditOrderModal from '../EditOrderModal';
 import { executeOrderPrint } from '../../services/printManager';
+import PaymentAuditReport from './PaymentAuditReport';
 
 export default function SalesReport({ config, onNavigateToCustos }) {
   const [report, setReport] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [viewMode, setViewMode] = useState('dashboard'); // 'dashboard' ou 'relatorio_executivo'
+  const [viewMode, setViewMode] = useState('dashboard'); // 'dashboard', 'conferencia' ou 'relatorio_executivo'
+  const [conferenciaForma, setConferenciaForma] = useState('todos');
   
   // Curva ABC por Faturamento ('valor') ou por Quantidade ('qtd')
   const [abcSortBy, setAbcSortBy] = useState('valor');
@@ -304,7 +306,7 @@ export default function SalesReport({ config, onNavigateToCustos }) {
 
         {/* Botões de Ação & Visualização */}
         <div className="flex items-center gap-2 flex-wrap">
-          {/* Alternar Visualização: Painel vs Documento A4 */}
+          {/* Alternar Visualização: Painel vs Conferência vs Documento A4 */}
           <div className="bg-slate-900 border border-slate-800 p-1 rounded-xl flex items-center gap-1">
             <button
               onClick={() => setViewMode('dashboard')}
@@ -316,6 +318,20 @@ export default function SalesReport({ config, onNavigateToCustos }) {
             >
               <LayoutDashboard className="w-3.5 h-3.5" />
               <span>Painel</span>
+            </button>
+            <button
+              onClick={() => {
+                setConferenciaForma('todos');
+                setViewMode('conferencia');
+              }}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-all ${
+                viewMode === 'conferencia'
+                  ? 'bg-emerald-600 text-white shadow'
+                  : 'text-slate-400 hover:text-slate-200'
+              }`}
+            >
+              <DollarSign className="w-3.5 h-3.5" />
+              <span>Conferência Lançamentos</span>
             </button>
             <button
               onClick={() => setViewMode('relatorio_executivo')}
@@ -621,6 +637,26 @@ export default function SalesReport({ config, onNavigateToCustos }) {
       )}
 
       {/* ========================================================================= */}
+      {/* VISUALIZAÇÃO: MODO AUDITORIA DE LANÇAMENTOS (PIX / CARTÃO / DINHEIRO)     */}
+      {/* ========================================================================= */}
+      {viewMode === 'conferencia' && (
+        <div className="space-y-4 animate-in fade-in duration-200">
+          <div className="flex items-center justify-between pb-2 border-b border-slate-800">
+            <button
+              onClick={() => setViewMode('dashboard')}
+              className="text-xs font-bold text-slate-300 hover:text-white flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-slate-900 border border-slate-700 hover:bg-slate-800 transition-all cursor-pointer"
+            >
+              <span>&larr; Voltar ao Painel Geral de Fechamento</span>
+            </button>
+            <span className="text-xs font-mono font-bold text-emerald-400">
+              Conferência Direta de Lançamentos
+            </span>
+          </div>
+          <PaymentAuditReport config={config} initialForma={conferenciaForma} />
+        </div>
+      )}
+
+      {/* ========================================================================= */}
       {/* VISUALIZAÇÃO 1: MODO DOCUMENTO A4 (PRÉ-VISUALIZAÇÃO DO RELATÓRIO)        */}
       {/* ========================================================================= */}
       {viewMode === 'relatorio_executivo' && !loading && (
@@ -749,17 +785,38 @@ export default function SalesReport({ config, onNavigateToCustos }) {
 
           {/* Divisão por Forma de Pagamento */}
           <div>
-            <h4 className="font-bold text-xs text-slate-400 uppercase tracking-wider mb-3 flex items-center gap-1.5">
-              <DollarSign className="w-4 h-4 text-emerald-400" />
-              <span>Conciliação Financeira por Método de Pagamento</span>
-            </h4>
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 mb-3">
+              <h4 className="font-bold text-xs text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+                <DollarSign className="w-4 h-4 text-emerald-400" />
+                <span>Conciliação Financeira por Método de Pagamento</span>
+              </h4>
+              <button
+                type="button"
+                onClick={() => {
+                  setConferenciaForma('todos');
+                  setViewMode('conferencia');
+                }}
+                className="text-xs text-amber-400 hover:text-amber-300 font-bold flex items-center gap-1 cursor-pointer transition-colors"
+              >
+                <span>🔍 Ver extrato completo de todos os lançamentos</span>
+                <span>&rarr;</span>
+              </button>
+            </div>
+            
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
               
               {/* PIX */}
-              <div className="bg-slate-900 border border-slate-800 p-4 rounded-2xl flex flex-col justify-between shadow hover:border-emerald-500/50 transition-colors">
+              <div 
+                onClick={() => {
+                  setConferenciaForma('pix');
+                  setViewMode('conferencia');
+                }}
+                className="bg-slate-900 border border-slate-800 p-4 rounded-2xl flex flex-col justify-between shadow hover:border-emerald-400/80 hover:bg-slate-850 hover:scale-[1.01] active:scale-[0.99] transition-all cursor-pointer group"
+                title="Clique para auditar todos os lançamentos em PIX"
+              >
                 <div className="flex items-center justify-between text-xs text-slate-300 font-bold">
-                  <span>PIX</span>
-                  <QrCode className="w-4 h-4 text-emerald-400" />
+                  <span className="group-hover:text-emerald-300 transition-colors">📱 PIX (Pais)</span>
+                  <QrCode className="w-4 h-4 text-emerald-400 group-hover:scale-110 transition-transform" />
                 </div>
                 <div className="mt-3">
                   <span className="font-black text-xl text-emerald-400 font-mono block">
@@ -769,14 +826,24 @@ export default function SalesReport({ config, onNavigateToCustos }) {
                     <span>{pag.pix?.quantidade || 0} transações</span>
                     <span className="font-bold text-emerald-500">{pag.pix?.pct_valor || 0}%</span>
                   </div>
+                  <span className="text-[10px] text-emerald-400/80 font-bold mt-2 block border-t border-slate-800/80 pt-1 group-hover:underline">
+                    🔍 Auditar lançamentos &rarr;
+                  </span>
                 </div>
               </div>
 
               {/* Dinheiro */}
-              <div className="bg-slate-900 border border-slate-800 p-4 rounded-2xl flex flex-col justify-between shadow hover:border-amber-500/50 transition-colors">
+              <div 
+                onClick={() => {
+                  setConferenciaForma('dinheiro');
+                  setViewMode('conferencia');
+                }}
+                className="bg-slate-900 border border-slate-800 p-4 rounded-2xl flex flex-col justify-between shadow hover:border-amber-400/80 hover:bg-slate-850 hover:scale-[1.01] active:scale-[0.99] transition-all cursor-pointer group"
+                title="Clique para auditar todos os lançamentos em Dinheiro"
+              >
                 <div className="flex items-center justify-between text-xs text-slate-300 font-bold">
-                  <span>Dinheiro</span>
-                  <Banknote className="w-4 h-4 text-amber-400" />
+                  <span className="group-hover:text-amber-300 transition-colors">💵 Dinheiro (Caixa)</span>
+                  <Banknote className="w-4 h-4 text-amber-400 group-hover:scale-110 transition-transform" />
                 </div>
                 <div className="mt-3">
                   <span className="font-black text-xl text-amber-400 font-mono block">
@@ -786,14 +853,24 @@ export default function SalesReport({ config, onNavigateToCustos }) {
                     <span>{pag.dinheiro?.quantidade || 0} transações</span>
                     <span className="font-bold text-amber-500">{pag.dinheiro?.pct_valor || 0}%</span>
                   </div>
+                  <span className="text-[10px] text-amber-400/80 font-bold mt-2 block border-t border-slate-800/80 pt-1 group-hover:underline">
+                    🔍 Auditar lançamentos &rarr;
+                  </span>
                 </div>
               </div>
 
               {/* Débito */}
-              <div className="bg-slate-900 border border-slate-800 p-4 rounded-2xl flex flex-col justify-between shadow hover:border-cyan-500/50 transition-colors">
+              <div 
+                onClick={() => {
+                  setConferenciaForma('debito');
+                  setViewMode('conferencia');
+                }}
+                className="bg-slate-900 border border-slate-800 p-4 rounded-2xl flex flex-col justify-between shadow hover:border-cyan-400/80 hover:bg-slate-850 hover:scale-[1.01] active:scale-[0.99] transition-all cursor-pointer group"
+                title="Clique para auditar todos os lançamentos em Débito"
+              >
                 <div className="flex items-center justify-between text-xs text-slate-300 font-bold">
-                  <span>Débito</span>
-                  <CreditCard className="w-4 h-4 text-cyan-400" />
+                  <span className="group-hover:text-cyan-300 transition-colors">💳 Débito (Alex)</span>
+                  <CreditCard className="w-4 h-4 text-cyan-400 group-hover:scale-110 transition-transform" />
                 </div>
                 <div className="mt-3">
                   <span className="font-black text-xl text-cyan-400 font-mono block">
@@ -803,14 +880,24 @@ export default function SalesReport({ config, onNavigateToCustos }) {
                     <span>{pag.debito?.quantidade || 0} transações</span>
                     <span className="font-bold text-cyan-500">{pag.debito?.pct_valor || 0}%</span>
                   </div>
+                  <span className="text-[10px] text-cyan-400/80 font-bold mt-2 block border-t border-slate-800/80 pt-1 group-hover:underline">
+                    🔍 Auditar lançamentos &rarr;
+                  </span>
                 </div>
               </div>
 
               {/* Crédito */}
-              <div className="bg-slate-900 border border-slate-800 p-4 rounded-2xl flex flex-col justify-between shadow hover:border-purple-500/50 transition-colors">
+              <div 
+                onClick={() => {
+                  setConferenciaForma('credito');
+                  setViewMode('conferencia');
+                }}
+                className="bg-slate-900 border border-slate-800 p-4 rounded-2xl flex flex-col justify-between shadow hover:border-purple-400/80 hover:bg-slate-850 hover:scale-[1.01] active:scale-[0.99] transition-all cursor-pointer group"
+                title="Clique para auditar todos os lançamentos em Crédito"
+              >
                 <div className="flex items-center justify-between text-xs text-slate-300 font-bold">
-                  <span>Crédito</span>
-                  <CreditCard className="w-4 h-4 text-purple-400" />
+                  <span className="group-hover:text-purple-300 transition-colors">💳 Crédito (Alex)</span>
+                  <CreditCard className="w-4 h-4 text-purple-400 group-hover:scale-110 transition-transform" />
                 </div>
                 <div className="mt-3">
                   <span className="font-black text-xl text-purple-400 font-mono block">
@@ -820,6 +907,9 @@ export default function SalesReport({ config, onNavigateToCustos }) {
                     <span>{pag.credito?.quantidade || 0} transações</span>
                     <span className="font-bold text-purple-500">{pag.credito?.pct_valor || 0}%</span>
                   </div>
+                  <span className="text-[10px] text-purple-400/80 font-bold mt-2 block border-t border-slate-800/80 pt-1 group-hover:underline">
+                    🔍 Auditar lançamentos &rarr;
+                  </span>
                 </div>
               </div>
 

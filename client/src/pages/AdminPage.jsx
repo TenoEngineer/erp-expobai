@@ -2,16 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { 
   Package, 
   Tags, 
-  BarChart3, 
   Sliders, 
   RefreshCw,
-  TrendingUp,
   Sparkles
 } from 'lucide-react';
 import ProductManagement from '../components/admin/ProductManagement';
 import CategoryManagement from '../components/admin/CategoryManagement';
-import SalesReport from '../components/admin/SalesReport';
-import CostAnalysisReport from '../components/admin/CostAnalysisReport';
 import ComboManagement from '../components/admin/ComboManagement';
 import ConfigManagement from '../components/admin/ConfigManagement';
 import { getCategoriasAdmin, getProdutosAdmin } from '../services/api';
@@ -87,39 +83,15 @@ export default function AdminPage({ config, onRefreshConfig }) {
         </button>
 
         <button
-          onClick={() => setActiveSubTab('relatorios')}
-          className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl font-bold text-xs uppercase tracking-wider transition-all shrink-0 whitespace-nowrap ${
-            activeSubTab === 'relatorios'
-              ? 'bg-cyan-600 text-white shadow-lg shadow-cyan-950 border border-cyan-400/40'
-              : 'bg-slate-800/80 text-slate-400 hover:text-white hover:bg-slate-800'
-          }`}
-        >
-          <BarChart3 className="w-4 h-4" />
-          <span>Fechamento Caixa</span>
-        </button>
-
-        <button
-          onClick={() => setActiveSubTab('analise_detalhada')}
-          className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl font-bold text-xs uppercase tracking-wider transition-all shrink-0 whitespace-nowrap ${
-            activeSubTab === 'analise_detalhada'
-              ? 'bg-purple-600 text-white shadow-lg shadow-purple-950 border border-purple-400/40'
-              : 'bg-slate-800/80 text-slate-400 hover:text-white hover:bg-slate-800'
-          }`}
-        >
-          <TrendingUp className="w-4 h-4" />
-          <span>Análise & Custos</span>
-        </button>
-
-        <button
           onClick={() => setActiveSubTab('config')}
           className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl font-bold text-xs uppercase tracking-wider transition-all shrink-0 whitespace-nowrap ${
             activeSubTab === 'config'
-              ? 'bg-amber-600 text-white shadow-lg shadow-amber-950 border border-amber-400/40'
+              ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-950 border border-indigo-400/40'
               : 'bg-slate-800/80 text-slate-400 hover:text-white hover:bg-slate-800'
           }`}
         >
           <Sliders className="w-4 h-4" />
-          <span>Configurações</span>
+          <span>Sistema & Impressora</span>
         </button>
       </div>
 
@@ -152,17 +124,6 @@ export default function AdminPage({ config, onRefreshConfig }) {
               categories={categories}
               onRefresh={loadAdminData}
             />
-          )}
-
-          {activeSubTab === 'relatorios' && (
-            <SalesReport 
-              config={config} 
-              onNavigateToCustos={() => setActiveSubTab('analise_detalhada')}
-            />
-          )}
-
-          {activeSubTab === 'analise_detalhada' && (
-            <CostAnalysisReport config={config} />
           )}
 
           {activeSubTab === 'config' && (

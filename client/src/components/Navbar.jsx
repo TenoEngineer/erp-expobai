@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ShoppingCart, Settings, Clock, Sparkles, Users } from 'lucide-react';
+import { ShoppingCart, Settings, Clock, Sparkles, Users, Lock, TrendingUp } from 'lucide-react';
 import Logo from './Logo';
 
 export default function Navbar({ activeTab, setActiveTab, config, cartCount = 0 }) {
@@ -40,18 +40,19 @@ export default function Navbar({ activeTab, setActiveTab, config, cartCount = 0 
         </div>
 
         {/* Navigation Tabs */}
-        <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+        <div className="flex items-center gap-1 sm:gap-2 shrink-0">
+          {/* 1. PDV / Caixa */}
           <button
             onClick={() => setActiveTab('pos')}
-            className={`flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-4 py-1.5 sm:py-2 rounded-xl text-xs sm:text-sm font-bold transition-all duration-200 ${
+            className={`flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3.5 py-1.5 sm:py-2 rounded-xl text-xs sm:text-sm font-bold transition-all duration-200 ${
               activeTab === 'pos'
                 ? 'bg-gradient-to-r from-emerald-600 to-emerald-700 text-white shadow-lg shadow-emerald-900/40 border border-emerald-500/40'
                 : 'bg-slate-800/80 hover:bg-slate-800 text-slate-300 border border-slate-700/50 hover:text-white'
             }`}
           >
             <ShoppingCart className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-            <span className="hidden xs:inline sm:inline">PDV / Caixa</span>
-            <span className="inline xs:hidden sm:hidden">PDV</span>
+            <span className="hidden sm:inline">PDV / Caixa</span>
+            <span className="inline sm:hidden">PDV</span>
             {cartCount > 0 && (
               <span className="bg-amber-500 text-slate-950 text-[10px] sm:text-xs px-1.5 py-0.2 rounded-full font-black">
                 {cartCount}
@@ -59,30 +60,46 @@ export default function Navbar({ activeTab, setActiveTab, config, cartCount = 0 
             )}
           </button>
 
+          {/* 2. Fechamento Caixa */}
           <button
-            onClick={() => setActiveTab('rateio')}
-            className={`flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-4 py-1.5 sm:py-2 rounded-xl text-xs sm:text-sm font-bold transition-all duration-200 ${
-              activeTab === 'rateio'
+            onClick={() => setActiveTab('fechamento')}
+            className={`flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3.5 py-1.5 sm:py-2 rounded-xl text-xs sm:text-sm font-bold transition-all duration-200 ${
+              activeTab === 'fechamento'
+                ? 'bg-gradient-to-r from-teal-600 to-emerald-700 text-white shadow-lg shadow-teal-900/40 border border-teal-400/50'
+                : 'bg-slate-800/80 hover:bg-slate-800 text-slate-300 border border-slate-700/50 hover:text-white'
+            }`}
+          >
+            <Lock className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-emerald-300" />
+            <span className="hidden sm:inline">Fechamento Caixa</span>
+            <span className="inline sm:hidden">Caixa</span>
+          </button>
+
+          {/* 3. Análise & Rateio */}
+          <button
+            onClick={() => setActiveTab('analise')}
+            className={`flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3.5 py-1.5 sm:py-2 rounded-xl text-xs sm:text-sm font-bold transition-all duration-200 ${
+              activeTab === 'analise'
                 ? 'bg-gradient-to-r from-purple-600 via-indigo-600 to-purple-700 text-white shadow-lg shadow-purple-900/40 border border-purple-400/50'
                 : 'bg-slate-800/80 hover:bg-slate-800 text-slate-300 border border-slate-700/50 hover:text-white'
             }`}
           >
-            <Users className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-300" />
-            <span className="hidden xs:inline sm:inline">Rateio Sócios</span>
-            <span className="inline xs:hidden sm:hidden">Rateio</span>
+            <TrendingUp className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-purple-300" />
+            <span className="hidden sm:inline">Análise & Rateio</span>
+            <span className="inline sm:hidden">Análise</span>
           </button>
 
+          {/* 4. Configurações */}
           <button
-            onClick={() => setActiveTab('admin')}
-            className={`flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-4 py-1.5 sm:py-2 rounded-xl text-xs sm:text-sm font-bold transition-all duration-200 ${
-              activeTab === 'admin'
+            onClick={() => setActiveTab('configuracoes')}
+            className={`flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3.5 py-1.5 sm:py-2 rounded-xl text-xs sm:text-sm font-bold transition-all duration-200 ${
+              activeTab === 'configuracoes'
                 ? 'bg-gradient-to-r from-amber-600 to-amber-700 text-white shadow-lg shadow-amber-900/40 border border-amber-500/40'
                 : 'bg-slate-800/80 hover:bg-slate-800 text-slate-300 border border-slate-700/50 hover:text-white'
             }`}
           >
-            <Settings className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-            <span className="hidden xs:inline sm:inline">Gestão</span>
-            <span className="inline xs:hidden sm:hidden">Admin</span>
+            <Settings className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-300" />
+            <span className="hidden sm:inline">Configurações</span>
+            <span className="inline sm:hidden">Config</span>
           </button>
         </div>
 

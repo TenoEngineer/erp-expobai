@@ -139,6 +139,11 @@ export const getRelatorioPorCaixa = async (sessaoId) => {
   return data;
 };
 
+export const getLancamentosPorPagamento = async (params = {}) => {
+  const { data } = await api.get('/relatorios/lancamentos-pagamento', { params });
+  return data;
+};
+
 export const getConfig = async () => {
   const { data } = await api.get('/configuracoes');
   return data;
