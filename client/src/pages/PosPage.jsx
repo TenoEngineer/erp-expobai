@@ -257,7 +257,7 @@ export default function PosPage({ config, onCartCountChange }) {
   };
 
   const handleClearCart = () => {
-    if (cart.length > 0 && confirm('Deseja limpar todos os itens do carrinho?')) {
+    if (cart.length > 0) {
       setCart([]);
       setIsMobileCartOpen(false);
     }
