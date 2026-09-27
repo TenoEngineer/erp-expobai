@@ -142,4 +142,56 @@
     page-break-after: always;
     break-after: page;
   }
+
+  /* -------------------------------------------------------------------------
+     MODO 3: CONFERÊNCIA DE LANÇAMENTOS POR PAGAMENTO (A4 / PDF)
+     ------------------------------------------------------------------------- */
+  body.printing-audit-a4 * {
+    visibility: hidden;
+  }
+
+  body.printing-audit-a4 #conferencia-a4-view,
+  body.printing-audit-a4 #conferencia-a4-view * {
+    visibility: visible;
+  }
+
+  #conferencia-a4-view {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #ffffff !important;
+    color: #0f172a !important;
+    font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif !important;
+  }
+
+  /* -------------------------------------------------------------------------
+     MODO 4: CONFERÊNCIA DE LANÇAMENTOS EM BOBINA TÉRMICA (58mm/80mm)
+     ------------------------------------------------------------------------- */
+  body.printing-audit-thermal * {
+    visibility: hidden;
+  }
+
+  body.printing-audit-thermal #conferencia-thermal-view,
+  body.printing-audit-thermal #conferencia-thermal-view * {
+    visibility: visible;
+  }
+
+  #conferencia-thermal-view {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 0;
+    width: 100%;
+    max-width: 72mm;
+    margin: 0 auto !important;
+    padding: 2mm !important;
+    color: #000 !important;
+    background: #fff !important;
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 11px;
+  }
 }
+

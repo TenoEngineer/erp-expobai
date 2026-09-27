@@ -18,7 +18,8 @@ import {
   Trash2,
   Calendar,
   Layers,
-  ArrowRight
+  ArrowRight,
+  X
 } from 'lucide-react';
 import { 
   getLancamentosPorPagamento, 
@@ -28,6 +29,7 @@ import {
 } from '../../services/api';
 import EditOrderModal from '../EditOrderModal';
 import { executeOrderPrint } from '../../services/printManager';
+import PaymentAuditPrintView from './PaymentAuditPrintView';
 
 export default function PaymentAuditReport({ config, initialForma = 'todos' }) {
   const [formaPagamento, setFormaPagamento] = useState(initialForma); // 'todos', 'pix', 'debito', 'credito', 'dinheiro'
@@ -53,6 +55,10 @@ export default function PaymentAuditReport({ config, initialForma = 'todos' }) {
   // Edição de Lançamento
   const [editingOrder, setEditingOrder] = useState(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+
+  // Impressão da Conferência de Lançamentos (A4 / PDF ou Bobina Térmica)
+  const [isPrintModalOpen, setIsPrintModalOpen] = useState(false);
+  const [activePrintFormat, setActivePrintFormat] = useState(null); // 'a4' ou 'thermal'
 
   const formatPrice = (value) => {
     return Number(value || 0).toLocaleString('pt-BR', {
@@ -212,9 +218,36 @@ export default function PaymentAuditReport({ config, initialForma = 'todos' }) {
     });
   };
 
-  // Imprimir Extrato Direto
-  const handlePrintExtrato = () => {
-    window.print();
+  const getPeriodoDescricao = () => {
+    if (modoFiltro === 'caixa_atual') {
+      return caixaAtivo ? `Caixa Atual #${caixaAtivo.id} (Aberto em ${caixaAtivo.aberto_em_ms || 'Hoje'})` : 'Caixa Atual';
+    }
+    if (modoFiltro === 'caixa_historico') {
+      const c = historicoCaixas.find(x => String(x.id) === String(caixaSelecionadoId));
+      if (c) return `Caixa #${c.id} (${c.aberto_em_ms} a ${c.fechado_em_ms || 'Fechado'})`;
+      return `Caixa #${caixaSelecionadoId}`;
+    }
+    if (periodo === 'hoje') return 'Hoje';
+    if (periodo === 'ontem') return 'Ontem';
+    if (periodo === 'todos') return 'Todo o Evento';
+    if (periodo === 'personalizado') {
+      return `${dataInicio.split('-').reverse().join('/')} até ${dataFim.split('-').reverse().join('/')}`;
+    }
+    return 'Período Atual';
+  };
+
+  // Disparo da Impressão de Extrato (Folha A4 / PDF ou Bobina Térmica 80mm)
+  const handlePrint = (format = 'a4') => {
+    setActivePrintFormat(format);
+    const className = format === 'thermal' ? 'printing-audit-thermal' : 'printing-audit-a4';
+    document.body.classList.add(className);
+    setTimeout(() => {
+      window.print();
+      setTimeout(() => {
+        document.body.classList.remove(className);
+        setActivePrintFormat(null);
+      }, 1500);
+    }, 150);
   };
 
   // Filtragem Instantânea por busca
@@ -256,8 +289,21 @@ export default function PaymentAuditReport({ config, initialForma = 'todos' }) {
             </p>
           </div>
 
-          {/* Ações Topo: Copiar WhatsApp & Atualizar */}
-          <div className="flex items-center gap-2 shrink-0">
+          {/* Ações Topo: Imprimir Extrato, Copiar WhatsApp & Atualizar */}
+          <div className="flex items-center gap-2 shrink-0 flex-wrap">
+            <button
+              type="button"
+              onClick={() => setIsPrintModalOpen(true)}
+              className="h-10 px-3.5 bg-gradient-to-r from-emerald-600 to-green-700 hover:from-emerald-500 hover:to-green-600 active:scale-95 text-white rounded-xl border border-emerald-400/50 text-xs font-black flex items-center gap-2 transition-all shadow-md shadow-emerald-950"
+              title={`Imprimir conferência dos lançamentos de ${formaPagamento.toUpperCase()}`}
+            >
+              <Printer className="w-4 h-4 text-emerald-200" />
+              <span>Imprimir Extrato {formaPagamento === 'todos' ? 'Geral' : formaPagamento.toUpperCase()}</span>
+              <span className="bg-emerald-950 text-emerald-300 text-[10px] font-mono px-1.5 py-0.5 rounded-full border border-emerald-500/40">
+                {filteredLancamentos.length}
+              </span>
+            </button>
+
             <button
               onClick={handleCopyWhatsapp}
               className={`h-10 px-3.5 rounded-xl font-black text-xs flex items-center gap-2 transition-all active:scale-95 shadow border ${
@@ -769,6 +815,150 @@ export default function PaymentAuditReport({ config, initialForma = 'todos' }) {
           }}
         />
       )}
+
+      {/* Modal de Impressão de Extrato com Seleção de Formato (A4 ou Térmica) */}
+      {isPrintModalOpen && (
+        <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 animate-in fade-in">
+          <div className="bg-slate-900 border border-slate-700/80 rounded-2xl sm:rounded-3xl w-full max-w-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+            
+            {/* Header do Modal */}
+            <div className="p-4 border-b border-slate-800 bg-slate-950/70 flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-emerald-600 to-green-800 flex items-center justify-center text-white shadow-md">
+                  <Printer className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="font-extrabold text-sm sm:text-base text-slate-100 flex items-center gap-2">
+                    <span>Imprimir Conferência: {formaPagamento.toUpperCase()}</span>
+                    <span className="text-[11px] font-mono px-2 py-0.5 rounded-full bg-emerald-950 text-emerald-300 border border-emerald-500/40">
+                      {filteredLancamentos.length} transações
+                    </span>
+                  </h3>
+                  <p className="text-xs text-slate-400">
+                    Destino: <b>{data?.conta_destino?.responsavel || 'Caixa'}</b> &bull; Total: <b className="text-emerald-400 font-mono">{formatPrice(data?.metricas?.valor_filtrado)}</b>
+                  </p>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setIsPrintModalOpen(false)}
+                className="text-slate-400 hover:text-white p-1.5 rounded-xl hover:bg-slate-800"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Conteúdo: Escolha de Formato */}
+            <div className="p-4 sm:p-6 space-y-4 overflow-y-auto flex-1">
+              <p className="text-xs text-slate-300 font-medium">
+                Selecione o formato de impressão desejado para conciliar com o extrato bancário ou fechamento de turno:
+              </p>
+
+              {/* Botões de Ação de Impressão */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                {/* Opção 1: Folha A4 / Salvar PDF */}
+                <button
+                  type="button"
+                  onClick={() => handlePrint('a4')}
+                  className="p-4 rounded-2xl bg-gradient-to-br from-slate-800/90 to-slate-900 border-2 border-emerald-500/50 hover:border-emerald-400 active:scale-[0.98] transition-all text-left flex flex-col justify-between group shadow-lg cursor-pointer"
+                >
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-2xl">📄</span>
+                    <span className="text-[10px] font-bold uppercase tracking-wider bg-emerald-950 text-emerald-300 border border-emerald-500/40 px-2 py-0.5 rounded-md">
+                      Recomendado
+                    </span>
+                  </div>
+                  <div>
+                    <h4 className="font-black text-sm text-white group-hover:text-emerald-300 transition-colors">
+                      Folha A4 / Salvar PDF
+                    </h4>
+                    <p className="text-[11px] text-slate-400 mt-1">
+                      Tabela completa com todos os dados: comanda, data, hora, produtos detalhados, valor e campo formal para assinatura e validação do sócio.
+                    </p>
+                  </div>
+                  <div className="mt-3 pt-2 border-t border-slate-700/60 flex items-center justify-between text-xs text-emerald-400 font-bold">
+                    <span>Imprimir em A4 / PDF</span>
+                    <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                  </div>
+                </button>
+
+                {/* Opção 2: Bobina Térmica (80mm / 58mm) */}
+                <button
+                  type="button"
+                  onClick={() => handlePrint('thermal')}
+                  className="p-4 rounded-2xl bg-gradient-to-br from-slate-800/90 to-slate-900 border-2 border-slate-700 hover:border-amber-500 active:scale-[0.98] transition-all text-left flex flex-col justify-between group shadow-lg cursor-pointer"
+                >
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-2xl">🧾</span>
+                    <span className="text-[10px] font-bold uppercase tracking-wider bg-amber-950 text-amber-300 border border-amber-500/40 px-2 py-0.5 rounded-md">
+                      Impressora Térmica
+                    </span>
+                  </div>
+                  <div>
+                    <h4 className="font-black text-sm text-white group-hover:text-amber-300 transition-colors">
+                      Bobina Térmica (Cupom 80mm)
+                    </h4>
+                    <p className="text-[11px] text-slate-400 mt-1">
+                      Imprime na mesma impressora de comanda da barraca. Formato de fita contínua com extrato item por item para conferência na gaveta.
+                    </p>
+                  </div>
+                  <div className="mt-3 pt-2 border-t border-slate-700/60 flex items-center justify-between text-xs text-amber-400 font-bold">
+                    <span>Imprimir na Bobina Térmica</span>
+                    <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                  </div>
+                </button>
+              </div>
+
+              {/* Pré-visualização da Lista a ser Impressa */}
+              <div className="mt-4 pt-3 border-t border-slate-800 space-y-2">
+                <div className="flex items-center justify-between text-xs">
+                  <span className="font-bold text-slate-300">
+                    Pré-visualização dos Lançamentos ({filteredLancamentos.length}):
+                  </span>
+                  <span className="font-mono text-emerald-400 font-bold">
+                    Total: {formatPrice(data?.metricas?.valor_filtrado)}
+                  </span>
+                </div>
+
+                <div className="max-h-48 overflow-y-auto space-y-1.5 pr-1 font-mono text-xs">
+                  {filteredLancamentos.map((l, i) => (
+                    <div key={i} className="p-2 bg-slate-950 rounded-lg border border-slate-800/70 flex items-center justify-between text-[11px]">
+                      <div className="flex items-center gap-2 truncate mr-2">
+                        <span className="font-bold text-amber-400 shrink-0">#{String(l.numero_pedido).padStart(3, '0')}</span>
+                        <span className="text-slate-500 shrink-0">[{l.hora_ms || (l.data_hora_ms ? l.data_hora_ms.split(' ')[1] : '')}]</span>
+                        <span className="text-slate-300 truncate">{l.itens_resumo}</span>
+                      </div>
+                      <span className="font-bold text-emerald-400 shrink-0">{formatPrice(l.valor_efetivo)}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* Rodapé do Modal */}
+            <div className="p-3 bg-slate-950 border-t border-slate-800 flex items-center justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setIsPrintModalOpen(false)}
+                className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-bold transition-all cursor-pointer"
+              >
+                Fechar
+              </button>
+            </div>
+
+          </div>
+        </div>
+      )}
+
+      {/* Componente de Impressão Dedicado (Renderizado para @media print) */}
+      <PaymentAuditPrintView
+        data={data}
+        lancamentos={filteredLancamentos}
+        formaPagamento={formaPagamento}
+        periodoDescricao={getPeriodoDescricao()}
+        config={config}
+      />
 
     </div>
   );
