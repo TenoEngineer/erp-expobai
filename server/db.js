@@ -147,6 +147,12 @@ async function initDB() {
       UPDATE expobai.produtos SET socio = 'pais' 
       WHERE LOWER(nome) LIKE '%cookie%' OR categoria_id = 3;
 
+      -- Garante que o custo histórico dos itens acompanhe fielmente o custo fixo cadastrado no produto
+      UPDATE expobai.pedido_itens i
+      SET preco_custo = p.preco_custo
+      FROM expobai.produtos p
+      WHERE i.produto_id = p.id;
+
       -- Tabela de Custos do Evento (Estande, Internet, Estacionamento, etc.)
       CREATE TABLE IF NOT EXISTS expobai.custos_evento (
         id SERIAL PRIMARY KEY,

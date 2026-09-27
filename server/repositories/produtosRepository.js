@@ -95,6 +95,15 @@ const produtosRepository = {
         id
       ]
     );
+
+    // Propaga o novo custo fixo para todo o histórico de vendas deste produto
+    if (preco_custo !== undefined && preco_custo !== null) {
+      await query(
+        `UPDATE expobai.pedido_itens SET preco_custo = $1 WHERE produto_id = $2`,
+        [parseFloat(preco_custo) || 0, id]
+      );
+    }
+
     return res.rows[0] || null;
   },
 

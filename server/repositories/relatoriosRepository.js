@@ -131,8 +131,8 @@ const relatoriosRepository = {
         COALESCE(c.cor, '#2D6A4F') as cor,
         SUM(i.quantidade) as total_itens,
         SUM(i.subtotal) as total_faturado,
-        SUM(i.quantidade * COALESCE(NULLIF(i.preco_custo, 0), pr.preco_custo, 0)) as custo_total,
-        SUM(i.subtotal) - SUM(i.quantidade * COALESCE(NULLIF(i.preco_custo, 0), pr.preco_custo, 0)) as lucro_bruto
+        SUM(i.quantidade * COALESCE(pr.preco_custo, NULLIF(i.preco_custo, 0), 0)) as custo_total,
+        SUM(i.subtotal) - SUM(i.quantidade * COALESCE(pr.preco_custo, NULLIF(i.preco_custo, 0), 0)) as lucro_bruto
       FROM expobai.pedido_itens i
       JOIN expobai.pedidos p ON i.pedido_id = p.id
       LEFT JOIN expobai.produtos pr ON i.produto_id = pr.id
@@ -142,23 +142,23 @@ const relatoriosRepository = {
       ORDER BY total_faturado DESC
     `, params);
 
-    // 5. Ranking Completo de Produtos (Curva ABC / Lucro e Margem)
+    // 5. Ranking Completo de Produtos (Curva ABC / Lucro e Margem com Custo Fixo de Produto)
     const rankingProdutosRes = await query(`
       SELECT 
         i.nome_produto,
         COALESCE(c.nome, 'Geral') as categoria,
         SUM(i.quantidade) as total_vendido,
         ROUND(AVG(i.preco_unitario), 2) as preco_medio,
-        COALESCE(NULLIF(AVG(i.preco_custo), 0), AVG(pr.preco_custo), 0) as preco_custo,
+        COALESCE(pr.preco_custo, NULLIF(i.preco_custo, 0), 0) as preco_custo,
         SUM(i.subtotal) as total_faturado,
-        SUM(i.quantidade * COALESCE(NULLIF(i.preco_custo, 0), pr.preco_custo, 0)) as custo_total,
-        SUM(i.subtotal) - SUM(i.quantidade * COALESCE(NULLIF(i.preco_custo, 0), pr.preco_custo, 0)) as lucro_bruto
+        SUM(i.quantidade * COALESCE(pr.preco_custo, NULLIF(i.preco_custo, 0), 0)) as custo_total,
+        SUM(i.subtotal) - SUM(i.quantidade * COALESCE(pr.preco_custo, NULLIF(i.preco_custo, 0), 0)) as lucro_bruto
       FROM expobai.pedido_itens i
       JOIN expobai.pedidos p ON i.pedido_id = p.id
       LEFT JOIN expobai.produtos pr ON i.produto_id = pr.id
       LEFT JOIN expobai.categorias c ON pr.categoria_id = c.id
       ${whereClause}
-      GROUP BY i.nome_produto, c.nome
+      GROUP BY i.nome_produto, c.nome, pr.preco_custo, i.preco_custo
       ORDER BY total_faturado DESC
       LIMIT 100
     `, params);
