@@ -32,4 +32,16 @@ router.get('/lancamentos-pagamento', async (req, res) => {
   }
 });
 
+// Comparativo de produtos vendidos por hora em relação aos dias da exposição
+router.get('/comparativo-horarios', async (req, res) => {
+  try {
+    const { produto_id, origem } = req.query;
+    const dados = await relatoriosRepo.getComparativoHorarios({ produto_id, origem });
+    res.json(dados);
+  } catch (err) {
+    console.error('Erro ao buscar comparativo de horários:', err);
+    res.status(500).json({ error: 'Erro ao gerar comparativo de horários' });
+  }
+});
+
 module.exports = router;

@@ -215,4 +215,14 @@ export const autoAtribuirSocios = async () => {
   return data;
 };
 
+export const getComparativoHorarios = async (params = {}) => {
+  const query = new URLSearchParams();
+  if (params.produto_id) query.append('produto_id', params.produto_id);
+  if (params.origem) query.append('origem', params.origem);
+  const queryString = query.toString();
+  const url = queryString ? `/relatorios/comparativo-horarios?${queryString}` : '/relatorios/comparativo-horarios';
+  const { data } = await api.get(url);
+  return data;
+};
+
 export default api;

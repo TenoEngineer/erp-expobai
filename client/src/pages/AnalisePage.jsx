@@ -3,17 +3,16 @@ import {
   Users, 
   DollarSign, 
   TrendingUp, 
-  QrCode, 
-  CreditCard, 
-  Banknote,
+  Clock,
   Sparkles
 } from 'lucide-react';
 import RateioPage from './RateioPage';
 import PaymentAuditReport from '../components/admin/PaymentAuditReport';
 import CostAnalysisReport from '../components/admin/CostAnalysisReport';
+import HourlyAnalysisReport from '../components/admin/HourlyAnalysisReport';
 
-export default function AnalisePage({ config, initialSubTab = 'rateio' }) {
-  const [activeTab, setActiveTab] = useState(initialSubTab); // 'rateio', 'conferencia', 'custos'
+export default function AnalisePage({ config, initialSubTab = 'horarios' }) {
+  const [activeTab, setActiveTab] = useState(initialSubTab); // 'horarios', 'rateio', 'conferencia', 'custos'
 
   return (
     <div className="max-w-7xl mx-auto p-4 sm:p-6 space-y-6 w-full">
@@ -23,6 +22,18 @@ export default function AnalisePage({ config, initialSubTab = 'rateio' }) {
         className="flex items-center gap-2 border-b border-slate-800 pb-3 overflow-x-auto touch-pan-x flex-nowrap -mx-4 px-4 sm:mx-0 sm:px-0 scrollbar-none"
         style={{ WebkitOverflowScrolling: 'touch' }}
       >
+        <button
+          onClick={() => setActiveTab('horarios')}
+          className={`flex items-center gap-1.5 sm:gap-2 px-3.5 sm:px-5 py-2.5 rounded-xl font-bold text-xs uppercase tracking-wider transition-all shrink-0 whitespace-nowrap ${
+            activeTab === 'horarios'
+              ? 'bg-gradient-to-r from-amber-500 to-amber-600 text-slate-950 font-black shadow-lg shadow-amber-950 border border-amber-400/50'
+              : 'bg-slate-900/80 text-slate-400 hover:text-white hover:bg-slate-800 border border-slate-800'
+          }`}
+        >
+          <Clock className={`w-4 h-4 ${activeTab === 'horarios' ? 'text-slate-950 stroke-[2.5]' : 'text-amber-400'}`} />
+          <span>Vendas por Horário</span>
+        </button>
+
         <button
           onClick={() => setActiveTab('rateio')}
           className={`flex items-center gap-1.5 sm:gap-2 px-3.5 sm:px-5 py-2.5 rounded-xl font-bold text-xs uppercase tracking-wider transition-all shrink-0 whitespace-nowrap ${
@@ -61,6 +72,10 @@ export default function AnalisePage({ config, initialSubTab = 'rateio' }) {
       </div>
 
       {/* Conteúdo da Sub-Aba Ativa */}
+      {activeTab === 'horarios' && (
+        <HourlyAnalysisReport config={config} />
+      )}
+
       {activeTab === 'rateio' && (
         <RateioPage />
       )}

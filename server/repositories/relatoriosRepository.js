@@ -622,6 +622,252 @@ const relatoriosRepository = {
       },
       lancamentos
     };
+  },
+
+  // 3. Comparativo de Produtos Vendidos por Hora x Dias da Exposição
+  async getComparativoHorarios({ produto_id, origem } = {}) {
+    const filterProd = produto_id && produto_id !== 'todos' ? String(produto_id) : null;
+    const filterOrigem = origem && origem !== 'todos' ? String(origem).toLowerCase() : null;
+
+    // 1. Obter os dias do evento
+    const diasRes = await query(`
+      SELECT 
+        ((p.data_hora AT TIME ZONE 'America/Campo_Grande') - INTERVAL '6 hours')::date as data,
+        EXTRACT(DOW FROM ((p.data_hora AT TIME ZONE 'America/Campo_Grande') - INTERVAL '6 hours')::date)::int as dow,
+        COUNT(DISTINCT p.id) as total_pedidos,
+        COALESCE(SUM(p.total), 0) as faturamento
+      FROM expobai.pedidos p
+      WHERE p.status = 'concluido'
+      GROUP BY data, dow
+      ORDER BY data ASC
+    `);
+
+    const nomeDias = {
+      0: { extenso: 'Domingo', abrev: 'Dom' },
+      1: { extenso: 'Segunda-feira', abrev: 'Seg' },
+      2: { extenso: 'Terça-feira', abrev: 'Ter' },
+      3: { extenso: 'Quarta-feira', abrev: 'Qua' },
+      4: { extenso: 'Quinta-feira', abrev: 'Qui' },
+      5: { extenso: 'Sexta-feira', abrev: 'Sex' },
+      6: { extenso: 'Sábado', abrev: 'Sáb' }
+    };
+
+    const dias = diasRes.rows.map(r => {
+      const dStr = r.data instanceof Date ? r.data.toISOString().split('T')[0] : String(r.data);
+      const diaInfo = nomeDias[r.dow] || { extenso: 'Dia', abrev: 'Dia' };
+      const [ano, mes, dia] = dStr.split('-');
+      return {
+        data: dStr,
+        dia_semana: diaInfo.extenso,
+        dia_abrev: diaInfo.abrev,
+        label: `${diaInfo.abrev} (${dia}/${mes})`,
+        total_pedidos: parseInt(r.total_pedidos, 10),
+        faturamento: parseFloat(r.faturamento)
+      };
+    });
+
+    // 2. Lista de Produtos para o Dropdown (ordenados por volume de venda)
+    const prodsRes = await query(`
+      SELECT 
+        COALESCE(i.produto_id::text, i.nome_produto) as id,
+        i.nome_produto as nome,
+        SUM(i.quantidade) as qtd_total,
+        SUM(i.subtotal) as faturamento_total
+      FROM expobai.pedidos p
+      JOIN expobai.pedido_itens i ON i.pedido_id = p.id
+      WHERE p.status = 'concluido'
+      GROUP BY id, i.nome_produto
+      ORDER BY qtd_total DESC
+    `);
+
+    const produtos = prodsRes.rows.map(r => ({
+      id: r.id,
+      nome: r.nome,
+      qtd_total: parseInt(r.qtd_total, 10),
+      faturamento_total: parseFloat(r.faturamento_total)
+    }));
+
+    // 3. Matriz Hora x Dia com filtro opcional de produto e origem
+    const matrizParams = [filterProd, filterOrigem];
+    const matrizRes = await query(`
+      SELECT 
+        ((p.data_hora AT TIME ZONE 'America/Campo_Grande') - INTERVAL '6 hours')::date as dia_evento,
+        EXTRACT(HOUR FROM (p.data_hora AT TIME ZONE 'America/Campo_Grande'))::int as hora,
+        COUNT(DISTINCT p.id) as qtd_pedidos,
+        COALESCE(SUM(i.quantidade), 0) as qtd_itens,
+        COALESCE(SUM(i.subtotal), 0) as faturamento
+      FROM expobai.pedidos p
+      JOIN expobai.pedido_itens i ON i.pedido_id = p.id
+      WHERE p.status = 'concluido'
+        AND ($1::text IS NULL OR i.produto_id::text = $1 OR i.nome_produto = $1)
+        AND ($2::text IS NULL OR p.origem = $2)
+      GROUP BY dia_evento, hora
+      ORDER BY dia_evento, hora
+    `, matrizParams);
+
+    // 4. Top 3 produtos mais vendidos por hora e dia
+    const topItensRes = await query(`
+      WITH RankedItens AS (
+        SELECT 
+          ((p.data_hora AT TIME ZONE 'America/Campo_Grande') - INTERVAL '6 hours')::date as dia_evento,
+          EXTRACT(HOUR FROM (p.data_hora AT TIME ZONE 'America/Campo_Grande'))::int as hora,
+          i.nome_produto,
+          SUM(i.quantidade) as qtd,
+          SUM(i.subtotal) as subtotal,
+          ROW_NUMBER() OVER(
+            PARTITION BY ((p.data_hora AT TIME ZONE 'America/Campo_Grande') - INTERVAL '6 hours')::date, 
+                         EXTRACT(HOUR FROM (p.data_hora AT TIME ZONE 'America/Campo_Grande'))::int 
+            ORDER BY SUM(i.quantidade) DESC
+          ) as rnk
+        FROM expobai.pedidos p
+        JOIN expobai.pedido_itens i ON i.pedido_id = p.id
+        WHERE p.status = 'concluido'
+          AND ($1::text IS NULL OR p.origem = $1)
+        GROUP BY dia_evento, hora, i.nome_produto
+      )
+      SELECT dia_evento, hora, rnk, nome_produto, qtd, subtotal
+      FROM RankedItens
+      WHERE rnk <= 3
+      ORDER BY dia_evento, hora, rnk
+    `, [filterOrigem]);
+
+    const topMap = {};
+    topItensRes.rows.forEach(r => {
+      const dStr = r.dia_evento instanceof Date ? r.dia_evento.toISOString().split('T')[0] : String(r.dia_evento);
+      const key = `${dStr}_${r.hora}`;
+      if (!topMap[key]) topMap[key] = [];
+      topMap[key].push({
+        nome: r.nome_produto,
+        qtd: parseInt(r.qtd, 10),
+        subtotal: parseFloat(r.subtotal)
+      });
+    });
+
+    // 5. Organizar as horas operacionais (Ciclo Noturno: 16h às 04h)
+    const cicloHoras = [16, 17, 18, 19, 20, 21, 22, 23, 0, 1, 2, 3, 4];
+    
+    // Mapear dados para a matriz
+    const gridMap = {};
+    matrizRes.rows.forEach(r => {
+      const dStr = r.dia_evento instanceof Date ? r.dia_evento.toISOString().split('T')[0] : String(r.dia_evento);
+      const h = parseInt(r.hora, 10);
+      const key = `${dStr}_${h}`;
+      gridMap[key] = {
+        qtd_pedidos: parseInt(r.qtd_pedidos, 10),
+        qtd_itens: parseInt(r.qtd_itens, 10),
+        faturamento: parseFloat(r.faturamento)
+      };
+    });
+
+    // Estruturar matriz final por hora
+    const matrizHoras = cicloHoras.map(hora => {
+      const horaStr = `${String(hora).padStart(2, '0')}:00`;
+      let totalPedidosHora = 0;
+      let totalItensHora = 0;
+      let totalFaturamentoHora = 0;
+      const valoresPorDia = {};
+
+      dias.forEach(d => {
+        const cell = gridMap[`${d.data}_${hora}`] || { qtd_pedidos: 0, qtd_itens: 0, faturamento: 0 };
+        const topProds = topMap[`${d.data}_${hora}`] || [];
+        valoresPorDia[d.data] = {
+          ...cell,
+          top_produtos: topProds
+        };
+        totalPedidosHora += cell.qtd_pedidos;
+        totalItensHora += cell.qtd_itens;
+        totalFaturamentoHora += cell.faturamento;
+      });
+
+      return {
+        hora,
+        hora_label: horaStr,
+        valores_por_dia: valoresPorDia,
+        total_pedidos: totalPedidosHora,
+        total_itens: totalItensHora,
+        total_faturamento: totalFaturamentoHora
+      };
+    });
+
+    // 6. Identificar Horários de Pico
+    let picoGeralPedidos = null;
+    let picoGeralFaturamento = null;
+    matrizHoras.forEach(row => {
+      if (!picoGeralPedidos || row.total_pedidos > picoGeralPedidos.total_pedidos) {
+        picoGeralPedidos = { hora: row.hora, hora_label: row.hora_label, total_pedidos: row.total_pedidos };
+      }
+      if (!picoGeralFaturamento || row.total_faturamento > picoGeralFaturamento.total_faturamento) {
+        picoGeralFaturamento = { hora: row.hora, hora_label: row.hora_label, total_faturamento: row.total_faturamento };
+      }
+    });
+
+    // Picos individuais de cada dia
+    const picosPorDia = {};
+    dias.forEach(d => {
+      let maxPedidos = 0;
+      let maxFat = 0;
+      let horaMax = null;
+      matrizHoras.forEach(row => {
+        const cell = row.valores_por_dia[d.data];
+        if (cell && (cell.qtd_pedidos > maxPedidos || (cell.qtd_pedidos === maxPedidos && cell.faturamento > maxFat))) {
+          maxPedidos = cell.qtd_pedidos;
+          maxFat = cell.faturamento;
+          horaMax = row.hora_label;
+        }
+      });
+      picosPorDia[d.data] = {
+        hora_pico: horaMax || '-',
+        pedidos_pico: maxPedidos,
+        faturamento_pico: maxFat
+      };
+    });
+
+    // 7. Dados de Dispositivos (Mobile vs Desktop)
+    const dispRes = await query(`
+      SELECT 
+        COALESCE(origem, 'desktop') as origem,
+        COUNT(*) as total_vendas,
+        SUM(total) as faturamento,
+        ROUND(AVG(total), 2) as ticket_medio
+      FROM expobai.pedidos
+      WHERE status = 'concluido'
+      GROUP BY origem
+    `);
+
+    // Linha do tempo das vendas mobile (para conferência e auditoria de saídas no parque)
+    const mobileTimelineRes = await query(`
+      SELECT 
+        p.id,
+        p.numero_pedido,
+        p.total,
+        p.forma_pagamento,
+        TO_CHAR(p.data_hora AT TIME ZONE 'America/Campo_Grande', 'YYYY-MM-DD HH24:MI:SS') as horario_ms,
+        EXTRACT(HOUR FROM p.data_hora AT TIME ZONE 'America/Campo_Grande')::int as hora,
+        ((p.data_hora AT TIME ZONE 'America/Campo_Grande') - INTERVAL '6 hours')::date as dia_evento,
+        (
+          SELECT string_agg(i.quantidade || 'x ' || i.nome_produto, ', ')
+          FROM expobai.pedido_itens i
+          WHERE i.pedido_id = p.id
+        ) as itens
+      FROM expobai.pedidos p
+      WHERE p.origem = 'mobile' AND p.status = 'concluido'
+      ORDER BY p.data_hora ASC
+    `);
+
+    return {
+      dias,
+      produtos,
+      matriz_horas: matrizHoras,
+      picos: {
+        geral_pedidos: picoGeralPedidos,
+        geral_faturamento: picoGeralFaturamento,
+        por_dia: picosPorDia
+      },
+      dispositivos: {
+        resumo: dispRes.rows,
+        mobile_timeline: mobileTimelineRes.rows
+      }
+    };
   }
 };
 
