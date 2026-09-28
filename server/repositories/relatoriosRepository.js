@@ -676,7 +676,7 @@ const relatoriosRepository = {
       FROM expobai.pedidos p
       JOIN expobai.pedido_itens i ON i.pedido_id = p.id
       WHERE p.status = 'concluido'
-      GROUP BY id, i.nome_produto
+      GROUP BY COALESCE(i.produto_id::text, i.nome_produto), i.nome_produto
       ORDER BY qtd_total DESC
     `);
 
