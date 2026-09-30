@@ -1,0 +1,971 @@
+[
+  {
+    "id": 941,
+    "numero_pedido": 939,
+    "codigo_identificador": "EXP-939",
+    "total": 6.0,
+    "forma_pagamento": "pix",
+    "valor_pago": 6.0,
+    "troco": 0.0,
+    "status": "concluido",
+    "pagamentos": [
+      {
+        "forma": "pix",
+        "valor": 6
+      }
+    ],
+    "data_hora_local": "2026-09-27 23:44:01"
+  },
+  {
+    "id": 943,
+    "numero_pedido": 941,
+    "codigo_identificador": "EXP-941",
+    "total": 6.0,
+    "forma_pagamento": "pix",
+    "valor_pago": 6.0,
+    "troco": 0.0,
+    "status": "concluido",
+    "pagamentos": [
+      {
+        "forma": "pix",
+        "valor": 6
+      }
+    ],
+    "data_hora_local": "2026-09-27 23:45:04"
+  },
+  {
+    "id": 969,
+    "numero_pedido": 967,
+    "codigo_identificador": "EXP-967",
+    "total": 6.0,
+    "forma_pagamento": "pix",
+    "valor_pago": 6.0,
+    "troco": 0.0,
+    "status": "concluido",
+    "pagamentos": [
+      {
+        "forma": "pix",
+        "valor": 6
+      }
+    ],
+    "data_hora_local": "2026-09-28 00:01:11"
+  },
+  {
+    "id": 1022,
+    "numero_pedido": 1020,
+    "codigo_identificador": "EXP-1020",
+    "total": 6.0,
+    "forma_pagamento": "pix",
+    "valor_pago": 6.0,
+    "troco": 0.0,
+    "status": "concluido",
+    "pagamentos": [
+      {
+        "forma": "pix",
+        "valor": 6
+      }
+    ],
+    "data_hora_local": "2026-09-28 00:54:11"
+  },
+  {
+    "id": 1034,
+    "numero_pedido": 1032,
+    "codigo_identificador": "EXP-1032",
+    "total": 6.0,
+    "forma_pagamento": "pix",
+    "valor_pago": 6.0,
+    "troco": 0.0,
+    "status": "concluido",
+    "pagamentos": [
+      {
+        "forma": "pix",
+        "valor": 6
+      }
+    ],
+    "data_hora_local": "2026-09-28 01:11:42"
+  },
+  {
+    "id": 1048,
+    "numero_pedido": 1046,
+    "codigo_identificador": "EXP-1046",
+    "total": 6.0,
+    "forma_pagamento": "pix",
+    "valor_pago": 6.0,
+    "troco": 0.0,
+    "status": "concluido",
+    "pagamentos": [
+      {
+        "forma": "pix",
+        "valor": 6
+      }
+    ],
+    "data_hora_local": "2026-09-28 01:26:00"
+  },
+  {
+    "id": 1049,
+    "numero_pedido": 1047,
+    "codigo_identificador": "EXP-1047",
+    "total": 6.0,
+    "forma_pagamento": "pix",
+    "valor_pago": 6.0,
+    "troco": 0.0,
+    "status": "concluido",
+    "pagamentos": [
+      {
+        "forma": "pix",
+        "valor": 6
+      }
+    ],
+    "data_hora_local": "2026-09-28 01:26:38"
+  },
+  {
+    "id": 1050,
+    "numero_pedido": 1048,
+    "codigo_identificador": "EXP-1048",
+    "total": 6.0,
+    "forma_pagamento": "pix",
+    "valor_pago": 6.0,
+    "troco": 0.0,
+    "status": "concluido",
+    "pagamentos": [
+      {
+        "forma": "pix",
+        "valor": 6
+      }
+    ],
+    "data_hora_local": "2026-09-28 01:27:27"
+  },
+  {
+    "id": 583,
+    "numero_pedido": 583,
+    "codigo_identificador": "EXP-583",
+    "total": 10.0,
+    "forma_pagamento": "pix",
+    "valor_pago": 10.0,
+    "troco": 0.0,
+    "status": "concluido",
+    "pagamentos": [
+      {
+        "forma": "pix",
+        "valor": 10
+      }
+    ],
+    "data_hora_local": "2026-09-27 01:55:41"
+  },
+  {
+    "id": 584,
+    "numero_pedido": 584,
+    "codigo_identificador": "EXP-584",
+    "total": 10.0,
+    "forma_pagamento": "pix",
+    "valor_pago": 10.0,
+    "troco": 0.0,
+    "status": "concluido",
+    "pagamentos": [
+      {
+        "forma": "pix",
+        "valor": 10
+      }
+    ],
+    "data_hora_local": "2026-09-27 01:57:02"
+  },
+  {
+    "id": 610,
+    "numero_pedido": 608,
+    "codigo_identificador": "EXP-608",
+    "total": 10.0,
+    "forma_pagamento": "pix",
+    "valor_pago": 10.0,
+    "troco": 0.0,
+    "status": "concluido",
+    "pagamentos": [
+      {
+        "forma": "pix",
+        "valor": 10
+      }
+    ],
+    "data_hora_local": "2026-09-27 16:51:32"
+  },
+  {
+    "id": 612,
+    "numero_pedido": 610,
+    "codigo_identificador": "EXP-610",
+    "total": 10.0,
+    "forma_pagamento": "pix",
+    "valor_pago": 10.0,
+    "troco": 0.0,
+    "status": "concluido",
+    "pagamentos": [
+      {
+        "forma": "pix",
+        "valor": 10
+      }
+    ],
+    "data_hora_local": "2026-09-27 17:03:52"
+  },
+  {
+    "id": 613,
+    "numero_pedido": 611,
+    "codigo_identificador": "EXP-611",
+    "total": 10.0,
+    "forma_pagamento": "pix",
+    "valor_pago": 10.0,
+    "troco": 0.0,
+    "status": "concluido",
+    "pagamentos": [
+      {
+        "forma": "pix",
+        "valor": 10
+      }
+    ],
+    "data_hora_local": "2026-09-27 17:05:35"
+  },
+  {
+    "id": 668,
+    "numero_pedido": 666,
+    "codigo_identificador": "EXP-666",
+    "total": 10.0,
+    "forma_pagamento": "pix",
+    "valor_pago": 10.0,
+    "troco": 0.0,
+    "status": "concluido",
+    "pagamentos": [
+      {
+        "forma": "pix",
+        "valor": 10
+      }
+    ],
+    "data_hora_local": "2026-09-27 20:05:29"
+  },
+  {
+    "id": 796,
+    "numero_pedido": 794,
+    "codigo_identificador": "EXP-794",
+    "total": 10.0,
+    "forma_pagamento": "pix",
+    "valor_pago": 10.0,
+    "troco": 0.0,
+    "status": "concluido",
+    "pagamentos": [
+      {
+        "forma": "pix",
+        "valor": 10
+      }
+    ],
+    "data_hora_local": "2026-09-27 22:04:18"
+  },
+  {
+    "id": 842,
+    "numero_pedido": 840,
+    "codigo_identificador": "EXP-840",
+    "total": 10.0,
+    "forma_pagamento": "pix",
+    "valor_pago": 10.0,
+    "troco": 0.0,
+    "status": "concluido",
+    "pagamentos": [
+      {
+        "forma": "pix",
+        "valor": 10
+      }
+    ],
+    "data_hora_local": "2026-09-27 22:40:00"
+  },
+  {
+    "id": 857,
+    "numero_pedido": 855,
+    "codigo_identificador": "EXP-855",
+    "total": 10.0,
+    "forma_pagamento": "pix",
+    "valor_pago": 10.0,
+    "troco": 0.0,
+    "status": "concluido",
+    "pagamentos": [
+      {
+        "forma": "pix",
+        "valor": 10
+      }
+    ],
+    "data_hora_local": "2026-09-27 22:50:32"
+  },
+  {
+    "id": 867,
+    "numero_pedido": 865,
+    "codigo_identificador": "EXP-865",
+    "total": 10.0,
+    "forma_pagamento": "pix",
+    "valor_pago": 10.0,
+    "troco": 0.0,
+    "status": "concluido",
+    "pagamentos": [
+      {
+        "forma": "pix",
+        "valor": 10
+      }
+    ],
+    "data_hora_local": "2026-09-27 22:56:24"
+  },
+  {
+    "id": 894,
+    "numero_pedido": 892,
+    "codigo_identificador": "EXP-892",
+    "total": 10.0,
+    "forma_pagamento": "pix",
+    "valor_pago": 10.0,
+    "troco": 0.0,
+    "status": "concluido",
+    "pagamentos": [
+      {
+        "forma": "pix",
+        "valor": 10
+      }
+    ],
+    "data_hora_local": "2026-09-27 23:16:25"
+  },
+  {
+    "id": 1017,
+    "numero_pedido": 1015,
+    "codigo_identificador": "EXP-1015",
+    "total": 10.0,
+    "forma_pagamento": "pix",
+    "valor_pago": 10.0,
+    "troco": 0.0,
+    "status": "concluido",
+    "pagamentos": [
+      {
+        "forma": "pix",
+        "valor": 10
+      }
+    ],
+    "data_hora_local": "2026-09-28 00:50:14"
+  },
+  {
+    "id": 1018,
+    "numero_pedido": 1016,
+    "codigo_identificador": "EXP-1016",
+    "total": 10.0,
+    "forma_pagamento": "pix",
+    "valor_pago": 10.0,
+    "troco": 0.0,
+    "status": "concluido",
+    "pagamentos": [
+      {
+        "forma": "pix",
+        "valor": 10
+      }
+    ],
+    "data_hora_local": "2026-09-28 00:51:41"
+  },
+  {
+    "id": 1099,
+    "numero_pedido": 1097,
+    "codigo_identificador": "EXP-1097",
+    "total": 10.0,
+    "forma_pagamento": "pix",
+    "valor_pago": 10.0,
+    "troco": 0.0,
+    "status": "concluido",
+    "pagamentos": [
+      {
+        "forma": "pix",
+        "valor": 10
+      }
+    ],
+    "data_hora_local": "2026-09-28 03:29:17"
+  },
+  {
+    "id": 802,
+    "numero_pedido": 800,
+    "codigo_identificador": "EXP-800",
+    "total": 12.0,
+    "forma_pagamento": "pix",
+    "valor_pago": 12.0,
+    "troco": 0.0,
+    "status": "concluido",
+    "pagamentos": [
+      {
+        "forma": "pix",
+        "valor": 12
+      }
+    ],
+    "data_hora_local": "2026-09-27 22:07:21"
+  },
+  {
+    "id": 807,
+    "numero_pedido": 805,
+    "codigo_identificador": "EXP-805",
+    "total": 12.0,
+    "forma_pagamento": "pix",
+    "valor_pago": 12.0,
+    "troco": 0.0,
+    "status": "concluido",
+    "pagamentos": [
+      {
+        "forma": "pix",
+        "valor": 12
+      }
+    ],
+    "data_hora_local": "2026-09-27 22:11:18"
+  },
+  {
+    "id": 847,
+    "numero_pedido": 845,
+    "codigo_identificador": "EXP-845",
+    "total": 12.0,
+    "forma_pagamento": "pix",
+    "valor_pago": 12.0,
+    "troco": 0.0,
+    "status": "concluido",
+    "pagamentos": [
+      {
+        "forma": "pix",
+        "valor": 12
+      }
+    ],
+    "data_hora_local": "2026-09-27 22:42:18"
+  },
+  {
+    "id": 870,
+    "numero_pedido": 868,
+    "codigo_identificador": "EXP-868",
+    "total": 12.0,
+    "forma_pagamento": "pix",
+    "valor_pago": 12.0,
+    "troco": 0.0,
+    "status": "concluido",
+    "pagamentos": [
+      {
+        "forma": "pix",
+        "valor": 12
+      }
+    ],
+    "data_hora_local": "2026-09-27 22:57:58"
+  },
+  {
+    "id": 1002,
+    "numero_pedido": 1000,
+    "codigo_identificador": "EXP-1000",
+    "total": 12.0,
+    "forma_pagamento": "pix",
+    "valor_pago": 12.0,
+    "troco": 0.0,
+    "status": "concluido",
+    "pagamentos": [
+      {
+        "forma": "pix",
+        "valor": 12
+      }
+    ],
+    "data_hora_local": "2026-09-28 00:33:31"
+  },
+  {
+    "id": 1005,
+    "numero_pedido": 1003,
+    "codigo_identificador": "EXP-1003",
+    "total": 12.0,
+    "forma_pagamento": "pix",
+    "valor_pago": 12.0,
+    "troco": 0.0,
+    "status": "concluido",
+    "pagamentos": [
+      {
+        "forma": "pix",
+        "valor": 12
+      }
+    ],
+    "data_hora_local": "2026-09-28 00:37:31"
+  },
+  {
+    "id": 1026,
+    "numero_pedido": 1024,
+    "codigo_identificador": "EXP-1024",
+    "total": 12.0,
+    "forma_pagamento": "pix",
+    "valor_pago": 12.0,
+    "troco": 0.0,
+    "status": "concluido",
+    "pagamentos": [
+      {
+        "forma": "pix",
+        "valor": 12
+      }
+    ],
+    "data_hora_local": "2026-09-28 00:56:11"
+  },
+  {
+    "id": 821,
+    "numero_pedido": 819,
+    "codigo_identificador": "EXP-819",
+    "total": 15.0,
+    "forma_pagamento": "pix",
+    "valor_pago": 15.0,
+    "troco": 0.0,
+    "status": "concluido",
+    "pagamentos": [
+      {
+        "forma": "pix",
+        "valor": 15
+      }
+    ],
+    "data_hora_local": "2026-09-27 22:22:53"
+  },
+  {
+    "id": 831,
+    "numero_pedido": 829,
+    "codigo_identificador": "EXP-829",
+    "total": 15.0,
+    "forma_pagamento": "pix",
+    "valor_pago": 15.0,
+    "troco": 0.0,
+    "status": "concluido",
+    "pagamentos": [
+      {
+        "forma": "pix",
+        "valor": 15
+      }
+    ],
+    "data_hora_local": "2026-09-27 22:29:00"
+  },
+  {
+    "id": 832,
+    "numero_pedido": 830,
+    "codigo_identificador": "EXP-830",
+    "total": 15.0,
+    "forma_pagamento": "pix",
+    "valor_pago": 15.0,
+    "troco": 0.0,
+    "status": "concluido",
+    "pagamentos": [
+      {
+        "forma": "pix",
+        "valor": 15
+      }
+    ],
+    "data_hora_local": "2026-09-27 22:30:20"
+  },
+  {
+    "id": 962,
+    "numero_pedido": 960,
+    "codigo_identificador": "EXP-960",
+    "total": 15.0,
+    "forma_pagamento": "pix",
+    "valor_pago": 15.0,
+    "troco": 0.0,
+    "status": "concluido",
+    "pagamentos": [
+      {
+        "forma": "pix",
+        "valor": 15
+      }
+    ],
+    "data_hora_local": "2026-09-27 23:56:38"
+  },
+  {
+    "id": 980,
+    "numero_pedido": 978,
+    "codigo_identificador": "EXP-978",
+    "total": 15.0,
+    "forma_pagamento": "pix",
+    "valor_pago": 15.0,
+    "troco": 0.0,
+    "status": "concluido",
+    "pagamentos": [
+      {
+        "forma": "pix",
+        "valor": 15
+      }
+    ],
+    "data_hora_local": "2026-09-28 00:14:22"
+  },
+  {
+    "id": 670,
+    "numero_pedido": 668,
+    "codigo_identificador": "EXP-668",
+    "total": 16.0,
+    "forma_pagamento": "pix",
+    "valor_pago": 16.0,
+    "troco": 0.0,
+    "status": "concluido",
+    "pagamentos": [
+      {
+        "forma": "pix",
+        "valor": 16
+      }
+    ],
+    "data_hora_local": "2026-09-27 20:09:41"
+  },
+  {
+    "id": 739,
+    "numero_pedido": 737,
+    "codigo_identificador": "EXP-737",
+    "total": 16.0,
+    "forma_pagamento": "pix",
+    "valor_pago": 16.0,
+    "troco": 0.0,
+    "status": "concluido",
+    "pagamentos": [
+      {
+        "forma": "pix",
+        "valor": 16
+      }
+    ],
+    "data_hora_local": "2026-09-27 21:19:50"
+  },
+  {
+    "id": 1032,
+    "numero_pedido": 1030,
+    "codigo_identificador": "EXP-1030",
+    "total": 16.0,
+    "forma_pagamento": "pix",
+    "valor_pago": 16.0,
+    "troco": 0.0,
+    "status": "concluido",
+    "pagamentos": [
+      {
+        "forma": "pix",
+        "valor": 16
+      }
+    ],
+    "data_hora_local": "2026-09-28 01:04:01"
+  },
+  {
+    "id": 954,
+    "numero_pedido": 952,
+    "codigo_identificador": "EXP-952",
+    "total": 18.0,
+    "forma_pagamento": "pix",
+    "valor_pago": 18.0,
+    "troco": 0.0,
+    "status": "concluido",
+    "pagamentos": [
+      {
+        "forma": "pix",
+        "valor": 18
+      }
+    ],
+    "data_hora_local": "2026-09-27 23:50:31"
+  },
+  {
+    "id": 994,
+    "numero_pedido": 992,
+    "codigo_identificador": "EXP-992",
+    "total": 18.0,
+    "forma_pagamento": "pix",
+    "valor_pago": 18.0,
+    "troco": 0.0,
+    "status": "concluido",
+    "pagamentos": [
+      {
+        "forma": "pix",
+        "valor": 18
+      }
+    ],
+    "data_hora_local": "2026-09-28 00:26:13"
+  },
+  {
+    "id": 999,
+    "numero_pedido": 997,
+    "codigo_identificador": "EXP-997",
+    "total": 18.0,
+    "forma_pagamento": "pix",
+    "valor_pago": 18.0,
+    "troco": 0.0,
+    "status": "concluido",
+    "pagamentos": [
+      {
+        "forma": "pix",
+        "valor": 18
+      }
+    ],
+    "data_hora_local": "2026-09-28 00:29:43"
+  },
+  {
+    "id": 1070,
+    "numero_pedido": 1068,
+    "codigo_identificador": "EXP-1068",
+    "total": 18.0,
+    "forma_pagamento": "pix",
+    "valor_pago": 18.0,
+    "troco": 0.0,
+    "status": "concluido",
+    "pagamentos": [
+      {
+        "forma": "pix",
+        "valor": 18
+      }
+    ],
+    "data_hora_local": "2026-09-28 02:02:00"
+  },
+  {
+    "id": 1096,
+    "numero_pedido": 1094,
+    "codigo_identificador": "EXP-1094",
+    "total": 18.0,
+    "forma_pagamento": "pix",
+    "valor_pago": 18.0,
+    "troco": 0.0,
+    "status": "concluido",
+    "pagamentos": [
+      {
+        "forma": "pix",
+        "valor": 18
+      }
+    ],
+    "data_hora_local": "2026-09-28 03:06:17"
+  },
+  {
+    "id": 981,
+    "numero_pedido": 979,
+    "codigo_identificador": "EXP-979",
+    "total": 21.0,
+    "forma_pagamento": "pix",
+    "valor_pago": 21.0,
+    "troco": 0.0,
+    "status": "concluido",
+    "pagamentos": [
+      {
+        "forma": "pix",
+        "valor": 21
+      }
+    ],
+    "data_hora_local": "2026-09-28 00:15:21"
+  },
+  {
+    "id": 982,
+    "numero_pedido": 980,
+    "codigo_identificador": "EXP-980",
+    "total": 21.0,
+    "forma_pagamento": "pix",
+    "valor_pago": 21.0,
+    "troco": 0.0,
+    "status": "concluido",
+    "pagamentos": [
+      {
+        "forma": "pix",
+        "valor": 21
+      }
+    ],
+    "data_hora_local": "2026-09-28 00:17:24"
+  },
+  {
+    "id": 672,
+    "numero_pedido": 670,
+    "codigo_identificador": "EXP-670",
+    "total": 26.0,
+    "forma_pagamento": "pix",
+    "valor_pago": 26.0,
+    "troco": 0.0,
+    "status": "concluido",
+    "pagamentos": [
+      {
+        "forma": "pix",
+        "valor": 26
+      }
+    ],
+    "data_hora_local": "2026-09-27 20:11:03"
+  },
+  {
+    "id": 798,
+    "numero_pedido": 796,
+    "codigo_identificador": "EXP-796",
+    "total": 27.0,
+    "forma_pagamento": "pix",
+    "valor_pago": 27.0,
+    "troco": 0.0,
+    "status": "concluido",
+    "pagamentos": [
+      {
+        "forma": "pix",
+        "valor": 27
+      }
+    ],
+    "data_hora_local": "2026-09-27 22:05:03"
+  },
+  {
+    "id": 1058,
+    "numero_pedido": 1056,
+    "codigo_identificador": "EXP-1056",
+    "total": 30.0,
+    "forma_pagamento": "pix",
+    "valor_pago": 30.0,
+    "troco": 0.0,
+    "status": "concluido",
+    "pagamentos": [
+      {
+        "forma": "pix",
+        "valor": 30
+      }
+    ],
+    "data_hora_local": "2026-09-28 01:41:56"
+  },
+  {
+    "id": 1065,
+    "numero_pedido": 1063,
+    "codigo_identificador": "EXP-1063",
+    "total": 30.0,
+    "forma_pagamento": "pix",
+    "valor_pago": 30.0,
+    "troco": 0.0,
+    "status": "concluido",
+    "pagamentos": [
+      {
+        "forma": "pix",
+        "valor": 30
+      }
+    ],
+    "data_hora_local": "2026-09-28 01:52:19"
+  },
+  {
+    "id": 1097,
+    "numero_pedido": 1095,
+    "codigo_identificador": "EXP-1095",
+    "total": 30.0,
+    "forma_pagamento": "pix",
+    "valor_pago": 30.0,
+    "troco": 0.0,
+    "status": "concluido",
+    "pagamentos": [
+      {
+        "forma": "pix",
+        "valor": 30
+      }
+    ],
+    "data_hora_local": "2026-09-28 03:17:02"
+  },
+  {
+    "id": 968,
+    "numero_pedido": 966,
+    "codigo_identificador": "EXP-966",
+    "total": 36.0,
+    "forma_pagamento": "pix",
+    "valor_pago": 36.0,
+    "troco": 0.0,
+    "status": "concluido",
+    "pagamentos": [
+      {
+        "forma": "pix",
+        "valor": 36
+      }
+    ],
+    "data_hora_local": "2026-09-28 00:00:14"
+  },
+  {
+    "id": 420,
+    "numero_pedido": 420,
+    "codigo_identificador": "EXP-420",
+    "total": 38.0,
+    "forma_pagamento": "pix",
+    "valor_pago": 38.0,
+    "troco": 0.0,
+    "status": "concluido",
+    "pagamentos": [
+      {
+        "forma": "pix",
+        "valor": 38
+      }
+    ],
+    "data_hora_local": "2026-09-26 23:10:26"
+  },
+  {
+    "id": 816,
+    "numero_pedido": 814,
+    "codigo_identificador": "EXP-814",
+    "total": 40.0,
+    "forma_pagamento": "pix",
+    "valor_pago": 40.0,
+    "troco": 0.0,
+    "status": "concluido",
+    "pagamentos": [
+      {
+        "forma": "pix",
+        "valor": 40
+      }
+    ],
+    "data_hora_local": "2026-09-27 22:20:32"
+  },
+  {
+    "id": 983,
+    "numero_pedido": 981,
+    "codigo_identificador": "EXP-981",
+    "total": 42.0,
+    "forma_pagamento": "pix",
+    "valor_pago": 42.0,
+    "troco": 0.0,
+    "status": "concluido",
+    "pagamentos": [
+      {
+        "forma": "pix",
+        "valor": 42
+      }
+    ],
+    "data_hora_local": "2026-09-28 00:18:15"
+  },
+  {
+    "id": 754,
+    "numero_pedido": 752,
+    "codigo_identificador": "EXP-752",
+    "total": 45.0,
+    "forma_pagamento": "pix",
+    "valor_pago": 45.0,
+    "troco": 0.0,
+    "status": "concluido",
+    "pagamentos": [
+      {
+        "forma": "pix",
+        "valor": 45
+      }
+    ],
+    "data_hora_local": "2026-09-27 21:31:56"
+  },
+  {
+    "id": 715,
+    "numero_pedido": 713,
+    "codigo_identificador": "EXP-713",
+    "total": 63.0,
+    "forma_pagamento": "pix",
+    "valor_pago": 63.0,
+    "troco": 0.0,
+    "status": "concluido",
+    "pagamentos": [
+      {
+        "forma": "pix",
+        "valor": 63
+      }
+    ],
+    "data_hora_local": "2026-09-27 20:59:15"
+  },
+  {
+    "id": 923,
+    "numero_pedido": 921,
+    "codigo_identificador": "EXP-921",
+    "total": 72.0,
+    "forma_pagamento": "pix",
+    "valor_pago": 72.0,
+    "troco": 0.0,
+    "status": "concluido",
+    "pagamentos": [
+      {
+        "forma": "pix",
+        "valor": 72
+      }
+    ],
+    "data_hora_local": "2026-09-27 23:34:45"
+  },
+  {
+    "id": 679,
+    "numero_pedido": 677,
+    "codigo_identificador": "EXP-677",
+    "total": 108.0,
+    "forma_pagamento": "pix",
+    "valor_pago": 108.0,
+    "troco": 0.0,
+    "status": "concluido",
+    "pagamentos": [
+      {
+        "forma": "pix",
+        "valor": 108
+      }
+    ],
+    "data_hora_local": "2026-09-27 20:17:17"
+  }
+]

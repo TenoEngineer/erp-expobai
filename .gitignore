@@ -21,3 +21,5 @@ coverage/
 *.swo
 *~
 .cache/
+__pycache__/
+*.pyc
