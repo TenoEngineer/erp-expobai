@@ -167,8 +167,13 @@ export const testPrinter = async (config) => {
   return data;
 };
 
-export const printOrderDirect = async (order) => {
-  const { data } = await api.post('/impressao/imprimir', { pedido: order });
+export const printOrderDirect = async (order, options = {}) => {
+  const { data } = await api.post('/impressao/imprimir', { pedido: order, ...options });
+  return data;
+};
+
+export const printFichasDirect = async (order) => {
+  const { data } = await api.post('/impressao/imprimir', { pedido: order, modo: 'fichas' });
   return data;
 };
 

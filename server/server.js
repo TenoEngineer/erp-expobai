@@ -49,7 +49,7 @@ app.use('/uploads', express.static(uploadsDir));
 app.get('/api/health', (req, res) => {
   res.json({
     status: 'online',
-    app: 'ERP Expobai - Frente de Caixa',
+    app: 'ExpoERP - Frente de Caixa e Gestão para Eventos',
     timestamp: new Date().toISOString()
   });
 });
@@ -86,7 +86,7 @@ if (fs.existsSync(clientDistPath)) {
 dbReady.then(() => {
   app.listen(PORT, () => {
     console.log(`=========================================`);
-    console.log(`🤠 ERP EXPOBAI - SERVIDOR ATIVO`);
+    console.log(`⚡ EXPOERP - SISTEMA PDV & EVENTOS ATIVO`);
     console.log(`🚀 Porta: http://localhost:${PORT}`);
     console.log(`🌐 Ambiente: ${process.env.NODE_ENV || 'development'}`);
     console.log(`=========================================`);

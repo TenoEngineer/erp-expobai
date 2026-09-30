@@ -257,21 +257,156 @@ function buildTicketProducao(order, config = {}, largura = '80mm', cortar = true
 }
 
 /**
- * 3. GERAÇÃO DOS DOIS TICKETS CONCATENADOS
- * Ticket 1 (Cliente) -> Guilhotina -> Ticket 2 (Cozinha) -> Guilhotina
+ * 3. EXTRAI FICHAS INDIVIDUAIS DO PEDIDO (INCLUINDO COMBOS DESMEMBRADOS)
  */
-function buildAmbosTickets(order, config = {}, largura = '80mm', cortar = true) {
-  const buf1 = buildTicketCliente(order, config, largura, cortar);
-  const buf2 = buildTicketProducao(order, config, largura, cortar);
-  return Buffer.concat([buf1, buf2]);
+function extractFichasFromOrder(order) {
+  const fichas = [];
+  const itens = order.itens || order.itens_detalhes || [];
+
+  itens.forEach((item, itemIdx) => {
+    if (item.gera_ficha === false || item.gera_ficha === 0) return;
+
+    const qtd = Math.max(1, parseInt(item.quantidade, 10) || 1);
+    let comboInfo = item.combo_info;
+    if (typeof comboInfo === 'string') {
+      try { comboInfo = JSON.parse(comboInfo); } catch {}
+    }
+
+    if (comboInfo?.itens && Array.isArray(comboInfo.itens) && comboInfo.itens.length > 0) {
+      for (let c = 0; c < qtd; c++) {
+        comboInfo.itens.forEach((sub, subIdx) => {
+          const subQtd = Math.max(1, parseInt(sub.quantidade, 10) || 1);
+          for (let s = 0; s < subQtd; s++) {
+            fichas.push({
+              nome_produto: sub.nome || sub.nome_produto || 'Item',
+              origem_combo: item.nome_produto || item.nome,
+              codigo_item: `${itemIdx + 1}.${c + 1}.${subIdx + 1}.${s + 1}`
+            });
+          }
+        });
+      }
+    } else {
+      for (let q = 0; q < qtd; q++) {
+        fichas.push({
+          nome_produto: item.nome_produto || item.nome || 'Item',
+          origem_combo: null,
+          codigo_item: `${itemIdx + 1}.${q + 1}`
+        });
+      }
+    }
+  });
+
+  return fichas;
 }
 
 /**
- * 4. TICKET DE TESTE DA IMPRESSORA
+ * 4. GERAÇÃO DE FICHAS INDIVIDUAIS DE RETIRADA / VALE-CONSUMO
+ * Cada ficha é formatada com cabeçalho, nome em destaque gigante e corte/picote individual.
+ */
+function buildTicketsFichas(order, config = {}, largura = '80mm', cortar = true) {
+  const fichas = extractFichasFromOrder(order);
+  if (fichas.length === 0) return Buffer.alloc(0);
+
+  const buffers = [];
+  const nomeEstande = config.nome_estande || config.nome_sistema || 'EXPOERP';
+  const numPedido = String(order.numero_pedido).padStart(3, '0');
+  const dataHora = order.data_hora 
+    ? new Date(order.data_hora).toLocaleString('pt-BR') 
+    : new Date().toLocaleString('pt-BR');
+  const totalFichas = fichas.length;
+
+  fichas.forEach((ficha, idx) => {
+    const b = new EscposBuilder();
+    const seq = idx + 1;
+    const seqStr = String(seq).padStart(2, '0');
+    const totalStr = String(totalFichas).padStart(2, '0');
+    const codigoValidador = `${numPedido}-${seqStr}`;
+
+    // Cabeçalho Centralizado
+    b.align('center');
+    b.bold(true);
+    b.size('normal');
+    b.line(nomeEstande.toUpperCase());
+    b.line('*** VALE / FICHA DE RETIRADA ***');
+    b.divider('=', largura);
+
+    // PRODUTO EM DESTAQUE GIGANTE
+    b.size('triple');
+    b.bold(true);
+    b.line(ficha.nome_produto.toUpperCase());
+    b.size('normal');
+    b.bold(false);
+
+    if (ficha.origem_combo) {
+      b.line(`(Origem: ${ficha.origem_combo})`);
+    }
+
+    b.divider('-', largura);
+
+    // Identificação da Ficha e Pedido
+    b.size('double');
+    b.bold(true);
+    b.line(`FICHA ${seqStr} / ${totalStr}`);
+    b.size('normal');
+    b.bold(false);
+
+    b.line(`PEDIDO #${numPedido} | ${dataHora}`);
+    b.bold(true);
+    b.line(`COD. VALIDADOR: [ ${codigoValidador} ]`);
+    b.bold(false);
+    b.divider('-', largura);
+
+    b.line('Apresente esta ficha no balcao para retirar.');
+    b.divider('=', largura);
+
+    b.feed(largura === '58mm' ? 1 : 2);
+    if (cortar) {
+      b.cut();
+    } else {
+      b.line('- - - - - - - - - - - - - - - - - - - - - - - -');
+      b.feed(1);
+    }
+
+    buffers.push(b.toBuffer());
+  });
+
+  return Buffer.concat(buffers);
+}
+
+/**
+ * 5. GERAÇÃO DOS TICKETS CONCATENADOS (Comprovante + Cozinha + Fichas)
+ */
+function buildAmbosTickets(order, config = {}, largura = '80mm', cortar = true) {
+  const buffers = [];
+  
+  // 1. Via do Cliente / Senha
+  if (config.imprimir_via_cliente !== 'false') {
+    buffers.push(buildTicketCliente(order, config, largura, cortar));
+  }
+
+  // 2. Via da Cozinha / Produção
+  if (config.imprimir_via_cozinha !== 'false') {
+    buffers.push(buildTicketProducao(order, config, largura, cortar));
+  }
+
+  // 3. Fichas de Retirada (se ativado na config ou no pedido)
+  const querFichas = order.imprimir_fichas !== false && config.imprimir_fichas_retirada !== 'false';
+  if (querFichas) {
+    const fichasBuf = buildTicketsFichas(order, config, largura, cortar);
+    if (fichasBuf.length > 0) {
+      buffers.push(fichasBuf);
+    }
+  }
+
+  return Buffer.concat(buffers);
+}
+
+/**
+ * 6. TICKET DE TESTE DA IMPRESSORA
  */
 function buildTicketTeste(config = {}, largura = '80mm') {
   const b = new EscposBuilder();
-  const nomeEstande = config.nome_estande || 'TENDA DOS MULLER';
+  const nomeEstande = config.nome_estande || 'EXPOERP';
 
   b.align('center');
   b.bold(true);
@@ -288,7 +423,7 @@ function buildTicketTeste(config = {}, largura = '80mm') {
   b.size('normal');
   b.bold(false);
   b.line();
-  b.line('IMPRESSORA CONFIGURADA COM SUCESSO!');
+  b.line('EXPOERP - IMPRESSORA CONFIGURADA COM SUCESSO!');
   b.line('Conexao Ativa e Operacional.');
   b.divider('-', largura);
 
@@ -306,7 +441,9 @@ function buildTicketTeste(config = {}, largura = '80mm') {
 module.exports = {
   buildTicketCliente,
   buildTicketProducao,
+  buildTicketsFichas,
   buildAmbosTickets,
   buildTicketTeste,
+  extractFichasFromOrder,
   cleanText
 };

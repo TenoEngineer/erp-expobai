@@ -183,6 +183,32 @@ async function initDB() {
       INSERT INTO expobai.configuracoes (chave, valor) VALUES ('rateio_pix_alex', '') ON CONFLICT (chave) DO NOTHING;
       INSERT INTO expobai.configuracoes (chave, valor) VALUES ('rateio_pix_heitor', '') ON CONFLICT (chave) DO NOTHING;
       INSERT INTO expobai.configuracoes (chave, valor) VALUES ('rateio_pix_pais', '') ON CONFLICT (chave) DO NOTHING;
+
+      -- Migrações v6: Fichas individuais de retirada e Fundação Multi-tenant ExpoERP
+      CREATE TABLE IF NOT EXISTS expobai.tenants (
+        id VARCHAR(50) PRIMARY KEY,
+        nome VARCHAR(150) NOT NULL,
+        responsavel VARCHAR(100),
+        telefone VARCHAR(50),
+        plano VARCHAR(50) DEFAULT 'evento',
+        ativo BOOLEAN DEFAULT TRUE,
+        criado_em TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+      );
+
+      INSERT INTO expobai.tenants (id, nome, responsavel)
+      VALUES ('tenda-muller', 'Tenda dos Müller', 'Heitor Müller')
+      ON CONFLICT (id) DO NOTHING;
+
+      ALTER TABLE expobai.produtos ADD COLUMN IF NOT EXISTS gera_ficha BOOLEAN DEFAULT TRUE;
+      ALTER TABLE expobai.pedidos ADD COLUMN IF NOT EXISTS imprimir_fichas BOOLEAN DEFAULT TRUE;
+      ALTER TABLE expobai.produtos ADD COLUMN IF NOT EXISTS tenant_id VARCHAR(50) DEFAULT 'tenda-muller';
+      ALTER TABLE expobai.pedidos ADD COLUMN IF NOT EXISTS tenant_id VARCHAR(50) DEFAULT 'tenda-muller';
+      ALTER TABLE expobai.categorias ADD COLUMN IF NOT EXISTS tenant_id VARCHAR(50) DEFAULT 'tenda-muller';
+      ALTER TABLE expobai.sessoes_caixa ADD COLUMN IF NOT EXISTS tenant_id VARCHAR(50) DEFAULT 'tenda-muller';
+      ALTER TABLE expobai.custos_evento ADD COLUMN IF NOT EXISTS tenant_id VARCHAR(50) DEFAULT 'tenda-muller';
+
+      INSERT INTO expobai.configuracoes (chave, valor) VALUES ('imprimir_fichas_retirada', 'true') ON CONFLICT (chave) DO NOTHING;
+      INSERT INTO expobai.configuracoes (chave, valor) VALUES ('nome_sistema', 'ExpoERP') ON CONFLICT (chave) DO NOTHING;
     `);
 
     // 3. Seed inicial de categorias se estiver vazio

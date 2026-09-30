@@ -1,6 +1,6 @@
 import React from 'react';
 
-export function BrandEmblem({ size = 44, className = "" }) {
+export function BrandEmblem({ size = 44, className = "", letter = "E" }) {
   return (
     <div 
       className={`relative flex items-center justify-center shrink-0 ${className}`}
@@ -104,7 +104,7 @@ export function BrandEmblem({ size = 44, className = "" }) {
           fill="#FEF3C7"
         />
 
-        {/* Letra M estilizada no centro da tenda */}
+        {/* Letra estilizada no centro da tenda */}
         <text
           x="50"
           y="70"
@@ -115,23 +115,24 @@ export function BrandEmblem({ size = 44, className = "" }) {
           fill="#FEF3C7"
           letterSpacing="1"
         >
-          M
+          {letter}
         </text>
       </svg>
     </div>
   );
 }
 
-export default function Logo({ boothName = "Tenda dos Müller", subtitle = "EXPOBAI 2026", size = 44 }) {
+export default function Logo({ boothName = "ExpoERP", subtitle = "Frente de Caixa", size = 44 }) {
+  const initial = (boothName || 'ExpoERP').trim().charAt(0).toUpperCase() || 'E';
   return (
     <div className="flex items-center gap-2 sm:gap-3 min-w-0">
       {/* Emblema Gráfico */}
-      <BrandEmblem size={size} className="w-8 h-8 sm:w-11 sm:h-11 shrink-0" />
+      <BrandEmblem size={size} letter={initial} className="w-8 h-8 sm:w-11 sm:h-11 shrink-0" />
 
       {/* Tipografia da Marca */}
       <div className="flex flex-col min-w-0">
         <div className="flex items-center gap-1.5">
-          <span className="font-extrabold text-xs sm:text-base tracking-tight bg-gradient-to-r from-amber-200 via-amber-400 to-yellow-500 bg-clip-text text-transparent uppercase drop-shadow-sm truncate max-w-[120px] sm:max-w-none">
+          <span className="font-extrabold text-xs sm:text-base tracking-tight bg-gradient-to-r from-amber-200 via-amber-400 to-yellow-500 bg-clip-text text-transparent uppercase drop-shadow-sm truncate max-w-[140px] sm:max-w-none">
             {boothName}
           </span>
           <span className="hidden xs:inline-flex items-center px-1.5 py-0.2 rounded-full text-[9px] font-black uppercase tracking-wider bg-emerald-950/90 text-emerald-300 border border-emerald-500/40 shadow-sm">
@@ -142,7 +143,7 @@ export default function Logo({ boothName = "Tenda dos Müller", subtitle = "EXPO
         <div className="flex items-center gap-1 text-[10px] sm:text-[11px] text-slate-400 font-medium leading-tight">
           <span className="text-emerald-400 font-semibold">{subtitle}</span>
           <span className="hidden sm:inline text-slate-600">•</span>
-          <span className="hidden sm:inline text-slate-400">Frente de Caixa</span>
+          <span className="hidden sm:inline text-slate-400">ExpoERP</span>
         </div>
       </div>
     </div>

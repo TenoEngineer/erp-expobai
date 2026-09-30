@@ -40,10 +40,10 @@ const produtosRepository = {
     return res.rows[0] || null;
   },
 
-  async create({ categoria_id, nome, descricao = '', preco, preco_custo = 0, foto_url = '', ordem = 0, combos = [], is_combo = false, itens_combo = [], socio = 'alex' }) {
+  async create({ categoria_id, nome, descricao = '', preco, preco_custo = 0, foto_url = '', ordem = 0, combos = [], is_combo = false, itens_combo = [], socio = 'alex', gera_ficha = true }) {
     const res = await query(
-      `INSERT INTO expobai.produtos (categoria_id, nome, descricao, preco, preco_custo, foto_url, ordem, combos, is_combo, itens_combo, socio)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+      `INSERT INTO expobai.produtos (categoria_id, nome, descricao, preco, preco_custo, foto_url, ordem, combos, is_combo, itens_combo, socio, gera_ficha)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
        RETURNING *`,
       [
         Number(categoria_id), 
@@ -56,13 +56,14 @@ const produtosRepository = {
         JSON.stringify(combos || []),
         Boolean(is_combo),
         JSON.stringify(itens_combo || []),
-        socio || 'alex'
+        socio || 'alex',
+        gera_ficha !== undefined ? Boolean(gera_ficha) : true
       ]
     );
     return res.rows[0];
   },
 
-  async update(id, { categoria_id, nome, descricao, preco, preco_custo, foto_url, ativo, ordem, combos, is_combo, itens_combo, socio }) {
+  async update(id, { categoria_id, nome, descricao, preco, preco_custo, foto_url, ativo, ordem, combos, is_combo, itens_combo, socio, gera_ficha }) {
     const res = await query(
       `UPDATE expobai.produtos
        SET categoria_id = COALESCE($1, categoria_id),
@@ -76,8 +77,9 @@ const produtosRepository = {
            combos = COALESCE($9, combos),
            is_combo = COALESCE($10, is_combo),
            itens_combo = COALESCE($11, itens_combo),
-           socio = COALESCE($12, socio)
-       WHERE id = $13
+           socio = COALESCE($12, socio),
+           gera_ficha = COALESCE($13, gera_ficha)
+       WHERE id = $14
        RETURNING *`,
       [
         categoria_id !== undefined ? Number(categoria_id) : null,
@@ -92,6 +94,7 @@ const produtosRepository = {
         is_combo !== undefined ? Boolean(is_combo) : null,
         itens_combo !== undefined ? JSON.stringify(itens_combo) : null,
         socio !== undefined ? socio : null,
+        gera_ficha !== undefined ? Boolean(gera_ficha) : null,
         id
       ]
     );

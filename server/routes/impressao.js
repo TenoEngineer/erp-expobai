@@ -38,7 +38,7 @@ router.post('/teste', async (req, res) => {
  */
 router.post('/imprimir', async (req, res) => {
   try {
-    const { pedidoId, pedido } = req.body;
+    const { pedidoId, pedido, modo } = req.body;
     let order = pedido;
 
     if (!order && pedidoId) {
@@ -50,7 +50,7 @@ router.post('/imprimir', async (req, res) => {
     }
 
     const config = await configuracoesRepo.getAll();
-    const result = await printerService.printOrder(order, config);
+    const result = await printerService.printOrder(order, config, { modo });
 
     res.json(result);
   } catch (err) {

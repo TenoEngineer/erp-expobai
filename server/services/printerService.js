@@ -6,6 +6,7 @@ const os = require('os');
 const {
   buildTicketCliente,
   buildTicketProducao,
+  buildTicketsFichas,
   buildAmbosTickets,
   buildTicketTeste
 } = require('./escposGenerator');
@@ -292,12 +293,13 @@ async function printUsb(buffer, printerName) {
 /**
  * Imprime pedido nos dois tickets ou conforme configuração
  */
-async function printOrder(order, config = {}) {
+async function printOrder(order, config = {}, options = {}) {
   const tipo = (config.impressora_tipo || 'usb').toLowerCase(); // 'usb', 'rede', 'navegador', 'desativado'
   const autoImprimir = config.impressora_auto_imprimir !== 'false';
-  const vias = config.impressora_vias || 'ambas'; // 'ambas', 'apenas_cliente', 'apenas_cozinha'
+  const vias = config.impressora_vias || 'completo'; // 'completo', 'ambas', 'apenas_cliente', 'apenas_cozinha', 'apenas_fichas'
   const largura = config.impressora_largura || '80mm';
   const cortar = config.impressora_cortar_papel !== 'false';
+  const modo = options.modo || 'padrao'; // 'padrao', 'fichas', 'apenas_fichas', 'comprovante'
 
   if (tipo === 'desativado') {
     return {
@@ -317,12 +319,21 @@ async function printOrder(order, config = {}) {
 
   // Gera o buffer ESC/POS correspondente
   let buffer;
-  if (vias === 'apenas_cliente') {
+  if (modo === 'fichas' || modo === 'apenas_fichas' || vias === 'apenas_fichas') {
+    buffer = buildTicketsFichas(order, config, largura, cortar);
+    if (!buffer || buffer.length === 0) {
+      return {
+        success: true,
+        mode: tipo,
+        message: 'Nenhum item deste pedido gera fichas de retirada.'
+      };
+    }
+  } else if (vias === 'apenas_cliente') {
     buffer = buildTicketCliente(order, config, largura, cortar);
   } else if (vias === 'apenas_cozinha') {
     buffer = buildTicketProducao(order, config, largura, cortar);
   } else {
-    // Padrão: AMBAS as vias (Ticket Cliente com número + Ticket Cozinha com número e itens)
+    // Padrão: Vias completas com Fichas de Retirada individuais
     buffer = buildAmbosTickets(order, config, largura, cortar);
   }
 
@@ -338,6 +349,13 @@ async function printOrder(order, config = {}) {
   }
 
   throw new Error(`Tipo de impressora desconhecido: "${tipo}". Escolha USB, Rede ou Navegador.`);
+}
+
+/**
+ * Imprime especificamente as fichas de retirada de um pedido
+ */
+async function printFichas(order, config = {}) {
+  return await printOrder(order, config, { modo: 'fichas' });
 }
 
 /**
@@ -384,6 +402,7 @@ module.exports = {
   printLinuxUsb,
   printUsb,
   printOrder,
+  printFichas,
   testPrinter,
   platform: os.platform()
 };

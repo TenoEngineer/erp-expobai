@@ -18,8 +18,8 @@ export default function Navbar({ activeTab, setActiveTab, config, cartCount = 0 
         
         {/* Logo & Info */}
         <Logo 
-          boothName={config?.nome_estande || 'Tenda dos Müller'}
-          subtitle="EXPOBAI 2026"
+          boothName={config?.nome_estande || config?.nome_sistema || 'ExpoERP'}
+          subtitle={config?.nome_evento || 'ExpoERP'}
           size={44}
         />
 
