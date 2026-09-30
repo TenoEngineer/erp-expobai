@@ -29,7 +29,7 @@ const dbReady = new Promise((resolve) => {
 
 async function initDB() {
   try {
-    console.log('🔄 Conectando ao Supabase e inicializando schema expobai...');
+    console.log('🔄 Conectando ao PostgreSQL local (postgres-main) e inicializando schema expobai...');
 
     // 1. Criar o schema isolado expobai
     await pool.query('CREATE SCHEMA IF NOT EXISTS expobai;');
@@ -255,7 +255,7 @@ async function initDB() {
       `);
     }
 
-    console.log('✅ Banco de dados PostgreSQL (Supabase) - Schema "expobai" pronto e verificado!');
+    console.log('✅ Banco de dados PostgreSQL local (Contabo VPS) - Schema "expobai" pronto e verificado!');
     _resolveReady();
   } catch (err) {
     console.error('❌ Erro na inicialização do schema expobai:', err);
