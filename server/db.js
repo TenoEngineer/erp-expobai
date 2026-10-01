@@ -199,6 +199,10 @@ async function initDB() {
       VALUES ('tenda-muller', 'Tenda dos Müller', 'Heitor Müller')
       ON CONFLICT (id) DO NOTHING;
 
+      ALTER TABLE expobai.tenants ADD COLUMN IF NOT EXISTS valido_ate TIMESTAMP WITH TIME ZONE;
+      ALTER TABLE expobai.tenants ADD COLUMN IF NOT EXISTS documento VARCHAR(20);
+      ALTER TABLE expobai.tenants ADD COLUMN IF NOT EXISTS limite_dispositivos INTEGER DEFAULT 5;
+
       ALTER TABLE expobai.produtos ADD COLUMN IF NOT EXISTS gera_ficha BOOLEAN DEFAULT TRUE;
       ALTER TABLE expobai.pedidos ADD COLUMN IF NOT EXISTS imprimir_fichas BOOLEAN DEFAULT TRUE;
       ALTER TABLE expobai.produtos ADD COLUMN IF NOT EXISTS tenant_id VARCHAR(50) DEFAULT 'tenda-muller';
