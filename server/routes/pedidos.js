@@ -15,6 +15,8 @@ router.post('/', async (req, res) => {
       return res.status(400).json({ error: 'Forma de pagamento é obrigatória' });
     }
 
+    const tenantId = req.tenantId || 'tenda-muller';
+
     const novoPedido = await pedidosRepo.createOrder({
       itens,
       forma_pagamento,
@@ -23,12 +25,13 @@ router.post('/', async (req, res) => {
       observacoes,
       pagamentos,
       origem: origem || 'desktop',
-      data_hora
+      data_hora,
+      tenant_id: tenantId
     });
 
     // Impressão automática instantânea se configurado Rede ou USB
     try {
-      const config = await configuracoesRepo.getAll();
+      const config = await configuracoesRepo.getAll(tenantId);
       const autoImprimir = config.impressora_auto_imprimir !== 'false';
       const tipo = (config.impressora_tipo || 'usb').toLowerCase();
 
@@ -62,7 +65,8 @@ router.post('/', async (req, res) => {
 router.get('/', async (req, res) => {
   try {
     const limit = parseInt(req.query.limit, 10) || 50;
-    const pedidos = await pedidosRepo.listRecent(limit);
+    const tenantId = req.tenantId || 'tenda-muller';
+    const pedidos = await pedidosRepo.listRecent(limit, tenantId);
     res.json(pedidos);
   } catch (err) {
     console.error('Erro ao listar pedidos:', err);
@@ -74,7 +78,8 @@ router.get('/', async (req, res) => {
 router.get('/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    const pedido = await pedidosRepo.getById(id);
+    const tenantId = req.tenantId || 'tenda-muller';
+    const pedido = await pedidosRepo.getById(id, tenantId);
     if (!pedido) {
       return res.status(404).json({ error: 'Pedido não encontrado' });
     }
@@ -89,7 +94,8 @@ router.get('/:id', async (req, res) => {
 router.patch('/:id/cancelar', async (req, res) => {
   try {
     const { id } = req.params;
-    const cancelado = await pedidosRepo.cancelOrder(id);
+    const tenantId = req.tenantId || 'tenda-muller';
+    const cancelado = await pedidosRepo.cancelOrder(id, tenantId);
     if (!cancelado) {
       return res.status(404).json({ error: 'Pedido não encontrado' });
     }
@@ -109,6 +115,8 @@ router.put('/:id', async (req, res) => {
       return res.status(400).json({ error: 'O pedido deve conter pelo menos um item' });
     }
 
+    const tenantId = req.tenantId || 'tenda-muller';
+
     const atualizado = await pedidosRepo.updateOrder(id, {
       itens,
       forma_pagamento,
@@ -118,7 +126,7 @@ router.put('/:id', async (req, res) => {
       pagamentos,
       motivo_edicao,
       data_hora
-    });
+    }, tenantId);
 
     if (!atualizado) {
       return res.status(404).json({ error: 'Pedido não encontrado' });
@@ -135,7 +143,8 @@ router.put('/:id', async (req, res) => {
 router.delete('/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    const excluido = await pedidosRepo.deleteOrder(id);
+    const tenantId = req.tenantId || 'tenda-muller';
+    const excluido = await pedidosRepo.deleteOrder(id, tenantId);
     if (!excluido) {
       return res.status(404).json({ error: 'Pedido não encontrado' });
     }

@@ -58,7 +58,8 @@ router.post('/upload', (req, res) => {
 router.get('/', async (req, res) => {
   try {
     const { categoria_id } = req.query;
-    const produtos = await produtosRepo.listAll(categoria_id);
+    const tenantId = req.tenantId || 'tenda-muller';
+    const produtos = await produtosRepo.listAll(categoria_id, tenantId);
     res.json(produtos);
   } catch (err) {
     console.error('Erro ao listar produtos:', err);
@@ -69,7 +70,8 @@ router.get('/', async (req, res) => {
 // Listar todos os produtos (para o Admin)
 router.get('/admin', async (req, res) => {
   try {
-    const produtos = await produtosRepo.listAllAdmin();
+    const tenantId = req.tenantId || 'tenda-muller';
+    const produtos = await produtosRepo.listAllAdmin(tenantId);
     res.json(produtos);
   } catch (err) {
     console.error('Erro ao listar produtos admin:', err);
@@ -84,6 +86,7 @@ router.post('/', async (req, res) => {
     if (!categoria_id || !nome || preco === undefined) {
       return res.status(400).json({ error: 'Categoria, nome e preço são obrigatórios' });
     }
+    const tenantId = req.tenantId || 'tenda-muller';
     const novoProduto = await produtosRepo.create({
       categoria_id,
       nome,
@@ -96,7 +99,8 @@ router.post('/', async (req, res) => {
       is_combo,
       itens_combo,
       socio,
-      gera_ficha
+      gera_ficha,
+      tenant_id: tenantId
     });
     res.status(201).json(novoProduto);
   } catch (err) {
@@ -109,7 +113,8 @@ router.post('/', async (req, res) => {
 router.put('/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    const atualizado = await produtosRepo.update(id, req.body);
+    const tenantId = req.tenantId || 'tenda-muller';
+    const atualizado = await produtosRepo.update(id, req.body, tenantId);
     if (!atualizado) {
       return res.status(404).json({ error: 'Produto não encontrado' });
     }
@@ -128,7 +133,8 @@ router.patch('/:id/preco', async (req, res) => {
     if (preco === undefined) {
       return res.status(400).json({ error: 'Preço é obrigatório' });
     }
-    const atualizado = await produtosRepo.updatePrice(id, preco);
+    const tenantId = req.tenantId || 'tenda-muller';
+    const atualizado = await produtosRepo.updatePrice(id, preco, tenantId);
     if (!atualizado) {
       return res.status(404).json({ error: 'Produto não encontrado' });
     }
@@ -143,7 +149,8 @@ router.patch('/:id/preco', async (req, res) => {
 router.patch('/:id/toggle-ativo', async (req, res) => {
   try {
     const { id } = req.params;
-    const atualizado = await produtosRepo.toggleAtivo(id);
+    const tenantId = req.tenantId || 'tenda-muller';
+    const atualizado = await produtosRepo.toggleAtivo(id, tenantId);
     if (!atualizado) {
       return res.status(404).json({ error: 'Produto não encontrado' });
     }
@@ -158,7 +165,8 @@ router.patch('/:id/toggle-ativo', async (req, res) => {
 router.delete('/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    const excluido = await produtosRepo.delete(id);
+    const tenantId = req.tenantId || 'tenda-muller';
+    const excluido = await produtosRepo.delete(id, tenantId);
     if (!excluido) {
       return res.status(404).json({ error: 'Produto não encontrado' });
     }

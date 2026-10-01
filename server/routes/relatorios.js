@@ -6,7 +6,14 @@ const relatoriosRepo = require('../repositories/relatoriosRepository');
 router.get('/fechamento', async (req, res) => {
   try {
     const { data_inicio, data_fim, periodo, sessao_id } = req.query;
-    const fechamento = await relatoriosRepo.getFechamentoCaixa({ data_inicio, data_fim, periodo, sessao_id });
+    const tenantId = req.tenantId || 'tenda-muller';
+    const fechamento = await relatoriosRepo.getFechamentoCaixa({ 
+      data_inicio, 
+      data_fim, 
+      periodo, 
+      sessao_id, 
+      tenant_id: tenantId 
+    });
     res.json(fechamento);
   } catch (err) {
     console.error('Erro ao gerar relatório de fechamento de caixa:', err);
@@ -18,12 +25,14 @@ router.get('/fechamento', async (req, res) => {
 router.get('/lancamentos-pagamento', async (req, res) => {
   try {
     const { forma_pagamento, data_inicio, data_fim, periodo, sessao_id } = req.query;
+    const tenantId = req.tenantId || 'tenda-muller';
     const dados = await relatoriosRepo.getLancamentosPorPagamento({
       forma_pagamento,
       data_inicio,
       data_fim,
       periodo,
-      sessao_id
+      sessao_id,
+      tenant_id: tenantId
     });
     res.json(dados);
   } catch (err) {
@@ -36,7 +45,12 @@ router.get('/lancamentos-pagamento', async (req, res) => {
 router.get('/comparativo-horarios', async (req, res) => {
   try {
     const { produto_id, origem } = req.query;
-    const dados = await relatoriosRepo.getComparativoHorarios({ produto_id, origem });
+    const tenantId = req.tenantId || 'tenda-muller';
+    const dados = await relatoriosRepo.getComparativoHorarios({ 
+      produto_id, 
+      origem, 
+      tenant_id: tenantId 
+    });
     res.json(dados);
   } catch (err) {
     console.error('Erro ao buscar comparativo de horários:', err);

@@ -1,7 +1,7 @@
 const { pool, query } = require('../db');
 
 const pedidosRepository = {
-  async createOrder({ itens, forma_pagamento, valor_pago = null, troco = 0, observacoes = '', pagamentos = null, origem = 'desktop', data_hora = null }) {
+  async createOrder({ itens, forma_pagamento, valor_pago = null, troco = 0, observacoes = '', pagamentos = null, origem = 'desktop', data_hora = null, tenant_id = 'tenda-muller' }) {
     const client = await pool.connect();
     try {
       await client.query('BEGIN');
@@ -40,7 +40,7 @@ const pedidosRepository = {
         jsonPagamentos = JSON.stringify([{ forma: forma_pagamento.toLowerCase(), valor: totalCalculado }]);
       }
 
-      // 3. Inserir Pedido com identificação de Origem e Data/Hora (permite retroativo)
+      // 3. Inserir Pedido com identificação de Origem, Tenant e Data/Hora (permite retroativo)
       const insertParams = [
         numeroPedido,
         codigoIdentificador,
@@ -51,7 +51,8 @@ const pedidosRepository = {
         'concluido',
         observacoes || null,
         jsonPagamentos,
-        origem || 'desktop'
+        origem || 'desktop',
+        tenant_id || 'tenda-muller'
       ];
 
       let dataHoraFragment = 'CURRENT_TIMESTAMP';
@@ -62,8 +63,8 @@ const pedidosRepository = {
 
       const pedidoRes = await client.query(
         `INSERT INTO expobai.pedidos (
-          numero_pedido, codigo_identificador, total, forma_pagamento, valor_pago, troco, status, observacoes, pagamentos, origem, data_hora
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, ${dataHoraFragment})
+          numero_pedido, codigo_identificador, total, forma_pagamento, valor_pago, troco, status, observacoes, pagamentos, origem, tenant_id, data_hora
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, ${dataHoraFragment})
         RETURNING *`,
         insertParams
       );
@@ -238,7 +239,7 @@ const pedidosRepository = {
     }
   },
 
-  async listRecent(limit = 50) {
+  async listRecent(limit = 50, tenantId = 'tenda-muller') {
     const res = await query(
       `SELECT p.*,
         COALESCE(json_agg(
@@ -255,17 +256,18 @@ const pedidosRepository = {
         ) FILTER (WHERE i.id IS NOT NULL), '[]') as itens
        FROM expobai.pedidos p
        LEFT JOIN expobai.pedido_itens i ON p.id = i.pedido_id
+       WHERE p.tenant_id = $2
        GROUP BY p.id
        ORDER BY p.id DESC
        LIMIT $1`,
-      [limit]
+      [limit, tenantId]
     );
     return res.rows;
   },
 
-  async getById(id) {
-    const res = await query(
-      `SELECT p.*,
+  async getById(id, tenantId = null) {
+    let sql = `
+      SELECT p.*,
         COALESCE(json_agg(
           json_build_object(
             'id', i.id,
@@ -280,26 +282,38 @@ const pedidosRepository = {
         ) FILTER (WHERE i.id IS NOT NULL), '[]') as itens
        FROM expobai.pedidos p
        LEFT JOIN expobai.pedido_itens i ON p.id = i.pedido_id
-       WHERE p.id = $1
-       GROUP BY p.id`,
-      [id]
-    );
+       WHERE p.id = $1`;
+    const params = [id];
+    if (tenantId) {
+      sql += ` AND p.tenant_id = $2`;
+      params.push(tenantId);
+    }
+    sql += ` GROUP BY p.id`;
+    const res = await query(sql, params);
     return res.rows[0] || null;
   },
 
-  async cancelOrder(id) {
-    const res = await query(
-      `UPDATE expobai.pedidos SET status = 'cancelado' WHERE id = $1 RETURNING *`,
-      [id]
-    );
+  async cancelOrder(id, tenantId = null) {
+    let sql = `UPDATE expobai.pedidos SET status = 'cancelado' WHERE id = $1`;
+    const params = [id];
+    if (tenantId) {
+      sql += ` AND tenant_id = $2`;
+      params.push(tenantId);
+    }
+    sql += ` RETURNING *`;
+    const res = await query(sql, params);
     return res.rows[0] || null;
   },
 
-  async deleteOrder(id) {
-    const res = await query(
-      `DELETE FROM expobai.pedidos WHERE id = $1 RETURNING *`,
-      [id]
-    );
+  async deleteOrder(id, tenantId = null) {
+    let sql = `DELETE FROM expobai.pedidos WHERE id = $1`;
+    const params = [id];
+    if (tenantId) {
+      sql += ` AND tenant_id = $2`;
+      params.push(tenantId);
+    }
+    sql += ` RETURNING *`;
+    const res = await query(sql, params);
     return res.rows[0] || null;
   }
 };

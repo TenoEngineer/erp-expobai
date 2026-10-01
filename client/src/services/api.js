@@ -5,6 +5,28 @@ const api = axios.create({
   timeout: 10000,
 });
 
+// Interceptor de Requisição: Anexa Token JWT automaticamente
+api.interceptors.request.use((config) => {
+  const token = localStorage.getItem('expoerp_token');
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
+}, (error) => Promise.reject(error));
+
+// Interceptor de Resposta: Trata expiração de sessão 401
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 401) {
+      localStorage.removeItem('expoerp_token');
+      localStorage.removeItem('expoerp_user');
+      window.dispatchEvent(new Event('expoerp:logout'));
+    }
+    return Promise.reject(error);
+  }
+);
+
 export const getCategorias = async () => {
   const { data } = await api.get('/categorias');
   return data;
@@ -227,6 +249,67 @@ export const getComparativoHorarios = async (params = {}) => {
   const queryString = query.toString();
   const url = queryString ? `/relatorios/comparativo-horarios?${queryString}` : '/relatorios/comparativo-horarios';
   const { data } = await api.get(url);
+  return data;
+};
+
+// =========================================================================
+// AUTENTICAÇÃO E PERFIS (RBAC)
+// =========================================================================
+export const login = async (email, senha) => {
+  const { data } = await api.post('/auth/login', { email, senha });
+  return data;
+};
+
+export const loginPin = async (tenant_id, pin) => {
+  const { data } = await api.post('/auth/login-pin', { tenant_id, pin });
+  return data;
+};
+
+export const getMe = async () => {
+  const { data } = await api.get('/auth/me');
+  return data;
+};
+
+export const getPublicTenants = async () => {
+  const { data } = await api.get('/auth/tenants-public');
+  return data;
+};
+
+export const alterarSenha = async (senha_atual, nova_senha) => {
+  const { data } = await api.post('/auth/alterar-senha', { senha_atual, nova_senha });
+  return data;
+};
+
+// =========================================================================
+// GESTÃO DE TENANTS / TENDAS (SUPER ADMIN)
+// =========================================================================
+export const getTenants = async () => {
+  const { data } = await api.get('/tenants');
+  return data;
+};
+
+export const createTenant = async (tenantData) => {
+  const { data } = await api.post('/tenants', tenantData);
+  return data;
+};
+
+export const updateTenant = async (id, tenantData) => {
+  const { data } = await api.put(`/tenants/${id}`, tenantData);
+  return data;
+};
+
+export const cloneCardapio = async (id, origem = 'tenda-muller') => {
+  const { data } = await api.post(`/tenants/${id}/clonar-cardapio`, { origem });
+  return data;
+};
+
+export const getTenantUsuarios = async (tenantId) => {
+  const { data } = await api.get(`/tenants/${tenantId}/usuarios`);
+  return data;
+};
+
+export const createTenantUsuario = async (tenantId, userData) => {
+  const { data } = await api.post(`/tenants/${tenantId}/usuarios`, userData);
   return data;
 };
 

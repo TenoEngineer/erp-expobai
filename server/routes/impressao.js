@@ -22,7 +22,8 @@ router.get('/printers', async (req, res) => {
  */
 router.post('/teste', async (req, res) => {
   try {
-    const storedConfig = await configuracoesRepo.getAll();
+    const tenantId = req.tenantId || 'tenda-muller';
+    const storedConfig = await configuracoesRepo.getAll(tenantId);
     const config = { ...storedConfig, ...req.body };
 
     const result = await printerService.testPrinter(config);
@@ -39,57 +40,23 @@ router.post('/teste', async (req, res) => {
 router.post('/imprimir', async (req, res) => {
   try {
     const { pedidoId, pedido, modo } = req.body;
+    const tenantId = req.tenantId || 'tenda-muller';
     let order = pedido;
 
     if (!order && pedidoId) {
-      order = await pedidosRepo.getById(pedidoId);
+      order = await pedidosRepo.getById(pedidoId, tenantId);
     }
 
     if (!order) {
       return res.status(404).json({ error: 'Pedido não informado ou não encontrado' });
     }
 
-    const config = await configuracoesRepo.getAll();
+    const config = await configuracoesRepo.getAll(tenantId);
     const result = await printerService.printOrder(order, config, { modo });
 
     res.json(result);
   } catch (err) {
     console.error('Erro ao imprimir pedido:', err);
-    res.status(500).json({ error: err.message });
-  }
-});
-
-/**
- * Obter buffer ESC/POS em base64 (usado por Tablets via WebUSB ou RawBT)
- */
-router.post('/buffer', async (req, res) => {
-  try {
-    const { buildAmbosTickets, buildTicketTeste } = require('../services/escposGenerator');
-    const { pedidoId, pedido, isTest } = req.body;
-    const config = await configuracoesRepo.getAll();
-    const largura = config.impressora_largura || '80mm';
-    const cortar = config.impressora_cortar_papel !== 'false';
-
-    let buffer;
-    if (isTest) {
-      buffer = buildTicketTeste(config, largura);
-    } else {
-      let order = pedido;
-      if (!order && pedidoId) {
-        order = await pedidosRepo.getById(pedidoId);
-      }
-      if (!order) {
-        return res.status(404).json({ error: 'Pedido não informado ou não encontrado' });
-      }
-      buffer = buildAmbosTickets(order, config, largura, cortar);
-    }
-
-    res.json({
-      base64: buffer.toString('base64'),
-      length: buffer.length
-    });
-  } catch (err) {
-    console.error('Erro ao gerar buffer ESC/POS para Tablet:', err);
     res.status(500).json({ error: err.message });
   }
 });

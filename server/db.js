@@ -209,6 +209,45 @@ async function initDB() {
 
       INSERT INTO expobai.configuracoes (chave, valor) VALUES ('imprimir_fichas_retirada', 'true') ON CONFLICT (chave) DO NOTHING;
       INSERT INTO expobai.configuracoes (chave, valor) VALUES ('nome_sistema', 'ExpoERP') ON CONFLICT (chave) DO NOTHING;
+
+      ALTER TABLE expobai.configuracoes ADD COLUMN IF NOT EXISTS tenant_id VARCHAR(50) DEFAULT 'tenda-muller';
+      DO $$
+      BEGIN
+        IF EXISTS (
+          SELECT 1 FROM pg_constraint c
+          JOIN pg_namespace n ON n.oid = c.connamespace
+          WHERE c.conname = 'configuracoes_pkey' AND n.nspname = 'expobai'
+        ) THEN
+          ALTER TABLE expobai.configuracoes DROP CONSTRAINT configuracoes_pkey;
+          ALTER TABLE expobai.configuracoes ADD CONSTRAINT configuracoes_pkey PRIMARY KEY (tenant_id, chave);
+        END IF;
+      EXCEPTION WHEN OTHERS THEN
+        NULL;
+      END $$;
+
+      -- Migrações v7: Autenticação Segura, RBAC e Gestão de Usuários Multi-Tenant
+      CREATE TABLE IF NOT EXISTS expobai.usuarios (
+        id SERIAL PRIMARY KEY,
+        tenant_id VARCHAR(50) NOT NULL REFERENCES expobai.tenants(id) ON DELETE CASCADE,
+        nome VARCHAR(100) NOT NULL,
+        email VARCHAR(150) NOT NULL UNIQUE,
+        senha_hash VARCHAR(255) NOT NULL,
+        pin_acesso_rapido VARCHAR(10),
+        role VARCHAR(20) NOT NULL DEFAULT 'caixa', -- 'superadmin', 'admin', 'caixa'
+        ativo BOOLEAN DEFAULT TRUE,
+        ultimo_login TIMESTAMP WITH TIME ZONE,
+        criado_em TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+      );
+
+      CREATE INDEX IF NOT EXISTS idx_usuarios_tenant ON expobai.usuarios(tenant_id);
+      CREATE INDEX IF NOT EXISTS idx_usuarios_email ON expobai.usuarios(email);
+
+      -- Seed de usuários essenciais (SuperAdmin e Tenda Muller)
+      INSERT INTO expobai.usuarios (tenant_id, nome, email, senha_hash, pin_acesso_rapido, role) VALUES
+        ('tenda-muller', 'Heitor Müller (Super Admin)', 'admin@expoerp.com.br', '$2b$12$BPxKTS6pttHi9ylf14EKLuHfMG.WTpFpNjZaxJJKcEnAjgo679Rny', '9999', 'superadmin'),
+        ('tenda-muller', 'Heitor Müller (Admin Tenda)', 'muller@expoerp.com.br', '$2b$12$UOaM0vvpjjtDOcatHTHPrueB1J2OrvxRVgyB99yorGeLu7c0qsylK', '1020', 'admin'),
+        ('tenda-muller', 'Operador Caixa', 'caixa@expoerp.com.br', '$2b$12$vs3RuaSHTbzvZf2YBVRMJ.6G97ff7Xd9u8fe4DNiOCtdhee7x287q', '1234', 'caixa')
+      ON CONFLICT (email) DO NOTHING;
     `);
 
     // 3. Seed inicial de categorias se estiver vazio

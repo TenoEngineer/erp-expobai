@@ -5,7 +5,8 @@ const caixaRepo = require('../repositories/caixaRepository');
 // Status atual do caixa (sessão aberta e valores acumulados)
 router.get('/status', async (req, res) => {
   try {
-    const sessaoAberta = await caixaRepo.getSessaoAberta();
+    const tenantId = req.tenantId || 'tenda-muller';
+    const sessaoAberta = await caixaRepo.getSessaoAberta(tenantId);
     res.json({
       is_aberto: Boolean(sessaoAberta),
       sessao: sessaoAberta
@@ -20,10 +21,12 @@ router.get('/status', async (req, res) => {
 router.post('/abrir', async (req, res) => {
   try {
     const { operador, valor_abertura, observacoes } = req.body;
+    const tenantId = req.tenantId || 'tenda-muller';
     const novaSessao = await caixaRepo.abrirCaixa({
-      operador: operador || 'Operador Caixa',
+      operador: operador || req.user?.nome || 'Operador Caixa',
       valor_abertura: parseFloat(valor_abertura) || 0,
-      observacoes: observacoes || ''
+      observacoes: observacoes || '',
+      tenant_id: tenantId
     });
     res.status(201).json({
       message: 'Caixa aberto com sucesso!',
@@ -39,9 +42,11 @@ router.post('/abrir', async (req, res) => {
 router.post('/fechar', async (req, res) => {
   try {
     const { valor_fechamento_dinheiro, observacoes } = req.body;
+    const tenantId = req.tenantId || 'tenda-muller';
     const resultado = await caixaRepo.fecharCaixa({
       valor_fechamento_dinheiro,
-      observacoes
+      observacoes,
+      tenant_id: tenantId
     });
     res.json({
       message: 'Caixa encerrado com sucesso!',
@@ -57,11 +62,12 @@ router.post('/fechar', async (req, res) => {
 router.get('/historico', async (req, res) => {
   try {
     const limit = parseInt(req.query.limit, 10) || 10;
-    const historico = await caixaRepo.listarHistorico(limit);
+    const tenantId = req.tenantId || 'tenda-muller';
+    const historico = await caixaRepo.listarHistorico(limit, tenantId);
     res.json(historico);
   } catch (err) {
-    console.error('Erro ao listar histórico de caixas:', err);
-    res.status(500).json({ error: 'Erro ao listar histórico de caixas' });
+    console.error('Erro ao buscar histórico de caixas:', err);
+    res.status(500).json({ error: 'Erro ao buscar histórico de caixas' });
   }
 });
 

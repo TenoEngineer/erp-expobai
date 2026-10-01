@@ -5,7 +5,8 @@ const categoriasRepo = require('../repositories/categoriasRepository');
 // Listar categorias ativas (para o PDV)
 router.get('/', async (req, res) => {
   try {
-    const categorias = await categoriasRepo.listAll();
+    const tenantId = req.tenantId || 'tenda-muller';
+    const categorias = await categoriasRepo.listAll(tenantId);
     res.json(categorias);
   } catch (err) {
     console.error('Erro ao listar categorias:', err);
@@ -16,7 +17,8 @@ router.get('/', async (req, res) => {
 // Listar todas as categorias (para o Admin)
 router.get('/admin', async (req, res) => {
   try {
-    const categorias = await categoriasRepo.listAllAdmin();
+    const tenantId = req.tenantId || 'tenda-muller';
+    const categorias = await categoriasRepo.listAllAdmin(tenantId);
     res.json(categorias);
   } catch (err) {
     console.error('Erro ao listar categorias admin:', err);
@@ -31,7 +33,8 @@ router.post('/', async (req, res) => {
     if (!nome) {
       return res.status(400).json({ error: 'Nome da categoria é obrigatório' });
     }
-    const nova = await categoriasRepo.create({ nome, icone, cor, ordem });
+    const tenantId = req.tenantId || 'tenda-muller';
+    const nova = await categoriasRepo.create({ nome, icone, cor, ordem, tenant_id: tenantId });
     res.status(201).json(nova);
   } catch (err) {
     console.error('Erro ao criar categoria:', err);
@@ -43,7 +46,8 @@ router.post('/', async (req, res) => {
 router.put('/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    const atualizada = await categoriasRepo.update(id, req.body);
+    const tenantId = req.tenantId || 'tenda-muller';
+    const atualizada = await categoriasRepo.update(id, req.body, tenantId);
     if (!atualizada) {
       return res.status(404).json({ error: 'Categoria não encontrada' });
     }
@@ -58,7 +62,8 @@ router.put('/:id', async (req, res) => {
 router.delete('/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    const excluida = await categoriasRepo.delete(id);
+    const tenantId = req.tenantId || 'tenda-muller';
+    const excluida = await categoriasRepo.delete(id, tenantId);
     if (!excluida) {
       return res.status(404).json({ error: 'Categoria não encontrada' });
     }
