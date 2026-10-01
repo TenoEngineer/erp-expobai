@@ -4,15 +4,11 @@ const tenantsRepository = {
   async listAll() {
     const res = await query(`
       SELECT t.*,
-             COUNT(DISTINCT p.id) as total_pedidos,
-             COALESCE(SUM(p.total), 0) as total_faturado,
-             COUNT(DISTINCT pr.id) as total_produtos,
-             COUNT(DISTINCT u.id) as total_usuarios
+             (SELECT COUNT(*) FROM expobai.pedidos p WHERE p.tenant_id = t.id AND p.status != 'cancelado')::int as total_pedidos,
+             (SELECT COALESCE(SUM(total), 0) FROM expobai.pedidos p WHERE p.tenant_id = t.id AND p.status != 'cancelado')::numeric as total_faturado,
+             (SELECT COUNT(*) FROM expobai.produtos pr WHERE pr.tenant_id = t.id AND pr.ativo = 1)::int as total_produtos,
+             (SELECT COUNT(*) FROM expobai.usuarios u WHERE u.tenant_id = t.id AND u.ativo = true)::int as total_usuarios
       FROM expobai.tenants t
-      LEFT JOIN expobai.pedidos p ON t.id = p.tenant_id AND p.status != 'cancelado'
-      LEFT JOIN expobai.produtos pr ON t.id = pr.tenant_id AND pr.ativo = 1
-      LEFT JOIN expobai.usuarios u ON t.id = u.tenant_id AND u.ativo = true
-      GROUP BY t.id
       ORDER BY t.criado_em DESC
     `);
     return res.rows;
