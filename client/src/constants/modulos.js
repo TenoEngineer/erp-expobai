@@ -64,8 +64,16 @@ export const MODULOS_CATALOGO = [
 export const isModuleEnabled = (modulosAtivos, moduloId) => {
   if (!modulosAtivos) return true; // fallback
   if (moduloId === 'core_pos') return true;
-  if (Array.isArray(modulosAtivos)) {
-    return modulosAtivos.includes(moduloId);
+  let list = modulosAtivos;
+  if (typeof list === 'string') {
+    try {
+      list = JSON.parse(list);
+    } catch {
+      list = [list];
+    }
+  }
+  if (Array.isArray(list)) {
+    return list.includes(moduloId);
   }
   return false;
 };

@@ -2,18 +2,18 @@ const { query } = require('../db');
 
 const rateioRepository = {
   // 1. Obter todos os custos de exposição da feira
-  async getCustos() {
-    const res = await query('SELECT * FROM expobai.custos_evento ORDER BY id ASC');
+  async getCustos(tenant_id = 'tenda-muller') {
+    const res = await query('SELECT * FROM expobai.custos_evento WHERE tenant_id = $1 ORDER BY id ASC', [tenant_id]);
     return res.rows;
   },
 
   // 2. Criar novo custo de exposição
-  async createCusto({ descricao, valor, divisao = 'alex_heitor', pago_por = 'caixa', observacoes = null }) {
+  async createCusto({ descricao, valor, divisao = 'alex_heitor', pago_por = 'caixa', observacoes = null, tenant_id = 'tenda-muller' }) {
     const res = await query(`
-      INSERT INTO expobai.custos_evento (descricao, valor, divisao, pago_por, observacoes)
-      VALUES ($1, $2, $3, $4, $5)
+      INSERT INTO expobai.custos_evento (descricao, valor, divisao, pago_por, observacoes, tenant_id)
+      VALUES ($1, $2, $3, $4, $5, $6)
       RETURNING *
-    `, [descricao, parseFloat(valor) || 0, divisao, pago_por, observacoes]);
+    `, [descricao, parseFloat(valor) || 0, divisao, pago_por, observacoes, tenant_id]);
     return res.rows[0];
   },
 
@@ -39,13 +39,14 @@ const rateioRepository = {
   },
 
   // 5. Listar todos os produtos e seus respectivos sócios
-  async getProdutosSocios() {
+  async getProdutosSocios(tenant_id = 'tenda-muller') {
     const res = await query(`
       SELECT p.id, p.nome, p.preco, p.socio, p.categoria_id, c.nome as categoria_nome, c.icone as categoria_icone
       FROM expobai.produtos p
       LEFT JOIN expobai.categorias c ON p.categoria_id = c.id
+      WHERE p.tenant_id = $1
       ORDER BY p.id ASC
-    `);
+    `, [tenant_id]);
     return res.rows;
   },
 
@@ -83,9 +84,9 @@ const rateioRepository = {
   },
 
   // 8. CÁLCULO GERAL DO RATEIO E LIQUIDAÇÃO CONCILIADA
-  async getRelatorioRateio({ data_inicio, data_fim, periodo } = {}) {
-    let whereConditions = ["p.status = 'concluido'"];
-    const params = [];
+  async getRelatorioRateio({ data_inicio, data_fim, periodo, tenant_id = 'tenda-muller' } = {}) {
+    let whereConditions = ["p.status = 'concluido'", "p.tenant_id = $1"];
+    const params = [tenant_id];
 
     // Filtros de Data com Timezone de Amambai/MS (America/Campo_Grande) e corte às 06h
     if (data_inicio && data_fim) {
@@ -120,8 +121,8 @@ const rateioRepository = {
 
     const whereClause = `WHERE ${whereConditions.join(' AND ')}`;
 
-    // A. Buscar todos os custos de evento
-    const custosRows = (await query('SELECT * FROM expobai.custos_evento ORDER BY id ASC')).rows;
+    // A. Buscar todos os custos de evento da tenda
+    const custosRows = (await query('SELECT * FROM expobai.custos_evento WHERE tenant_id = $1 ORDER BY id ASC', [tenant_id])).rows;
     let custoTotalEvento = 0;
     let custoAlex = 0;
     let custoHeitor = 0;
@@ -165,8 +166,8 @@ const rateioRepository = {
       }
     });
 
-    // B. Buscar mapeamento atual de produtos e sócios
-    const produtosList = (await query('SELECT id, nome, preco, socio FROM expobai.produtos')).rows;
+    // B. Buscar mapeamento atual de produtos e sócios da tenda
+    const produtosList = (await query('SELECT id, nome, preco, socio FROM expobai.produtos WHERE tenant_id = $1', [tenant_id])).rows;
     const produtosMap = {};
     produtosList.forEach(p => {
       produtosMap[p.id] = p;

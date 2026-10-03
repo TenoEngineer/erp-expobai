@@ -77,7 +77,7 @@ function requireRole(...roles) {
  * Middleware para Feature Gating: exige que a tenda tenha contratado o módulo especificado
  */
 function requireModule(moduleKey) {
-  return (req, res, next) => {
+  return async (req, res, next) => {
     if (!req.user) {
       return res.status(401).json({ error: 'Usuário não autenticado' });
     }
@@ -87,10 +87,33 @@ function requireModule(moduleKey) {
       return next();
     }
 
-    const modulos = req.user.modulos || [];
     // core_pos é sempre liberado
-    if (moduleKey === 'core_pos' || modulos.includes(moduleKey)) {
+    if (moduleKey === 'core_pos') {
       return next();
+    }
+
+    // Verifica primeiro se o módulo já consta no token
+    const tokenMods = req.user.modulos || [];
+    if (tokenMods.includes(moduleKey)) {
+      return next();
+    }
+
+    // Se não constava no token (ex: acabou de ser ativado pelo SuperAdmin), consulta o banco em tempo real
+    try {
+      const { query } = require('../db');
+      const tenantId = req.tenantId || req.user.tenant_id;
+      if (tenantId) {
+        const tenantRes = await query('SELECT modulos FROM expobai.tenants WHERE id = $1', [tenantId]);
+        if (tenantRes.rows.length > 0 && tenantRes.rows[0].modulos) {
+          const modulosAtivos = tenantRes.rows[0].modulos;
+          req.user.modulos = modulosAtivos;
+          if (modulosAtivos.includes(moduleKey)) {
+            return next();
+          }
+        }
+      }
+    } catch (dbErr) {
+      console.warn('Aviso: falha ao verificar módulos em tempo real:', dbErr.message);
     }
 
     return res.status(403).json({

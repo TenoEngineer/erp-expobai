@@ -10,7 +10,8 @@ router.use(requireRole('admin', 'superadmin'));
 router.get('/', requireModule('mod_rateio_socios'), async (req, res) => {
   try {
     const { data_inicio, data_fim, periodo } = req.query;
-    const relatorio = await rateioRepo.getRelatorioRateio({ data_inicio, data_fim, periodo });
+    const tenantId = req.tenantId || req.user?.tenant_id || 'tenda-muller';
+    const relatorio = await rateioRepo.getRelatorioRateio({ data_inicio, data_fim, periodo, tenant_id: tenantId });
     res.json(relatorio);
   } catch (err) {
     console.error('Erro ao calcular relatório de rateio:', err);
@@ -21,7 +22,8 @@ router.get('/', requireModule('mod_rateio_socios'), async (req, res) => {
 // 2. Listar custos da feira
 router.get('/custos', async (req, res) => {
   try {
-    const custos = await rateioRepo.getCustos();
+    const tenantId = req.tenantId || req.user?.tenant_id || 'tenda-muller';
+    const custos = await rateioRepo.getCustos(tenantId);
     res.json(custos);
   } catch (err) {
     console.error('Erro ao buscar custos do evento:', err);
@@ -36,7 +38,8 @@ router.post('/custos', async (req, res) => {
     if (!descricao || valor === undefined) {
       return res.status(400).json({ error: 'Descrição e valor são obrigatórios' });
     }
-    const novoCusto = await rateioRepo.createCusto({ descricao, valor, divisao, pago_por, observacoes });
+    const tenantId = req.tenantId || req.user?.tenant_id || 'tenda-muller';
+    const novoCusto = await rateioRepo.createCusto({ descricao, valor, divisao, pago_por, observacoes, tenant_id: tenantId });
     res.status(201).json(novoCusto);
   } catch (err) {
     console.error('Erro ao cadastrar custo:', err);
@@ -78,7 +81,8 @@ router.delete('/custos/:id', async (req, res) => {
 // 6. Listar produtos e sócios
 router.get('/produtos-socios', async (req, res) => {
   try {
-    const produtos = await rateioRepo.getProdutosSocios();
+    const tenantId = req.tenantId || req.user?.tenant_id || 'tenda-muller';
+    const produtos = await rateioRepo.getProdutosSocios(tenantId);
     res.json(produtos);
   } catch (err) {
     console.error('Erro ao buscar produtos e sócios:', err);

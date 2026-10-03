@@ -126,7 +126,12 @@ router.get('/me', authenticateToken, async (req, res) => {
     if (!usuario) {
       return res.status(404).json({ error: 'Usuário não encontrado' });
     }
-    res.json(usuario);
+    const modulosAtivos = usuario.modulos || usuario.tenant_modulos || [];
+    res.json({
+      ...usuario,
+      modulos: modulosAtivos,
+      tenant_modulos: modulosAtivos
+    });
   } catch (err) {
     console.error('Erro ao obter usuário atual:', err);
     res.status(500).json({ error: 'Erro ao obter dados do usuário' });

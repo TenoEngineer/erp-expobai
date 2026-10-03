@@ -19,7 +19,7 @@ export default function AnalisePage({ config, currentUser, initialSubTab = 'hora
   const [activeTab, setActiveTab] = useState(initialSubTab); // 'horarios', 'cesta', 'rateio', 'conferencia', 'custos'
 
   const isSuperAdmin = currentUser?.role === 'superadmin';
-  const modulos = currentUser?.modulos || [];
+  const modulos = currentUser?.modulos || currentUser?.tenant_modulos || [];
 
   const hasHorarios = isSuperAdmin || isModuleEnabled(modulos, 'mod_bi_horarios');
   const hasRateio = isSuperAdmin || isModuleEnabled(modulos, 'mod_rateio_socios');
