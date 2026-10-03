@@ -1,13 +1,13 @@
 const express = require('express');
 const router = express.Router();
 const rateioRepo = require('../repositories/rateioRepository');
-const { requireRole } = require('../middlewares/auth');
+const { requireRole, requireModule } = require('../middlewares/auth');
 
 // Apenas Administrador da Tenda e SuperAdmin podem acessar custos e rateio de sócios
 router.use(requireRole('admin', 'superadmin'));
 
-// 1. Relatório consolidado de Rateio e Liquidação
-router.get('/', async (req, res) => {
+// 1. Relatório consolidado de Rateio e Liquidação (Exige Módulo de Sócios)
+router.get('/', requireModule('mod_rateio_socios'), async (req, res) => {
   try {
     const { data_inicio, data_fim, periodo } = req.query;
     const relatorio = await rateioRepo.getRelatorioRateio({ data_inicio, data_fim, periodo });

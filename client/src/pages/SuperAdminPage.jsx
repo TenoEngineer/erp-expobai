@@ -1,16 +1,35 @@
 import React, { useState, useEffect } from 'react';
-import { Store, Plus, Users, DollarSign, ShoppingBag, ShieldCheck, CheckCircle2, XCircle, Copy, AlertCircle, RefreshCw, X } from 'lucide-react';
+import { 
+  Store, 
+  Plus, 
+  Users, 
+  DollarSign, 
+  ShieldCheck, 
+  CheckCircle2, 
+  XCircle, 
+  Copy, 
+  AlertCircle, 
+  RefreshCw, 
+  X,
+  Package,
+  Layers,
+  Edit,
+  Tag
+} from 'lucide-react';
 import { getTenants, createTenant, updateTenant, cloneCardapio } from '../services/api';
+import { MODULOS_CATALOGO } from '../constants/modulos';
 
 export default function SuperAdminPage() {
   const [tenants, setTenants] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [modalOpen, setModalOpen] = useState(false);
+  const [editModalOpen, setEditModalOpen] = useState(false);
+  const [selectedTenant, setSelectedTenant] = useState(null);
   const [actionLoading, setActionLoading] = useState(false);
   const [successMsg, setSuccessMsg] = useState('');
 
-  // Form states
+  // Form de Criação de Tenda
   const [form, setForm] = useState({
     nome: '',
     responsavel: '',
@@ -19,7 +38,15 @@ export default function SuperAdminPage() {
     admin_email: '',
     admin_senha: '',
     admin_pin: '1234',
-    clonar_cardapio: true
+    clonar_cardapio: true,
+    modulos: ['core_pos', 'mod_fichas', 'mod_bi_horarios'],
+    valor_plano: 600.00
+  });
+
+  // Form de Edição de Módulos
+  const [editForm, setEditForm] = useState({
+    modulos: [],
+    valor_plano: 0
   });
 
   const loadData = async () => {
@@ -38,6 +65,42 @@ export default function SuperAdminPage() {
   useEffect(() => {
     loadData();
   }, []);
+
+  // Recalcula o preço padrão somando os módulos selecionados
+  const calculateTotal = (selectedModules) => {
+    return selectedModules.reduce((acc, modId) => {
+      const mod = MODULOS_CATALOGO.find(m => m.id === modId);
+      return acc + (mod ? mod.preco_base : 0);
+    }, 0);
+  };
+
+  const handleToggleModuleInCreate = (modId) => {
+    if (modId === 'core_pos') return; // obrigatório
+    const exists = form.modulos.includes(modId);
+    const updated = exists 
+      ? form.modulos.filter(m => m !== modId)
+      : [...form.modulos, modId];
+    
+    setForm({
+      ...form,
+      modulos: updated,
+      valor_plano: calculateTotal(updated)
+    });
+  };
+
+  const handleToggleModuleInEdit = (modId) => {
+    if (modId === 'core_pos') return; // obrigatório
+    const exists = editForm.modulos.includes(modId);
+    const updated = exists 
+      ? editForm.modulos.filter(m => m !== modId)
+      : [...editForm.modulos, modId];
+
+    setEditForm({
+      ...editForm,
+      modulos: updated,
+      valor_plano: calculateTotal(updated)
+    });
+  };
 
   const handleCreate = async (e) => {
     e.preventDefault();
@@ -63,10 +126,12 @@ export default function SuperAdminPage() {
         admin_email: form.admin_email,
         admin_senha: form.admin_senha,
         admin_pin: form.admin_pin,
+        modulos: form.modulos,
+        valor_plano: form.valor_plano,
         clonar_de: form.clonar_cardapio ? 'tenda-muller' : null
       });
 
-      setSuccessMsg(`Tenda "${form.nome}" criada com sucesso!`);
+      setSuccessMsg(`Tenda "${form.nome}" cadastrada com sucesso!`);
       setModalOpen(false);
       setForm({
         nome: '',
@@ -76,11 +141,47 @@ export default function SuperAdminPage() {
         admin_email: '',
         admin_senha: '',
         admin_pin: '1234',
-        clonar_cardapio: true
+        clonar_cardapio: true,
+        modulos: ['core_pos', 'mod_fichas', 'mod_bi_horarios'],
+        valor_plano: 600.00
       });
       loadData();
     } catch (err) {
       setError(err.response?.data?.error || 'Falha ao cadastrar nova tenda');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleOpenEdit = (tenant) => {
+    setSelectedTenant(tenant);
+    let tenantMods = tenant.modulos;
+    if (typeof tenantMods === 'string') {
+      try { tenantMods = JSON.parse(tenantMods); } catch { tenantMods = ['core_pos']; }
+    }
+    if (!Array.isArray(tenantMods)) tenantMods = ['core_pos'];
+
+    setEditForm({
+      modulos: tenantMods,
+      valor_plano: parseFloat(tenant.valor_plano) || calculateTotal(tenantMods)
+    });
+    setEditModalOpen(true);
+  };
+
+  const handleSaveEdit = async (e) => {
+    e.preventDefault();
+    if (!selectedTenant) return;
+    setActionLoading(true);
+    try {
+      await updateTenant(selectedTenant.id, {
+        modulos: editForm.modulos,
+        valor_plano: editForm.valor_plano
+      });
+      setSuccessMsg(`Módulos da tenda "${selectedTenant.nome}" atualizados com sucesso!`);
+      setEditModalOpen(false);
+      loadData();
+    } catch (err) {
+      alert('Erro ao atualizar módulos: ' + (err.response?.data?.error || err.message));
     } finally {
       setActionLoading(false);
     }
@@ -107,6 +208,7 @@ export default function SuperAdminPage() {
   };
 
   const totalFaturadoGeral = tenants.reduce((acc, t) => acc + (parseFloat(t.total_faturado) || 0), 0);
+  const totalContratosGeral = tenants.reduce((acc, t) => acc + (parseFloat(t.valor_plano) || 0), 0);
   const totalPedidosGeral = tenants.reduce((acc, t) => acc + (parseInt(t.total_pedidos, 10) || 0), 0);
   const totalTendasAtivas = tenants.filter(t => t.ativo).length;
 
@@ -122,11 +224,11 @@ export default function SuperAdminPage() {
               <ShieldCheck className="w-5 h-5" />
             </span>
             <h1 className="text-xl sm:text-2xl font-black text-white tracking-tight">
-              Gestão de Tendas & Clientes (Super Admin)
+              Gestão de Tendas & Módulos (Super Admin)
             </h1>
           </div>
           <p className="text-xs text-slate-400 mt-1">
-            Painel Mestre do ExpoERP • Cadastro de estandes e controle comercial do evento
+            Painel Comercial ExpoERP &bull; Controle de Licenças, Módulos e Faturamento
           </p>
         </div>
 
@@ -189,7 +291,7 @@ export default function SuperAdminPage() {
         <div className="bg-slate-900/60 border border-slate-800 rounded-2xl p-4 flex items-center justify-between">
           <div>
             <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">
-              Faturamento Global
+              Vendas dos Clientes
             </span>
             <span className="text-2xl font-black text-emerald-400 font-mono mt-1 block">
               {formatPrice(totalFaturadoGeral)}
@@ -203,107 +305,146 @@ export default function SuperAdminPage() {
         <div className="bg-slate-900/60 border border-slate-800 rounded-2xl p-4 flex items-center justify-between">
           <div>
             <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">
-              Total de Pedidos
+              Receita de Licenças / Módulos
             </span>
             <span className="text-2xl font-black text-amber-400 font-mono mt-1 block">
-              {totalPedidosGeral}
+              {formatPrice(totalContratosGeral)}
             </span>
           </div>
           <div className="w-10 h-10 rounded-xl bg-amber-500/10 text-amber-400 border border-amber-500/20 flex items-center justify-center">
-            <ShoppingBag className="w-5 h-5" />
+            <Package className="w-5 h-5" />
           </div>
         </div>
 
         <div className="bg-slate-900/60 border border-slate-800 rounded-2xl p-4 flex items-center justify-between">
           <div>
             <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">
-              Segurança
+              Total de Pedidos Processados
             </span>
-            <span className="text-sm font-bold text-emerald-300 mt-1 block">
-              Blindagem JWT
+            <span className="text-2xl font-black text-indigo-400 font-mono mt-1 block">
+              {totalPedidosGeral.toLocaleString('pt-BR')}
             </span>
-            <span className="text-[10px] text-slate-500">Isolamento PostgreSQL</span>
           </div>
-          <div className="w-10 h-10 rounded-xl bg-purple-500/10 text-purple-400 border border-purple-500/20 flex items-center justify-center">
-            <ShieldCheck className="w-5 h-5" />
+          <div className="w-10 h-10 rounded-xl bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 flex items-center justify-center">
+            <Layers className="w-5 h-5" />
           </div>
         </div>
       </div>
 
-      {/* Lista de Tendas */}
-      <div className="bg-slate-900/80 border border-slate-800 rounded-2xl overflow-hidden shadow-xl">
+      {/* Tabela de Tendas */}
+      <div className="bg-slate-900/70 border border-slate-800 rounded-2xl overflow-hidden shadow-xl">
         <div className="p-4 border-b border-slate-800 flex justify-between items-center">
-          <h2 className="text-sm font-bold uppercase tracking-wider text-slate-300">
-            Tendas e Estandes Conectados
-          </h2>
-          <span className="text-xs text-slate-500 font-mono">
-            {tenants.length} registros
+          <div className="flex items-center gap-2">
+            <Store className="w-4 h-4 text-emerald-400" />
+            <h2 className="font-extrabold text-sm text-white uppercase tracking-wider">
+              Tendas e Módulos Ativos
+            </h2>
+          </div>
+          <span className="text-xs text-slate-400">
+            {tenants.length} {tenants.length === 1 ? 'cliente' : 'clientes'}
           </span>
         </div>
 
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs sm:text-sm">
-            <thead className="bg-slate-950/80 text-slate-400 uppercase tracking-wider text-[10px] font-bold border-b border-slate-800">
+          <table className="w-full text-left text-xs text-slate-300">
+            <thead className="bg-slate-950/60 text-slate-400 uppercase tracking-wider text-[11px] font-bold border-b border-slate-800">
               <tr>
-                <th className="p-3.5">Tenda / Slug</th>
-                <th className="p-3.5">Responsável / Contato</th>
-                <th className="p-3.5">Produtos</th>
+                <th className="p-3.5">Tenda / Responsável</th>
+                <th className="p-3.5">Módulos Contratados</th>
+                <th className="p-3.5">Valor Licença</th>
                 <th className="p-3.5">Pedidos</th>
-                <th className="p-3.5">Faturamento</th>
+                <th className="p-3.5">Faturamento PDV</th>
                 <th className="p-3.5">Status</th>
                 <th className="p-3.5 text-right">Ações</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-800/80">
-              {tenants.map(t => (
-                <tr key={t.id} className="hover:bg-slate-850/50 transition-colors">
-                  <td className="p-3.5 font-bold text-white">
-                    <div className="flex items-center gap-2">
-                      <Store className="w-4 h-4 text-emerald-400 shrink-0" />
-                      <div>
-                        <div>{t.nome}</div>
-                        <span className="text-[10px] text-slate-500 font-mono">ID: {t.id}</span>
+              {tenants.map(t => {
+                let mods = t.modulos;
+                if (typeof mods === 'string') {
+                  try { mods = JSON.parse(mods); } catch { mods = ['core_pos']; }
+                }
+                if (!Array.isArray(mods)) mods = ['core_pos'];
+
+                return (
+                  <tr key={t.id} className="hover:bg-slate-850/50 transition-colors">
+                    <td className="p-3.5 font-bold text-white">
+                      <div className="flex items-center gap-2">
+                        <Store className="w-4 h-4 text-emerald-400 shrink-0" />
+                        <div>
+                          <div>{t.nome}</div>
+                          <span className="text-[11px] text-slate-400 font-normal">{t.responsavel || '-'} {t.telefone ? `• ${t.telefone}` : ''}</span>
+                        </div>
                       </div>
-                    </div>
-                  </td>
-                  <td className="p-3.5 text-slate-300">
-                    <div>{t.responsavel || '-'}</div>
-                    <span className="text-[11px] text-slate-500">{t.telefone || '-'}</span>
-                  </td>
-                  <td className="p-3.5 font-mono text-slate-300">
-                    {t.total_produtos || 0}
-                  </td>
-                  <td className="p-3.5 font-mono text-amber-400 font-bold">
-                    {t.total_pedidos || 0}
-                  </td>
-                  <td className="p-3.5 font-mono text-emerald-400 font-bold">
-                    {formatPrice(t.total_faturado)}
-                  </td>
-                  <td className="p-3.5">
-                    <button
-                      onClick={() => handleToggleAtivo(t)}
-                      className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider cursor-pointer ${
-                        t.ativo
-                          ? 'bg-emerald-500/10 text-emerald-300 border border-emerald-500/30'
-                          : 'bg-rose-500/10 text-rose-300 border border-rose-500/30'
-                      }`}
-                    >
-                      {t.ativo ? <CheckCircle2 className="w-3 h-3" /> : <XCircle className="w-3 h-3" />}
-                      <span>{t.ativo ? 'Ativa' : 'Suspensa'}</span>
-                    </button>
-                  </td>
-                  <td className="p-3.5 text-right">
-                    <button
-                      onClick={() => handleClonar(t.id)}
-                      className="px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-amber-300 rounded-lg text-xs font-bold border border-slate-700 inline-flex items-center gap-1 cursor-pointer transition-colors"
-                      title="Clonar cardápio da Tenda Müller para esta tenda"
-                    >
-                      <Copy className="w-3 h-3" />
-                      <span>Clonar Cardápio</span>
-                    </button>
-                  </td>
-                </tr>
-              ))}
+                    </td>
+                    
+                    {/* Badges de Módulos */}
+                    <td className="p-3.5">
+                      <div className="flex flex-wrap gap-1 max-w-xs">
+                        {mods.map(mId => {
+                          const mInfo = MODULOS_CATALOGO.find(m => m.id === mId);
+                          return (
+                            <span 
+                              key={mId}
+                              className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-slate-800 border border-slate-700 text-slate-200"
+                              title={mInfo?.descricao}
+                            >
+                              {mInfo ? mInfo.nome.split(' ')[0] : mId}
+                            </span>
+                          );
+                        })}
+                      </div>
+                    </td>
+
+                    {/* Preço do Contrato */}
+                    <td className="p-3.5 font-mono text-amber-400 font-bold">
+                      {formatPrice(t.valor_plano)}
+                    </td>
+
+                    <td className="p-3.5 font-mono text-slate-300">
+                      {t.total_pedidos || 0}
+                    </td>
+
+                    <td className="p-3.5 font-mono text-emerald-400 font-bold">
+                      {formatPrice(t.total_faturado)}
+                    </td>
+
+                    <td className="p-3.5">
+                      <button
+                        onClick={() => handleToggleAtivo(t)}
+                        className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider cursor-pointer ${
+                          t.ativo
+                            ? 'bg-emerald-500/10 text-emerald-300 border border-emerald-500/30'
+                            : 'bg-rose-500/10 text-rose-300 border border-rose-500/30'
+                        }`}
+                      >
+                        {t.ativo ? <CheckCircle2 className="w-3 h-3" /> : <XCircle className="w-3 h-3" />}
+                        <span>{t.ativo ? 'Ativa' : 'Suspensa'}</span>
+                      </button>
+                    </td>
+
+                    <td className="p-3.5 text-right space-x-1.5 whitespace-nowrap">
+                      <button
+                        onClick={() => handleOpenEdit(t)}
+                        className="px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-amber-300 rounded-lg text-xs font-bold border border-slate-700 inline-flex items-center gap-1 cursor-pointer transition-colors"
+                        title="Editar Módulos Contratados e Valor do Plano"
+                      >
+                        <Edit className="w-3 h-3" />
+                        <span>Módulos</span>
+                      </button>
+
+                      <button
+                        onClick={() => handleClonar(t.id)}
+                        className="px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white rounded-lg text-xs font-bold border border-slate-700 inline-flex items-center gap-1 cursor-pointer transition-colors"
+                        title="Clonar cardápio da Tenda Müller para esta tenda"
+                      >
+                        <Copy className="w-3 h-3" />
+                        <span>Cardápio</span>
+                      </button>
+                    </td>
+                  </tr>
+                );
+              })}
 
               {tenants.length === 0 && !loading && (
                 <tr>
@@ -317,14 +458,14 @@ export default function SuperAdminPage() {
         </div>
       </div>
 
-      {/* Modal de Cadastro de Nova Tenda */}
+      {/* Modal de Cadastro de Nova Tenda com Seleção de Módulos */}
       {modalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md animate-in fade-in duration-200">
-          <div className="bg-slate-900 border border-slate-800 rounded-3xl w-full max-w-lg shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+          <div className="bg-slate-900 border border-slate-800 rounded-3xl w-full max-w-xl shadow-2xl overflow-hidden flex flex-col max-h-[92vh]">
             <div className="p-5 border-b border-slate-800 flex justify-between items-center bg-slate-950/60">
               <div className="flex items-center gap-2">
                 <Store className="w-5 h-5 text-emerald-400" />
-                <h3 className="font-bold text-white text-base">Cadastrar Nova Tenda / Cliente</h3>
+                <h3 className="font-bold text-white text-base">Cadastrar Nova Tenda & Módulos</h3>
               </div>
               <button onClick={() => setModalOpen(false)} className="text-slate-400 hover:text-white p-1">
                 <X className="w-5 h-5" />
@@ -341,7 +482,7 @@ export default function SuperAdminPage() {
                   required
                   value={form.nome}
                   onChange={(e) => setForm({ ...form, nome: e.target.value })}
-                  placeholder="Ex: Churrasco do Gaúcho"
+                  placeholder="Ex: Pastelaria da Nona"
                   className="w-full h-11 px-3.5 bg-slate-950 border border-slate-800 rounded-xl text-sm text-white focus:outline-none focus:border-emerald-500"
                 />
               </div>
@@ -375,21 +516,86 @@ export default function SuperAdminPage() {
                 </div>
               </div>
 
+              {/* Seleção Modular de Funcionalidades */}
+              <div className="p-4 bg-slate-950/80 rounded-2xl border border-slate-800 space-y-3">
+                <div className="flex justify-between items-center">
+                  <span className="text-xs font-black text-amber-400 uppercase tracking-wider block">
+                    Módulos Contratados (Venda Adicional)
+                  </span>
+                  <span className="text-xs text-emerald-400 font-bold font-mono">
+                    Total: {formatPrice(form.valor_plano)}
+                  </span>
+                </div>
+
+                <div className="space-y-2">
+                  {MODULOS_CATALOGO.map(mod => {
+                    const isChecked = form.modulos.includes(mod.id);
+                    return (
+                      <div 
+                        key={mod.id}
+                        onClick={() => handleToggleModuleInCreate(mod.id)}
+                        className={`p-3 rounded-xl border flex items-center justify-between cursor-pointer transition-all ${
+                          isChecked 
+                            ? 'bg-emerald-950/40 border-emerald-500/40 text-white' 
+                            : 'bg-slate-900/50 border-slate-800 text-slate-400 hover:border-slate-700'
+                        }`}
+                      >
+                        <div className="flex items-center gap-3">
+                          <input 
+                            type="checkbox" 
+                            checked={isChecked}
+                            disabled={mod.obrigatorio}
+                            onChange={() => {}} // handled by parent div
+                            className="w-4 h-4 text-emerald-500 rounded cursor-pointer"
+                          />
+                          <div>
+                            <div className="font-bold text-xs sm:text-sm text-slate-100 flex items-center gap-2">
+                              <span>{mod.nome}</span>
+                              {mod.obrigatorio && (
+                                <span className="text-[10px] bg-slate-800 px-1.5 py-0.2 rounded text-slate-400 uppercase">Base</span>
+                              )}
+                            </div>
+                            <p className="text-[11px] text-slate-400 line-clamp-1">{mod.descricao}</p>
+                          </div>
+                        </div>
+
+                        <span className="text-xs font-mono font-bold text-amber-400 shrink-0 ml-2">
+                          +{formatPrice(mod.preco_base)}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* Ajuste Manual de Preço */}
+                <div className="pt-2 flex items-center justify-between border-t border-slate-800/80">
+                  <span className="text-xs text-slate-400 font-medium">Preço Final Negociado (R$):</span>
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={form.valor_plano}
+                    onChange={(e) => setForm({ ...form, valor_plano: parseFloat(e.target.value) || 0 })}
+                    className="w-28 h-8 px-2 bg-slate-900 border border-slate-700 rounded-lg text-xs font-mono font-bold text-right text-emerald-400 focus:outline-none focus:border-emerald-500"
+                  />
+                </div>
+              </div>
+
+              {/* Credenciais de Acesso */}
               <div className="p-4 bg-slate-950/70 rounded-2xl border border-slate-800 space-y-3">
-                <span className="text-xs font-black text-amber-400 uppercase tracking-wider block">
-                  Credenciais de Acesso do Cliente
+                <span className="text-xs font-black text-slate-300 uppercase tracking-wider block">
+                  Credenciais de Acesso da Tenda
                 </span>
 
                 <div>
                   <label className="block text-xs font-bold text-slate-400 mb-1">
-                    E-mail do Administrador da Tenda *
+                    E-mail do Administrador *
                   </label>
                   <input
                     type="email"
                     required
                     value={form.admin_email}
                     onChange={(e) => setForm({ ...form, admin_email: e.target.value })}
-                    placeholder="gaucho@expoerp.com.br"
+                    placeholder="dono@exemplo.com"
                     className="w-full h-10 px-3 bg-slate-900 border border-slate-700 rounded-xl text-sm text-white focus:outline-none focus:border-amber-500"
                   />
                 </div>
@@ -397,7 +603,7 @@ export default function SuperAdminPage() {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
                     <label className="block text-xs font-bold text-slate-400 mb-1">
-                      Senha Inicial *
+                      Senha *
                     </label>
                     <input
                       type="password"
@@ -411,7 +617,7 @@ export default function SuperAdminPage() {
 
                   <div>
                     <label className="block text-xs font-bold text-slate-400 mb-1">
-                      PIN Caixa Rápido (4 dígitos)
+                      PIN Caixa Rápido
                     </label>
                     <input
                       type="text"
@@ -453,6 +659,98 @@ export default function SuperAdminPage() {
                   className="px-5 py-2.5 bg-gradient-to-r from-emerald-500 to-green-600 active:scale-[0.98] text-slate-950 font-black rounded-xl text-xs uppercase tracking-wider cursor-pointer shadow-lg shadow-emerald-950 disabled:opacity-50"
                 >
                   {actionLoading ? 'Criando...' : 'Confirmar e Ativar'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de Edição de Módulos de Tenda Existente */}
+      {editModalOpen && selectedTenant && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md animate-in fade-in duration-200">
+          <div className="bg-slate-900 border border-slate-800 rounded-3xl w-full max-w-lg shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+            <div className="p-5 border-b border-slate-800 flex justify-between items-center bg-slate-950/60">
+              <div className="flex items-center gap-2">
+                <Package className="w-5 h-5 text-amber-400" />
+                <div>
+                  <h3 className="font-bold text-white text-base">Gerenciar Módulos Contratados</h3>
+                  <span className="text-xs text-slate-400">{selectedTenant.nome}</span>
+                </div>
+              </div>
+              <button onClick={() => setEditModalOpen(false)} className="text-slate-400 hover:text-white p-1">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveEdit} className="p-6 overflow-y-auto space-y-4">
+              <div className="space-y-2">
+                {MODULOS_CATALOGO.map(mod => {
+                  const isChecked = editForm.modulos.includes(mod.id);
+                  return (
+                    <div 
+                      key={mod.id}
+                      onClick={() => handleToggleModuleInEdit(mod.id)}
+                      className={`p-3 rounded-xl border flex items-center justify-between cursor-pointer transition-all ${
+                        isChecked 
+                          ? 'bg-emerald-950/40 border-emerald-500/40 text-white' 
+                          : 'bg-slate-900/50 border-slate-800 text-slate-400 hover:border-slate-700'
+                      }`}
+                    >
+                      <div className="flex items-center gap-3">
+                        <input 
+                          type="checkbox" 
+                          checked={isChecked}
+                          disabled={mod.obrigatorio}
+                          onChange={() => {}}
+                          className="w-4 h-4 text-emerald-500 rounded cursor-pointer"
+                        />
+                        <div>
+                          <div className="font-bold text-xs sm:text-sm text-slate-100 flex items-center gap-2">
+                            <span>{mod.nome}</span>
+                            {mod.obrigatorio && (
+                              <span className="text-[10px] bg-slate-800 px-1.5 py-0.2 rounded text-slate-400 uppercase">Base</span>
+                            )}
+                          </div>
+                          <p className="text-[11px] text-slate-400 line-clamp-1">{mod.descricao}</p>
+                        </div>
+                      </div>
+
+                      <span className="text-xs font-mono font-bold text-amber-400 shrink-0 ml-2">
+                        +{formatPrice(mod.preco_base)}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Preço do Contrato */}
+              <div className="p-3 bg-slate-950 rounded-xl border border-slate-800 flex items-center justify-between">
+                <span className="text-xs font-bold text-slate-300">Valor Total do Plano (R$):</span>
+                <input
+                  type="number"
+                  step="0.01"
+                  value={editForm.valor_plano}
+                  onChange={(e) => setEditForm({ ...editForm, valor_plano: parseFloat(e.target.value) || 0 })}
+                  className="w-32 h-9 px-2 bg-slate-900 border border-slate-700 rounded-lg text-xs font-mono font-bold text-right text-emerald-400 focus:outline-none focus:border-emerald-500"
+                />
+              </div>
+
+              <div className="pt-2 flex justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => setEditModalOpen(false)}
+                  className="px-4 py-2.5 rounded-xl border border-slate-700 text-slate-400 hover:text-white text-xs font-bold cursor-pointer"
+                >
+                  Cancelar
+                </button>
+
+                <button
+                  type="submit"
+                  disabled={actionLoading}
+                  className="px-5 py-2.5 bg-gradient-to-r from-amber-500 to-yellow-500 active:scale-[0.98] text-slate-950 font-black rounded-xl text-xs uppercase tracking-wider cursor-pointer shadow-lg shadow-amber-950 disabled:opacity-50"
+                >
+                  {actionLoading ? 'Salvando...' : 'Salvar Alterações'}
                 </button>
               </div>
             </form>

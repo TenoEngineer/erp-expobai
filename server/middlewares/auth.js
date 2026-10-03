@@ -73,8 +73,38 @@ function requireRole(...roles) {
   };
 }
 
+/**
+ * Middleware para Feature Gating: exige que a tenda tenha contratado o módulo especificado
+ */
+function requireModule(moduleKey) {
+  return (req, res, next) => {
+    if (!req.user) {
+      return res.status(401).json({ error: 'Usuário não autenticado' });
+    }
+
+    // SuperAdmin tem acesso livre a todos os módulos
+    if (req.user.role === 'superadmin') {
+      return next();
+    }
+
+    const modulos = req.user.modulos || [];
+    // core_pos é sempre liberado
+    if (moduleKey === 'core_pos' || modulos.includes(moduleKey)) {
+      return next();
+    }
+
+    return res.status(403).json({
+      error: `O módulo "${moduleKey}" não está ativo no plano da sua tenda.`,
+      code: 'MODULE_LOCKED',
+      modulo: moduleKey
+    });
+  };
+}
+
 module.exports = {
   authenticateToken,
   requireRole,
+  requireModule,
   JWT_SECRET
 };
+

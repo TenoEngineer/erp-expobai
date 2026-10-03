@@ -4,15 +4,25 @@ import {
   DollarSign, 
   TrendingUp, 
   Clock,
-  Sparkles
+  Lock
 } from 'lucide-react';
 import RateioPage from './RateioPage';
 import PaymentAuditReport from '../components/admin/PaymentAuditReport';
 import CostAnalysisReport from '../components/admin/CostAnalysisReport';
 import HourlyAnalysisReport from '../components/admin/HourlyAnalysisReport';
+import LockedModuleCard from '../components/LockedModuleCard';
+import { isModuleEnabled } from '../constants/modulos';
 
-export default function AnalisePage({ config, initialSubTab = 'horarios' }) {
+export default function AnalisePage({ config, currentUser, initialSubTab = 'horarios' }) {
   const [activeTab, setActiveTab] = useState(initialSubTab); // 'horarios', 'rateio', 'conferencia', 'custos'
+
+  const isSuperAdmin = currentUser?.role === 'superadmin';
+  const modulos = currentUser?.modulos || [];
+
+  const hasHorarios = isSuperAdmin || isModuleEnabled(modulos, 'mod_bi_horarios');
+  const hasRateio = isSuperAdmin || isModuleEnabled(modulos, 'mod_rateio_socios');
+  const hasCustos = isSuperAdmin || isModuleEnabled(modulos, 'mod_custos_cmv');
+  const hasConferencia = isSuperAdmin || isModuleEnabled(modulos, 'mod_custos_cmv') || isModuleEnabled(modulos, 'mod_rateio_socios');
 
   return (
     <div className="max-w-7xl mx-auto p-4 sm:p-6 space-y-6 w-full">
@@ -22,6 +32,7 @@ export default function AnalisePage({ config, initialSubTab = 'horarios' }) {
         className="flex items-center gap-2 border-b border-slate-800 pb-3 overflow-x-auto touch-pan-x flex-nowrap -mx-4 px-4 sm:mx-0 sm:px-0 scrollbar-none"
         style={{ WebkitOverflowScrolling: 'touch' }}
       >
+        {/* 1. Vendas por Horário (BI) */}
         <button
           onClick={() => setActiveTab('horarios')}
           className={`flex items-center gap-1.5 sm:gap-2 px-3.5 sm:px-5 py-2.5 rounded-xl font-bold text-xs uppercase tracking-wider transition-all shrink-0 whitespace-nowrap ${
@@ -32,8 +43,10 @@ export default function AnalisePage({ config, initialSubTab = 'horarios' }) {
         >
           <Clock className={`w-4 h-4 ${activeTab === 'horarios' ? 'text-slate-950 stroke-[2.5]' : 'text-amber-400'}`} />
           <span>Vendas por Horário</span>
+          {!hasHorarios && <Lock className="w-3 h-3 text-amber-400 ml-0.5" />}
         </button>
 
+        {/* 2. Rateio dos Sócios */}
         <button
           onClick={() => setActiveTab('rateio')}
           className={`flex items-center gap-1.5 sm:gap-2 px-3.5 sm:px-5 py-2.5 rounded-xl font-bold text-xs uppercase tracking-wider transition-all shrink-0 whitespace-nowrap ${
@@ -42,10 +55,12 @@ export default function AnalisePage({ config, initialSubTab = 'horarios' }) {
               : 'bg-slate-900/80 text-slate-400 hover:text-white hover:bg-slate-800 border border-slate-800'
           }`}
         >
-          <Users className="w-4 h-4 text-amber-300" />
+          <Users className="w-4 h-4 text-purple-300" />
           <span>Rateio dos Sócios</span>
+          {!hasRateio && <Lock className="w-3 h-3 text-amber-400 ml-0.5" />}
         </button>
 
+        {/* 3. Conferência de Pagamentos */}
         <button
           onClick={() => setActiveTab('conferencia')}
           className={`flex items-center gap-1.5 sm:gap-2 px-3.5 sm:px-5 py-2.5 rounded-xl font-bold text-xs uppercase tracking-wider transition-all shrink-0 whitespace-nowrap ${
@@ -56,8 +71,10 @@ export default function AnalisePage({ config, initialSubTab = 'horarios' }) {
         >
           <DollarSign className="w-4 h-4 text-emerald-300" />
           <span>Conferência de Pagamentos</span>
+          {!hasConferencia && <Lock className="w-3 h-3 text-amber-400 ml-0.5" />}
         </button>
 
+        {/* 4. Análise de Custos & CMV */}
         <button
           onClick={() => setActiveTab('custos')}
           className={`flex items-center gap-1.5 sm:gap-2 px-3.5 sm:px-5 py-2.5 rounded-xl font-bold text-xs uppercase tracking-wider transition-all shrink-0 whitespace-nowrap ${
@@ -68,24 +85,41 @@ export default function AnalisePage({ config, initialSubTab = 'horarios' }) {
         >
           <TrendingUp className="w-4 h-4 text-purple-300" />
           <span>Análise de Custos & CMV</span>
+          {!hasCustos && <Lock className="w-3 h-3 text-amber-400 ml-0.5" />}
         </button>
       </div>
 
-      {/* Conteúdo da Sub-Aba Ativa */}
+      {/* Conteúdo com Gating Modular */}
       {activeTab === 'horarios' && (
-        <HourlyAnalysisReport config={config} />
+        hasHorarios ? (
+          <HourlyAnalysisReport config={config} />
+        ) : (
+          <LockedModuleCard moduloId="mod_bi_horarios" />
+        )
       )}
 
       {activeTab === 'rateio' && (
-        <RateioPage />
+        hasRateio ? (
+          <RateioPage />
+        ) : (
+          <LockedModuleCard moduloId="mod_rateio_socios" />
+        )
       )}
 
       {activeTab === 'conferencia' && (
-        <PaymentAuditReport config={config} initialForma="todos" />
+        hasConferencia ? (
+          <PaymentAuditReport config={config} initialForma="todos" />
+        ) : (
+          <LockedModuleCard moduloId="mod_custos_cmv" />
+        )
       )}
 
       {activeTab === 'custos' && (
-        <CostAnalysisReport config={config} />
+        hasCustos ? (
+          <CostAnalysisReport config={config} />
+        ) : (
+          <LockedModuleCard moduloId="mod_custos_cmv" />
+        )
       )}
 
     </div>

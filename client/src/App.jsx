@@ -110,7 +110,7 @@ export default function App() {
             />
           </div>
         ) : activeTab === 'analise' && (currentUser.role === 'admin' || currentUser.role === 'superadmin') ? (
-          <AnalisePage config={config} />
+          <AnalisePage config={config} currentUser={currentUser} />
         ) : activeTab === 'configuracoes' && (currentUser.role === 'admin' || currentUser.role === 'superadmin') ? (
           <AdminPage
             config={config}

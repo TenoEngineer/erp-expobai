@@ -202,6 +202,12 @@ async function initDB() {
       ALTER TABLE expobai.tenants ADD COLUMN IF NOT EXISTS valido_ate TIMESTAMP WITH TIME ZONE;
       ALTER TABLE expobai.tenants ADD COLUMN IF NOT EXISTS documento VARCHAR(20);
       ALTER TABLE expobai.tenants ADD COLUMN IF NOT EXISTS limite_dispositivos INTEGER DEFAULT 5;
+      ALTER TABLE expobai.tenants ADD COLUMN IF NOT EXISTS modulos JSONB DEFAULT '["core_pos", "mod_fichas", "mod_bi_horarios", "mod_rateio_socios", "mod_custos_cmv", "mod_mobile_track"]'::jsonb;
+      ALTER TABLE expobai.tenants ADD COLUMN IF NOT EXISTS valor_plano NUMERIC(10,2) DEFAULT 0.00;
+
+      UPDATE expobai.tenants 
+      SET modulos = '["core_pos", "mod_fichas", "mod_bi_horarios", "mod_rateio_socios", "mod_custos_cmv", "mod_mobile_track"]'::jsonb
+      WHERE modulos IS NULL OR id = 'tenda-muller';
 
       ALTER TABLE expobai.produtos ADD COLUMN IF NOT EXISTS gera_ficha BOOLEAN DEFAULT TRUE;
       ALTER TABLE expobai.pedidos ADD COLUMN IF NOT EXISTS imprimir_fichas BOOLEAN DEFAULT TRUE;

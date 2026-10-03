@@ -3,7 +3,8 @@ const { query } = require('../db');
 const usuariosRepository = {
   async findByEmail(email) {
     const res = await query(
-      `SELECT u.*, t.nome as tenant_nome, t.ativo as tenant_ativo, t.plano as tenant_plano, t.valido_ate as tenant_valido_ate
+      `SELECT u.*, t.nome as tenant_nome, t.ativo as tenant_ativo, t.plano as tenant_plano, 
+              t.valido_ate as tenant_valido_ate, t.modulos as tenant_modulos, t.valor_plano as tenant_valor_plano
        FROM expobai.usuarios u
        JOIN expobai.tenants t ON u.tenant_id = t.id
        WHERE LOWER(u.email) = LOWER(TRIM($1)) AND u.ativo = true
@@ -15,7 +16,8 @@ const usuariosRepository = {
 
   async findByPinAndTenant(pin, tenantId) {
     const res = await query(
-      `SELECT u.*, t.nome as tenant_nome, t.ativo as tenant_ativo, t.plano as tenant_plano, t.valido_ate as tenant_valido_ate
+      `SELECT u.*, t.nome as tenant_nome, t.ativo as tenant_ativo, t.plano as tenant_plano, 
+              t.valido_ate as tenant_valido_ate, t.modulos as tenant_modulos, t.valor_plano as tenant_valor_plano
        FROM expobai.usuarios u
        JOIN expobai.tenants t ON u.tenant_id = t.id
        WHERE u.pin_acesso_rapido = $1 AND u.tenant_id = $2 AND u.ativo = true
@@ -28,7 +30,8 @@ const usuariosRepository = {
   async findById(id) {
     const res = await query(
       `SELECT u.id, u.tenant_id, u.nome, u.email, u.pin_acesso_rapido, u.role, u.ativo, u.criado_em,
-              t.nome as tenant_nome, t.ativo as tenant_ativo, t.plano as tenant_plano
+              t.nome as tenant_nome, t.ativo as tenant_ativo, t.plano as tenant_plano,
+              t.modulos as tenant_modulos, t.valor_plano as tenant_valor_plano
        FROM expobai.usuarios u
        JOIN expobai.tenants t ON u.tenant_id = t.id
        WHERE u.id = $1`,

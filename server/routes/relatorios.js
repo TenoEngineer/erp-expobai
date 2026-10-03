@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const relatoriosRepo = require('../repositories/relatoriosRepository');
+const { requireModule } = require('../middlewares/auth');
 
 // Fechamento de caixa e resumo de vendas com suporte a filtros de data/período
 router.get('/fechamento', async (req, res) => {
@@ -41,8 +42,8 @@ router.get('/lancamentos-pagamento', async (req, res) => {
   }
 });
 
-// Comparativo de produtos vendidos por hora em relação aos dias da exposição
-router.get('/comparativo-horarios', async (req, res) => {
+// Comparativo de produtos vendidos por hora em relação aos dias da exposição (Exige Módulo BI)
+router.get('/comparativo-horarios', requireModule('mod_bi_horarios'), async (req, res) => {
   try {
     const { produto_id, origem } = req.query;
     const tenantId = req.tenantId || 'tenda-muller';

@@ -32,13 +32,16 @@ router.post('/login', async (req, res) => {
     await usuariosRepo.updateLastLogin(usuario.id);
 
     // Gera token JWT assinado (válido por 12 horas de feira)
+    const modulosAtivos = usuario.tenant_modulos || ['core_pos', 'mod_fichas', 'mod_bi_horarios', 'mod_rateio_socios', 'mod_custos_cmv', 'mod_mobile_track'];
+
     const tokenPayload = {
       id: usuario.id,
       tenant_id: usuario.tenant_id,
       nome: usuario.nome,
       email: usuario.email,
       role: usuario.role,
-      tenant_nome: usuario.tenant_nome
+      tenant_nome: usuario.tenant_nome,
+      modulos: modulosAtivos
     };
 
     const token = jwt.sign(tokenPayload, JWT_SECRET, { expiresIn: '12h' });
@@ -52,7 +55,9 @@ router.post('/login', async (req, res) => {
         email: usuario.email,
         role: usuario.role,
         tenant_nome: usuario.tenant_nome,
-        tenant_plano: usuario.tenant_plano
+        tenant_plano: usuario.tenant_plano,
+        modulos: modulosAtivos,
+        valor_plano: usuario.tenant_valor_plano || 0
       }
     });
   } catch (err) {
@@ -80,13 +85,16 @@ router.post('/login-pin', async (req, res) => {
 
     await usuariosRepo.updateLastLogin(usuario.id);
 
+    const modulosAtivos = usuario.tenant_modulos || ['core_pos', 'mod_fichas', 'mod_bi_horarios', 'mod_rateio_socios', 'mod_custos_cmv', 'mod_mobile_track'];
+
     const tokenPayload = {
       id: usuario.id,
       tenant_id: usuario.tenant_id,
       nome: usuario.nome,
       email: usuario.email,
       role: usuario.role,
-      tenant_nome: usuario.tenant_nome
+      tenant_nome: usuario.tenant_nome,
+      modulos: modulosAtivos
     };
 
     const token = jwt.sign(tokenPayload, JWT_SECRET, { expiresIn: '12h' });
@@ -100,7 +108,9 @@ router.post('/login-pin', async (req, res) => {
         email: usuario.email,
         role: usuario.role,
         tenant_nome: usuario.tenant_nome,
-        tenant_plano: usuario.tenant_plano
+        tenant_plano: usuario.tenant_plano,
+        modulos: modulosAtivos,
+        valor_plano: usuario.tenant_valor_plano || 0
       }
     });
   } catch (err) {

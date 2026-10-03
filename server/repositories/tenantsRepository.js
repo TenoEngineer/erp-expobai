@@ -32,20 +32,22 @@ const tenantsRepository = {
     return res.rows[0] || null;
   },
 
-  async create({ id, nome, responsavel, telefone = '', documento = '', plano = 'evento', valido_ate = null }) {
+  async create({ id, nome, responsavel, telefone = '', documento = '', plano = 'evento', valido_ate = null, modulos = null, valor_plano = 0 }) {
     // Normaliza id para slug seguro (ex: 'bar-central')
     const slugId = id ? id.toLowerCase().trim().replace(/[^a-z0-9_-]/g, '-') : nome.toLowerCase().trim().replace(/[^a-z0-9_-]/g, '-');
+    const modulosJson = JSON.stringify(modulos || ['core_pos']);
 
     const res = await query(
-      `INSERT INTO expobai.tenants (id, nome, responsavel, telefone, documento, plano, valido_ate)
-       VALUES ($1, $2, $3, $4, $5, $6, $7)
+      `INSERT INTO expobai.tenants (id, nome, responsavel, telefone, documento, plano, valido_ate, modulos, valor_plano)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8::jsonb, $9)
        RETURNING *`,
-      [slugId, nome, responsavel, telefone, documento, plano, valido_ate]
+      [slugId, nome, responsavel, telefone, documento, plano, valido_ate, modulosJson, valor_plano || 0]
     );
     return res.rows[0];
   },
 
-  async update(id, { nome, responsavel, telefone, documento, plano, ativo, valido_ate }) {
+  async update(id, { nome, responsavel, telefone, documento, plano, ativo, valido_ate, modulos, valor_plano }) {
+    const modulosJson = modulos !== undefined ? JSON.stringify(modulos) : null;
     const res = await query(
       `UPDATE expobai.tenants
        SET nome = COALESCE($1, nome),
@@ -54,10 +56,23 @@ const tenantsRepository = {
            documento = COALESCE($4, documento),
            plano = COALESCE($5, plano),
            ativo = COALESCE($6, ativo),
-           valido_ate = COALESCE($7, valido_ate)
-       WHERE id = $8
+           valido_ate = COALESCE($7, valido_ate),
+           modulos = COALESCE($8::jsonb, modulos),
+           valor_plano = COALESCE($9, valor_plano)
+       WHERE id = $10
        RETURNING *`,
-      [nome || null, responsavel || null, telefone || null, documento || null, plano || null, ativo !== undefined ? Boolean(ativo) : null, valido_ate || null, id]
+      [
+        nome || null, 
+        responsavel || null, 
+        telefone || null, 
+        documento || null, 
+        plano || null, 
+        ativo !== undefined ? Boolean(ativo) : null, 
+        valido_ate || null,
+        modulosJson,
+        valor_plano !== undefined ? valor_plano : null,
+        id
+      ]
     );
     return res.rows[0] || null;
   },

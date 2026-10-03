@@ -4,10 +4,16 @@ const bcrypt = require('bcryptjs');
 const tenantsRepo = require('../repositories/tenantsRepository');
 const usuariosRepo = require('../repositories/usuariosRepository');
 const { authenticateToken, requireRole } = require('../middlewares/auth');
+const { MODULOS_CATALOGO } = require('../constants/modulos');
 
 // Todas as rotas de gestão de tenants exigem SuperAdmin
 router.use(authenticateToken);
 router.use(requireRole('superadmin'));
+
+// 0. Obter catálogo de módulos e preços
+router.get('/catalogo-modulos', (req, res) => {
+  res.json(MODULOS_CATALOGO);
+});
 
 // 1. Listar todas as tendas e métricas
 router.get('/', async (req, res) => {
@@ -31,6 +37,8 @@ router.post('/', async (req, res) => {
       documento, 
       plano, 
       valido_ate, 
+      modulos,
+      valor_plano = 0,
       admin_email, 
       admin_senha, 
       admin_pin = '1234',
@@ -41,7 +49,7 @@ router.post('/', async (req, res) => {
       return res.status(400).json({ error: 'Nome, responsável, e-mail e senha do administrador são obrigatórios' });
     }
 
-    // Cria o tenant
+    // Cria o tenant com módulos contratados e valor do plano
     const novoTenant = await tenantsRepo.create({
       id,
       nome,
@@ -49,7 +57,9 @@ router.post('/', async (req, res) => {
       telefone,
       documento,
       plano: plano || 'evento',
-      valido_ate
+      valido_ate,
+      modulos: modulos || ['core_pos'],
+      valor_plano: valor_plano || 0
     });
 
     // Cria o usuário administrador da tenda
