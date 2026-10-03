@@ -4,17 +4,19 @@ import {
   DollarSign, 
   TrendingUp, 
   Clock,
-  Lock
+  Lock,
+  ShoppingBag
 } from 'lucide-react';
 import RateioPage from './RateioPage';
 import PaymentAuditReport from '../components/admin/PaymentAuditReport';
 import CostAnalysisReport from '../components/admin/CostAnalysisReport';
 import HourlyAnalysisReport from '../components/admin/HourlyAnalysisReport';
+import BasketAnalyticsReport from '../components/admin/BasketAnalyticsReport';
 import LockedModuleCard from '../components/LockedModuleCard';
 import { isModuleEnabled } from '../constants/modulos';
 
 export default function AnalisePage({ config, currentUser, initialSubTab = 'horarios' }) {
-  const [activeTab, setActiveTab] = useState(initialSubTab); // 'horarios', 'rateio', 'conferencia', 'custos'
+  const [activeTab, setActiveTab] = useState(initialSubTab); // 'horarios', 'cesta', 'rateio', 'conferencia', 'custos'
 
   const isSuperAdmin = currentUser?.role === 'superadmin';
   const modulos = currentUser?.modulos || [];
@@ -46,7 +48,21 @@ export default function AnalisePage({ config, currentUser, initialSubTab = 'hora
           {!hasHorarios && <Lock className="w-3 h-3 text-amber-400 ml-0.5" />}
         </button>
 
-        {/* 2. Rateio dos Sócios */}
+        {/* 2. Cesta & Cross-Selling (BI) */}
+        <button
+          onClick={() => setActiveTab('cesta')}
+          className={`flex items-center gap-1.5 sm:gap-2 px-3.5 sm:px-5 py-2.5 rounded-xl font-bold text-xs uppercase tracking-wider transition-all shrink-0 whitespace-nowrap ${
+            activeTab === 'cesta'
+              ? 'bg-gradient-to-r from-indigo-500 to-indigo-600 text-white font-black shadow-lg shadow-indigo-950 border border-indigo-400/50'
+              : 'bg-slate-900/80 text-slate-400 hover:text-white hover:bg-slate-800 border border-slate-800'
+          }`}
+        >
+          <ShoppingBag className={`w-4 h-4 ${activeTab === 'cesta' ? 'text-white stroke-[2.5]' : 'text-indigo-400'}`} />
+          <span>Cesta & Cross-Selling</span>
+          {!hasHorarios && <Lock className="w-3 h-3 text-amber-400 ml-0.5" />}
+        </button>
+
+        {/* 3. Rateio dos Sócios */}
         <button
           onClick={() => setActiveTab('rateio')}
           className={`flex items-center gap-1.5 sm:gap-2 px-3.5 sm:px-5 py-2.5 rounded-xl font-bold text-xs uppercase tracking-wider transition-all shrink-0 whitespace-nowrap ${
@@ -60,7 +76,7 @@ export default function AnalisePage({ config, currentUser, initialSubTab = 'hora
           {!hasRateio && <Lock className="w-3 h-3 text-amber-400 ml-0.5" />}
         </button>
 
-        {/* 3. Conferência de Pagamentos */}
+        {/* 4. Conferência de Pagamentos */}
         <button
           onClick={() => setActiveTab('conferencia')}
           className={`flex items-center gap-1.5 sm:gap-2 px-3.5 sm:px-5 py-2.5 rounded-xl font-bold text-xs uppercase tracking-wider transition-all shrink-0 whitespace-nowrap ${
@@ -74,7 +90,7 @@ export default function AnalisePage({ config, currentUser, initialSubTab = 'hora
           {!hasConferencia && <Lock className="w-3 h-3 text-amber-400 ml-0.5" />}
         </button>
 
-        {/* 4. Análise de Custos & CMV */}
+        {/* 5. Análise de Custos & CMV */}
         <button
           onClick={() => setActiveTab('custos')}
           className={`flex items-center gap-1.5 sm:gap-2 px-3.5 sm:px-5 py-2.5 rounded-xl font-bold text-xs uppercase tracking-wider transition-all shrink-0 whitespace-nowrap ${
@@ -93,6 +109,14 @@ export default function AnalisePage({ config, currentUser, initialSubTab = 'hora
       {activeTab === 'horarios' && (
         hasHorarios ? (
           <HourlyAnalysisReport config={config} />
+        ) : (
+          <LockedModuleCard moduloId="mod_bi_horarios" />
+        )
+      )}
+
+      {activeTab === 'cesta' && (
+        hasHorarios ? (
+          <BasketAnalyticsReport config={config} />
         ) : (
           <LockedModuleCard moduloId="mod_bi_horarios" />
         )

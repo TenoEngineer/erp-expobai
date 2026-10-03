@@ -868,6 +868,167 @@ const relatoriosRepository = {
         mobile_timeline: mobileTimelineRes.rows
       }
     };
+  },
+
+  /**
+   * Análise Profunda da Cesta de Compras, Distribuição por SKUs e Cross-Selling
+   */
+  async getAnaliseCesta({ tenant_id = 'tenda-muller' } = {}) {
+    // 1. Totais Gerais
+    const totalGeralRes = await query(`
+      SELECT 
+        COUNT(*)::int as total_pedidos,
+        COALESCE(SUM(total), 0)::numeric as total_faturamento
+      FROM expobai.pedidos
+      WHERE status = 'concluido' AND tenant_id = $1
+    `, [tenant_id]);
+
+    const totalPedidos = parseInt(totalGeralRes.rows[0]?.total_pedidos || 0, 10);
+    const totalFaturamento = parseFloat(totalGeralRes.rows[0]?.total_faturamento || 0);
+
+    // 2. Distribuição por Quantidade de SKUs Distintos
+    const skuDistRes = await query(`
+      WITH OrderSKUCount AS (
+        SELECT 
+          pi.pedido_id,
+          COUNT(DISTINCT pi.nome_produto) as sku_count,
+          SUM(pi.quantidade) as total_units,
+          SUM(pi.subtotal) as order_total
+        FROM expobai.pedido_itens pi
+        JOIN expobai.pedidos p ON p.id = pi.pedido_id
+        WHERE p.status = 'concluido' AND p.tenant_id = $1
+        GROUP BY pi.pedido_id
+      )
+      SELECT 
+        s.sku_count,
+        COUNT(*)::int as total_orders,
+        SUM(s.total_units)::numeric as total_units_sold,
+        ROUND(AVG(s.total_units), 2) as avg_units_per_order,
+        ROUND(AVG(s.order_total), 2) as avg_ticket,
+        SUM(s.order_total)::numeric as total_revenue
+      FROM OrderSKUCount s
+      GROUP BY s.sku_count
+      ORDER BY s.sku_count ASC;
+    `, [tenant_id]);
+
+    const distribuicaoSkus = skuDistRes.rows.map(r => ({
+      sku_count: parseInt(r.sku_count, 10),
+      total_orders: parseInt(r.total_orders, 10),
+      pct_orders: totalPedidos > 0 ? Number(((parseInt(r.total_orders, 10) / totalPedidos) * 100).toFixed(2)) : 0,
+      total_units_sold: parseFloat(r.total_units_sold) || 0,
+      avg_units_per_order: parseFloat(r.avg_units_per_order) || 0,
+      avg_ticket: parseFloat(r.avg_ticket) || 0,
+      total_revenue: parseFloat(r.total_revenue) || 0,
+      pct_revenue: totalFaturamento > 0 ? Number(((parseFloat(r.total_revenue) / totalFaturamento) * 100).toFixed(2)) : 0
+    }));
+
+    // 3. Top Pares de Produtos (Venda Casada / Cross-Selling)
+    const paresRes = await query(`
+      SELECT 
+        LEAST(i1.nome_produto, i2.nome_produto) as produto_a,
+        GREATEST(i1.nome_produto, i2.nome_produto) as produto_b,
+        COUNT(DISTINCT i1.pedido_id)::int as frequencia_juntos
+      FROM expobai.pedido_itens i1
+      JOIN expobai.pedido_itens i2 ON i1.pedido_id = i2.pedido_id AND i1.nome_produto < i2.nome_produto
+      JOIN expobai.pedidos p ON p.id = i1.pedido_id
+      WHERE p.status = 'concluido' AND p.tenant_id = $1
+      GROUP BY produto_a, produto_b
+      ORDER BY frequencia_juntos DESC
+      LIMIT 12;
+    `, [tenant_id]);
+
+    // 4. Top Itens Monoproduto (Apenas 1 tipo de produto no carrinho)
+    const monoRes = await query(`
+      WITH MonoprodutoPedidos AS (
+        SELECT 
+          pi.pedido_id,
+          COUNT(DISTINCT pi.nome_produto) as tipos_produtos,
+          SUM(pi.quantidade) as total_itens
+        FROM expobai.pedido_itens pi
+        JOIN expobai.pedidos p ON p.id = pi.pedido_id
+        WHERE p.status = 'concluido' AND p.tenant_id = $1
+        GROUP BY pi.pedido_id
+        HAVING COUNT(DISTINCT pi.nome_produto) = 1
+      )
+      SELECT 
+        pi.nome_produto,
+        COUNT(DISTINCT p.id)::int as total_pedidos_exclusivos,
+        SUM(pi.quantidade)::int as qtd_total_vendida,
+        SUM(pi.subtotal)::numeric as faturamento_exclusivo
+      FROM expobai.pedidos p
+      JOIN MonoprodutoPedidos m ON m.pedido_id = p.id
+      JOIN expobai.pedido_itens pi ON pi.pedido_id = p.id
+      WHERE p.status = 'concluido' AND p.tenant_id = $1
+      GROUP BY pi.nome_produto
+      ORDER BY total_pedidos_exclusivos DESC
+      LIMIT 8;
+    `, [tenant_id]);
+
+    const totalMonoprodutoPedidos = distribuicaoSkus.find(d => d.sku_count === 1)?.total_orders || 0;
+    const topMonoproduto = monoRes.rows.map(r => ({
+      produto: r.nome_produto,
+      pedidos_exclusivos: parseInt(r.total_pedidos_exclusivos, 10),
+      qtd_vendida: parseInt(r.qtd_total_vendida, 10),
+      faturamento: parseFloat(r.faturamento_exclusivo),
+      pct_dos_monoproduto: totalMonoprodutoPedidos > 0 
+        ? Number(((parseInt(r.total_pedidos_exclusivos, 10) / totalMonoprodutoPedidos) * 100).toFixed(1)) 
+        : 0
+    }));
+
+    // 5. Top Itens em Compra Única Estrita (Total de itens = 1)
+    const unitariaRes = await query(`
+      WITH PedidoStats AS (
+        SELECT 
+          pi.pedido_id,
+          SUM(pi.quantidade) as total_itens
+        FROM expobai.pedido_itens pi
+        JOIN expobai.pedidos p ON p.id = pi.pedido_id
+        WHERE p.status = 'concluido' AND p.tenant_id = $1
+        GROUP BY pi.pedido_id
+      )
+      SELECT 
+        pi.nome_produto,
+        COUNT(*)::int as total_compras_unicas,
+        SUM(pi.subtotal)::numeric as faturamento_compras_unicas
+      FROM expobai.pedidos p
+      JOIN PedidoStats s ON s.pedido_id = p.id
+      JOIN expobai.pedido_itens pi ON pi.pedido_id = p.id
+      WHERE p.status = 'concluido' AND p.tenant_id = $1 AND s.total_itens = 1
+      GROUP BY pi.nome_produto
+      ORDER BY total_compras_unicas DESC
+      LIMIT 8;
+    `, [tenant_id]);
+
+    const totalUnitarias = unitariaRes.rows.reduce((a, b) => a + parseInt(b.total_compras_unicas, 10), 0);
+    const topComprasUnitarias = unitariaRes.rows.map(r => ({
+      produto: r.nome_produto,
+      compras_solitarias: parseInt(r.total_compras_unicas, 10),
+      faturamento: parseFloat(r.faturamento_compras_unicas),
+      pct_das_unitarias: totalUnitarias > 0 
+        ? Number(((parseInt(r.total_compras_unicas, 10) / totalUnitarias) * 100).toFixed(1)) 
+        : 0
+    }));
+
+    // Multi-SKU (2 ou mais SKUs)
+    const multiSkuOrders = distribuicaoSkus.filter(d => d.sku_count >= 2).reduce((a, b) => a + b.total_orders, 0);
+    const multiSkuRevenue = distribuicaoSkus.filter(d => d.sku_count >= 2).reduce((a, b) => a + b.total_revenue, 0);
+
+    return {
+      totais: {
+        total_pedidos: totalPedidos,
+        total_faturamento: totalFaturamento,
+        pedidos_1_sku: totalMonoprodutoPedidos,
+        pct_1_sku: totalPedidos > 0 ? Number(((totalMonoprodutoPedidos / totalPedidos) * 100).toFixed(1)) : 0,
+        pedidos_multi_sku: multiSkuOrders,
+        pct_multi_sku: totalPedidos > 0 ? Number(((multiSkuOrders / totalPedidos) * 100).toFixed(1)) : 0,
+        faturamento_multi_sku: multiSkuRevenue,
+        pct_faturamento_multi_sku: totalFaturamento > 0 ? Number(((multiSkuRevenue / totalFaturamento) * 100).toFixed(1)) : 0
+      },
+      distribuicao_skus: distribuicaoSkus,
+      top_pares_cross_selling: paresRes.rows,
+      top_monoproduto: topMonoproduto,
+      top_compras_unitarias: topComprasUnitarias
+    };
   }
 };
 

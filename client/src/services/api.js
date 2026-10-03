@@ -252,6 +252,11 @@ export const getComparativoHorarios = async (params = {}) => {
   return data;
 };
 
+export const getAnaliseCesta = async () => {
+  const { data } = await api.get('/relatorios/analise-cesta');
+  return data;
+};
+
 // =========================================================================
 // AUTENTICAÇÃO E PERFIS (RBAC)
 // =========================================================================

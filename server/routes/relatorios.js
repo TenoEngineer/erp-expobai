@@ -59,4 +59,16 @@ router.get('/comparativo-horarios', requireModule('mod_bi_horarios'), async (req
   }
 });
 
+// Análise profunda da cesta de compras, distribuição de SKUs e Cross-Selling (Exige Módulo BI)
+router.get('/analise-cesta', requireModule('mod_bi_horarios'), async (req, res) => {
+  try {
+    const tenantId = req.tenantId || 'tenda-muller';
+    const dados = await relatoriosRepo.getAnaliseCesta({ tenant_id: tenantId });
+    res.json(dados);
+  } catch (err) {
+    console.error('Erro ao buscar análise da cesta:', err);
+    res.status(500).json({ error: 'Erro ao gerar análise da cesta' });
+  }
+});
+
 module.exports = router;
