@@ -110,8 +110,8 @@ async function initDB() {
       ALTER TABLE expobai.pedidos ADD COLUMN IF NOT EXISTS editado BOOLEAN DEFAULT FALSE;
       ALTER TABLE expobai.pedidos ADD COLUMN IF NOT EXISTS editado_em TIMESTAMP WITH TIME ZONE DEFAULT NULL;
       ALTER TABLE expobai.pedidos ADD COLUMN IF NOT EXISTS motivo_edicao TEXT DEFAULT NULL;
-      INSERT INTO expobai.configuracoes (chave, valor) VALUES ('pix_cnpj', '') ON CONFLICT (chave) DO NOTHING;
-      INSERT INTO expobai.configuracoes (chave, valor) VALUES ('pix_qrcode_url', '/img/pix-qrcode.jpeg') ON CONFLICT (chave) DO NOTHING;
+      INSERT INTO expobai.configuracoes (chave, valor) VALUES ('pix_cnpj', '') ON CONFLICT DO NOTHING;
+      INSERT INTO expobai.configuracoes (chave, valor) VALUES ('pix_qrcode_url', '/img/pix-qrcode.jpeg') ON CONFLICT DO NOTHING;
 
       -- Migrações v3: Suporte a combos com preços diferentes
       ALTER TABLE expobai.produtos ADD COLUMN IF NOT EXISTS combos JSONB DEFAULT '[]'::jsonb;
@@ -177,12 +177,12 @@ async function initDB() {
       SELECT 'Estacionamento do Evento', 100.00, 'alex_heitor', 'caixa', 'Acesso de veículos da barraca'
       WHERE NOT EXISTS (SELECT 1 FROM expobai.custos_evento WHERE LOWER(descricao) LIKE '%estacionamento%');
 
-      INSERT INTO expobai.configuracoes (chave, valor) VALUES ('rateio_conta_cartao', 'alex') ON CONFLICT (chave) DO NOTHING;
-      INSERT INTO expobai.configuracoes (chave, valor) VALUES ('rateio_conta_pix', 'pais') ON CONFLICT (chave) DO NOTHING;
-      INSERT INTO expobai.configuracoes (chave, valor) VALUES ('rateio_conta_dinheiro', 'caixa') ON CONFLICT (chave) DO NOTHING;
-      INSERT INTO expobai.configuracoes (chave, valor) VALUES ('rateio_pix_alex', '') ON CONFLICT (chave) DO NOTHING;
-      INSERT INTO expobai.configuracoes (chave, valor) VALUES ('rateio_pix_heitor', '') ON CONFLICT (chave) DO NOTHING;
-      INSERT INTO expobai.configuracoes (chave, valor) VALUES ('rateio_pix_pais', '') ON CONFLICT (chave) DO NOTHING;
+      INSERT INTO expobai.configuracoes (chave, valor) VALUES ('rateio_conta_cartao', 'alex') ON CONFLICT DO NOTHING;
+      INSERT INTO expobai.configuracoes (chave, valor) VALUES ('rateio_conta_pix', 'pais') ON CONFLICT DO NOTHING;
+      INSERT INTO expobai.configuracoes (chave, valor) VALUES ('rateio_conta_dinheiro', 'caixa') ON CONFLICT DO NOTHING;
+      INSERT INTO expobai.configuracoes (chave, valor) VALUES ('rateio_pix_alex', '') ON CONFLICT DO NOTHING;
+      INSERT INTO expobai.configuracoes (chave, valor) VALUES ('rateio_pix_heitor', '') ON CONFLICT DO NOTHING;
+      INSERT INTO expobai.configuracoes (chave, valor) VALUES ('rateio_pix_pais', '') ON CONFLICT DO NOTHING;
 
       -- Migrações v6: Fichas individuais de retirada e Fundação Multi-tenant ExpoERP
       CREATE TABLE IF NOT EXISTS expobai.tenants (
@@ -217,8 +217,8 @@ async function initDB() {
       ALTER TABLE expobai.sessoes_caixa ADD COLUMN IF NOT EXISTS tenant_id VARCHAR(50) DEFAULT 'tenda-muller';
       ALTER TABLE expobai.custos_evento ADD COLUMN IF NOT EXISTS tenant_id VARCHAR(50) DEFAULT 'tenda-muller';
 
-      INSERT INTO expobai.configuracoes (chave, valor) VALUES ('imprimir_fichas_retirada', 'true') ON CONFLICT (chave) DO NOTHING;
-      INSERT INTO expobai.configuracoes (chave, valor) VALUES ('nome_sistema', 'ExpoERP') ON CONFLICT (chave) DO NOTHING;
+      INSERT INTO expobai.configuracoes (chave, valor) VALUES ('imprimir_fichas_retirada', 'true') ON CONFLICT DO NOTHING;
+      INSERT INTO expobai.configuracoes (chave, valor) VALUES ('nome_sistema', 'ExpoERP') ON CONFLICT DO NOTHING;
 
       ALTER TABLE expobai.configuracoes ADD COLUMN IF NOT EXISTS tenant_id VARCHAR(50) DEFAULT 'tenda-muller';
       DO $$
@@ -300,7 +300,7 @@ async function initDB() {
           ('impressora_vias', 'ambas'),
           ('impressora_largura', '80mm'),
           ('impressora_cortar_papel', 'true')
-        ON CONFLICT (chave) DO NOTHING;
+        ON CONFLICT DO NOTHING;
       `);
     }
 
