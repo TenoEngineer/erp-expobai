@@ -305,28 +305,6 @@ export default function PaymentAuditReport({ config, initialForma = 'todos' }) {
             </button>
 
             <button
-              onClick={handleCopyWhatsapp}
-              className={`h-10 px-3.5 rounded-xl font-black text-xs flex items-center gap-2 transition-all active:scale-95 shadow border ${
-                copied
-                  ? 'bg-emerald-600 text-white border-emerald-400 shadow-emerald-950'
-                  : 'bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-300 border-emerald-500/40 hover:border-emerald-400'
-              }`}
-              title="Copiar lista de lançamentos formatada para WhatsApp"
-            >
-              {copied ? (
-                <>
-                  <Check className="w-4 h-4 stroke-[3]" />
-                  <span>Copiado!</span>
-                </>
-              ) : (
-                <>
-                  <Copy className="w-4 h-4" />
-                  <span>Copiar WhatsApp</span>
-                </>
-              )}
-            </button>
-
-            <button
               onClick={() => carregarLancamentos()}
               disabled={loading}
               className="h-10 px-3.5 bg-slate-800 hover:bg-slate-700 active:scale-95 text-slate-300 hover:text-white rounded-xl border border-slate-700 text-xs font-bold flex items-center gap-1.5 transition-all"

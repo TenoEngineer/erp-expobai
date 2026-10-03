@@ -1,13 +1,41 @@
 const { query } = require('../db');
+const configuracoesRepo = require('./configuracoesRepository');
+
+const ALLOWED_TIMEZONES = [
+  'America/Campo_Grande',
+  'America/Cuiaba',
+  'America/Sao_Paulo',
+  'America/Manaus',
+  'America/Porto_Velho',
+  'America/Rio_Branco',
+  'America/Belem',
+  'America/Fortaleza',
+  'America/Recife',
+  'America/Bahia',
+  'America/Noronha'
+];
+
+async function getTenantTimezone(tenantId) {
+  try {
+    const tz = await configuracoesRepo.get('fuso_horario', tenantId);
+    if (tz && (ALLOWED_TIMEZONES.includes(tz) || /^[A-Za-z_]+\/[A-Za-z_]+$/.test(tz))) {
+      return tz;
+    }
+  } catch (err) {
+    // fallback
+  }
+  return 'America/Campo_Grande';
+}
 
 const relatoriosRepository = {
-  async getFechamentoCaixa({ data_inicio, data_fim, periodo, sessao_id } = {}) {
-    let whereConditions = ["p.status = 'concluido'"];
-    const params = [];
+  async getFechamentoCaixa({ data_inicio, data_fim, periodo, sessao_id, tenant_id = 'tenda-muller' } = {}) {
+    const tz = await getTenantTimezone(tenant_id);
+    let whereConditions = ["p.status = 'concluido'", "p.tenant_id = $1"];
+    const params = [tenant_id];
 
     // 1. Filtragem por Sessão de Caixa específica
     if (sessao_id) {
-      const sessRes = await query('SELECT * FROM expobai.sessoes_caixa WHERE id = $1', [sessao_id]);
+      const sessRes = await query('SELECT * FROM expobai.sessoes_caixa WHERE id = $1 AND tenant_id = $2', [sessao_id, tenant_id]);
       if (sessRes.rows.length > 0) {
         const sessao = sessRes.rows[0];
         params.push(sessao.aberto_em);
@@ -18,38 +46,38 @@ const relatoriosRepository = {
         }
       }
     }
-    // 2. Filtragem por Período / Datas (Timezone oficial Amambai/MS: America/Campo_Grande)
+    // 2. Filtragem por Período / Datas (Timezone configurável por tenant)
     else if (data_inicio && data_fim) {
       if (data_inicio.includes(':') || data_fim.includes(':')) {
         const start = data_inicio.includes(':') ? data_inicio.replace('T', ' ') : `${data_inicio} 00:00:00`;
         const end = data_fim.includes(':') ? data_fim.replace('T', ' ') : `${data_fim} 23:59:59.999`;
         params.push(start);
         params.push(end);
-        whereConditions.push(`(p.data_hora AT TIME ZONE 'America/Campo_Grande') >= $${params.length - 1}::timestamp AND (p.data_hora AT TIME ZONE 'America/Campo_Grande') <= $${params.length}::timestamp`);
+        whereConditions.push(`(p.data_hora AT TIME ZONE '${tz}') >= $${params.length - 1}::timestamp AND (p.data_hora AT TIME ZONE '${tz}') <= $${params.length}::timestamp`);
       } else {
         // Agrupamento por dia de evento (inclui vendas da noite e madrugada até 06h00)
         params.push(data_inicio);
         params.push(data_fim);
-        whereConditions.push(`((p.data_hora AT TIME ZONE 'America/Campo_Grande') - INTERVAL '6 hours')::date >= $${params.length - 1}::date AND ((p.data_hora AT TIME ZONE 'America/Campo_Grande') - INTERVAL '6 hours')::date <= $${params.length}::date`);
+        whereConditions.push(`((p.data_hora AT TIME ZONE '${tz}') - INTERVAL '6 hours')::date >= $${params.length - 1}::date AND ((p.data_hora AT TIME ZONE '${tz}') - INTERVAL '6 hours')::date <= $${params.length}::date`);
       }
     } else if (data_inicio) {
       if (data_inicio.includes(':')) {
         params.push(data_inicio.replace('T', ' '));
-        whereConditions.push(`(p.data_hora AT TIME ZONE 'America/Campo_Grande') >= $${params.length}::timestamp`);
+        whereConditions.push(`(p.data_hora AT TIME ZONE '${tz}') >= $${params.length}::timestamp`);
       } else {
         params.push(data_inicio);
-        whereConditions.push(`((p.data_hora AT TIME ZONE 'America/Campo_Grande') - INTERVAL '6 hours')::date = $${params.length}::date`);
+        whereConditions.push(`((p.data_hora AT TIME ZONE '${tz}') - INTERVAL '6 hours')::date = $${params.length}::date`);
       }
     } else if (periodo) {
       if (periodo === 'hoje') {
         // Agrupa as vendas da noite e madrugada atual sem quebrar à meia-noite (corte às 06h00)
-        whereConditions.push("((p.data_hora AT TIME ZONE 'America/Campo_Grande') - INTERVAL '6 hours')::date = ((NOW() AT TIME ZONE 'America/Campo_Grande') - INTERVAL '6 hours')::date");
+        whereConditions.push(`((p.data_hora AT TIME ZONE '${tz}') - INTERVAL '6 hours')::date = ((NOW() AT TIME ZONE '${tz}') - INTERVAL '6 hours')::date`);
       } else if (periodo === 'ontem') {
-        whereConditions.push("((p.data_hora AT TIME ZONE 'America/Campo_Grande') - INTERVAL '6 hours')::date = (((NOW() AT TIME ZONE 'America/Campo_Grande') - INTERVAL '6 hours') - INTERVAL '1 day')::date");
+        whereConditions.push(`((p.data_hora AT TIME ZONE '${tz}') - INTERVAL '6 hours')::date = (((NOW() AT TIME ZONE '${tz}') - INTERVAL '6 hours') - INTERVAL '1 day')::date`);
       } else if (periodo === '7dias') {
-        whereConditions.push("((p.data_hora AT TIME ZONE 'America/Campo_Grande') - INTERVAL '6 hours')::date >= (((NOW() AT TIME ZONE 'America/Campo_Grande') - INTERVAL '6 hours') - INTERVAL '7 days')::date");
+        whereConditions.push(`((p.data_hora AT TIME ZONE '${tz}') - INTERVAL '6 hours')::date >= (((NOW() AT TIME ZONE '${tz}') - INTERVAL '6 hours') - INTERVAL '7 days')::date`);
       } else if (periodo === 'mes') {
-        whereConditions.push("(p.data_hora AT TIME ZONE 'America/Campo_Grande') >= date_trunc('month', NOW() AT TIME ZONE 'America/Campo_Grande')");
+        whereConditions.push(`(p.data_hora AT TIME ZONE '${tz}') >= date_trunc('month', NOW() AT TIME ZONE '${tz}')`);
       }
       // 'todos' não inclui restrição de data
     }
@@ -114,7 +142,7 @@ const relatoriosRepository = {
     // 3. Distribuição de Vendas por Hora (Horários de Pico)
     const porHoraRes = await query(`
       SELECT 
-        to_char(p.data_hora AT TIME ZONE 'America/Campo_Grande', 'HH24:00') as hora,
+        to_char(p.data_hora AT TIME ZONE '${tz}', 'HH24:00') as hora,
         COUNT(p.id) as qtd_pedidos,
         COALESCE(SUM(p.total), 0) as total_faturado
       FROM expobai.pedidos p
@@ -178,11 +206,11 @@ const relatoriosRepository = {
         p.pagamentos,
         p.editado,
         p.editado_em,
-        to_char(p.editado_em AT TIME ZONE 'America/Campo_Grande', 'DD/MM/YYYY HH24:MI') as editado_em_ms,
+        to_char(p.editado_em AT TIME ZONE '${tz}', 'DD/MM/YYYY HH24:MI') as editado_em_ms,
         p.motivo_edicao,
         p.data_hora,
-        to_char(p.data_hora AT TIME ZONE 'America/Campo_Grande', 'DD/MM/YYYY HH24:MI:SS') as data_hora_ms,
-        to_char(p.data_hora AT TIME ZONE 'America/Campo_Grande', 'HH24:MI:SS') as hora_ms,
+        to_char(p.data_hora AT TIME ZONE '${tz}', 'DD/MM/YYYY HH24:MI:SS') as data_hora_ms,
+        to_char(p.data_hora AT TIME ZONE '${tz}', 'HH24:MI:SS') as hora_ms,
         COALESCE(string_agg(i.quantidade || 'x ' || i.nome_produto, ', '), 'Itens diversos') as itens_resumo,
         COALESCE(SUM(i.quantidade), 0) as total_itens,
         COALESCE(json_agg(
@@ -339,13 +367,14 @@ const relatoriosRepository = {
   },
 
   // 7. Relatório Detalhado de Todos os Lançamentos por Tipo de Pagamento (Conferência Bancária e Maquininha)
-  async getLancamentosPorPagamento({ forma_pagamento, data_inicio, data_fim, periodo, sessao_id } = {}) {
-    let whereConditions = ["p.status = 'concluido'"];
-    const params = [];
+  async getLancamentosPorPagamento({ forma_pagamento, data_inicio, data_fim, periodo, sessao_id, tenant_id = 'tenda-muller' } = {}) {
+    const tz = await getTenantTimezone(tenant_id);
+    let whereConditions = ["p.status = 'concluido'", "p.tenant_id = $1"];
+    const params = [tenant_id];
 
     // 1. Filtragem por Sessão de Caixa específica
     if (sessao_id) {
-      const sessRes = await query('SELECT * FROM expobai.sessoes_caixa WHERE id = $1', [sessao_id]);
+      const sessRes = await query('SELECT * FROM expobai.sessoes_caixa WHERE id = $1 AND tenant_id = $2', [sessao_id, tenant_id]);
       if (sessRes.rows.length > 0) {
         const sessao = sessRes.rows[0];
         params.push(sessao.aberto_em);
@@ -363,29 +392,29 @@ const relatoriosRepository = {
         const end = data_fim.includes(':') ? data_fim.replace('T', ' ') : `${data_fim} 23:59:59.999`;
         params.push(start);
         params.push(end);
-        whereConditions.push(`(p.data_hora AT TIME ZONE 'America/Campo_Grande') >= $${params.length - 1}::timestamp AND (p.data_hora AT TIME ZONE 'America/Campo_Grande') <= $${params.length}::timestamp`);
+        whereConditions.push(`(p.data_hora AT TIME ZONE '${tz}') >= $${params.length - 1}::timestamp AND (p.data_hora AT TIME ZONE '${tz}') <= $${params.length}::timestamp`);
       } else {
         params.push(data_inicio);
         params.push(data_fim);
-        whereConditions.push(`((p.data_hora AT TIME ZONE 'America/Campo_Grande') - INTERVAL '6 hours')::date >= $${params.length - 1}::date AND ((p.data_hora AT TIME ZONE 'America/Campo_Grande') - INTERVAL '6 hours')::date <= $${params.length}::date`);
+        whereConditions.push(`((p.data_hora AT TIME ZONE '${tz}') - INTERVAL '6 hours')::date >= $${params.length - 1}::date AND ((p.data_hora AT TIME ZONE '${tz}') - INTERVAL '6 hours')::date <= $${params.length}::date`);
       }
     } else if (data_inicio) {
       if (data_inicio.includes(':')) {
         params.push(data_inicio.replace('T', ' '));
-        whereConditions.push(`(p.data_hora AT TIME ZONE 'America/Campo_Grande') >= $${params.length}::timestamp`);
+        whereConditions.push(`(p.data_hora AT TIME ZONE '${tz}') >= $${params.length}::timestamp`);
       } else {
         params.push(data_inicio);
-        whereConditions.push(`((p.data_hora AT TIME ZONE 'America/Campo_Grande') - INTERVAL '6 hours')::date = $${params.length}::date`);
+        whereConditions.push(`((p.data_hora AT TIME ZONE '${tz}') - INTERVAL '6 hours')::date = $${params.length}::date`);
       }
     } else if (periodo) {
       if (periodo === 'hoje') {
-        whereConditions.push("((p.data_hora AT TIME ZONE 'America/Campo_Grande') - INTERVAL '6 hours')::date = ((NOW() AT TIME ZONE 'America/Campo_Grande') - INTERVAL '6 hours')::date");
+        whereConditions.push(`((p.data_hora AT TIME ZONE '${tz}') - INTERVAL '6 hours')::date = ((NOW() AT TIME ZONE '${tz}') - INTERVAL '6 hours')::date`);
       } else if (periodo === 'ontem') {
-        whereConditions.push("((p.data_hora AT TIME ZONE 'America/Campo_Grande') - INTERVAL '6 hours')::date = (((NOW() AT TIME ZONE 'America/Campo_Grande') - INTERVAL '6 hours') - INTERVAL '1 day')::date");
+        whereConditions.push(`((p.data_hora AT TIME ZONE '${tz}') - INTERVAL '6 hours')::date = (((NOW() AT TIME ZONE '${tz}') - INTERVAL '6 hours') - INTERVAL '1 day')::date`);
       } else if (periodo === '7dias') {
-        whereConditions.push("((p.data_hora AT TIME ZONE 'America/Campo_Grande') - INTERVAL '6 hours')::date >= (((NOW() AT TIME ZONE 'America/Campo_Grande') - INTERVAL '6 hours') - INTERVAL '7 days')::date");
+        whereConditions.push(`((p.data_hora AT TIME ZONE '${tz}') - INTERVAL '6 hours')::date >= (((NOW() AT TIME ZONE '${tz}') - INTERVAL '6 hours') - INTERVAL '7 days')::date`);
       } else if (periodo === 'mes') {
-        whereConditions.push("(p.data_hora AT TIME ZONE 'America/Campo_Grande') >= date_trunc('month', NOW() AT TIME ZONE 'America/Campo_Grande')");
+        whereConditions.push(`(p.data_hora AT TIME ZONE '${tz}') >= date_trunc('month', NOW() AT TIME ZONE '${tz}')`);
       }
     }
 
@@ -406,12 +435,12 @@ const relatoriosRepository = {
         p.pagamentos,
         p.editado,
         p.editado_em,
-        to_char(p.editado_em AT TIME ZONE 'America/Campo_Grande', 'DD/MM/YYYY HH24:MI') as editado_em_ms,
+        to_char(p.editado_em AT TIME ZONE '${tz}', 'DD/MM/YYYY HH24:MI') as editado_em_ms,
         p.motivo_edicao,
         p.data_hora,
-        to_char(p.data_hora AT TIME ZONE 'America/Campo_Grande', 'DD/MM/YYYY HH24:MI:SS') as data_hora_ms,
-        to_char(p.data_hora AT TIME ZONE 'America/Campo_Grande', 'HH24:MI:SS') as hora_ms,
-        to_char(p.data_hora AT TIME ZONE 'America/Campo_Grande', 'DD/MM/YYYY') as data_ms,
+        to_char(p.data_hora AT TIME ZONE '${tz}', 'DD/MM/YYYY HH24:MI:SS') as data_hora_ms,
+        to_char(p.data_hora AT TIME ZONE '${tz}', 'HH24:MI:SS') as hora_ms,
+        to_char(p.data_hora AT TIME ZONE '${tz}', 'DD/MM/YYYY') as data_ms,
         COALESCE(string_agg(i.quantidade || 'x ' || i.nome_produto, ', '), 'Itens diversos') as itens_resumo,
         COALESCE(SUM(i.quantidade), 0) as total_itens,
         COALESCE(json_agg(
@@ -625,22 +654,23 @@ const relatoriosRepository = {
   },
 
   // 3. Comparativo de Produtos Vendidos por Hora x Dias da Exposição
-  async getComparativoHorarios({ produto_id, origem } = {}) {
+  async getComparativoHorarios({ produto_id, origem, tenant_id = 'tenda-muller' } = {}) {
+    const tz = await getTenantTimezone(tenant_id);
     const filterProd = produto_id && produto_id !== 'todos' ? String(produto_id) : null;
     const filterOrigem = origem && origem !== 'todos' ? String(origem).toLowerCase() : null;
 
     // 1. Obter os dias do evento
     const diasRes = await query(`
       SELECT 
-        ((p.data_hora AT TIME ZONE 'America/Campo_Grande') - INTERVAL '6 hours')::date as data,
-        EXTRACT(DOW FROM ((p.data_hora AT TIME ZONE 'America/Campo_Grande') - INTERVAL '6 hours')::date)::int as dow,
+        ((p.data_hora AT TIME ZONE '${tz}') - INTERVAL '6 hours')::date as data,
+        EXTRACT(DOW FROM ((p.data_hora AT TIME ZONE '${tz}') - INTERVAL '6 hours')::date)::int as dow,
         COUNT(DISTINCT p.id) as total_pedidos,
         COALESCE(SUM(p.total), 0) as faturamento
       FROM expobai.pedidos p
-      WHERE p.status = 'concluido'
+      WHERE p.status = 'concluido' AND p.tenant_id = $1
       GROUP BY data, dow
       ORDER BY data ASC
-    `);
+    `, [tenant_id]);
 
     const nomeDias = {
       0: { extenso: 'Domingo', abrev: 'Dom' },
@@ -675,10 +705,10 @@ const relatoriosRepository = {
         SUM(i.subtotal) as faturamento_total
       FROM expobai.pedidos p
       JOIN expobai.pedido_itens i ON i.pedido_id = p.id
-      WHERE p.status = 'concluido'
+      WHERE p.status = 'concluido' AND p.tenant_id = $1
       GROUP BY COALESCE(i.produto_id::text, i.nome_produto), i.nome_produto
       ORDER BY qtd_total DESC
-    `);
+    `, [tenant_id]);
 
     const produtos = prodsRes.rows.map(r => ({
       id: r.id,
@@ -688,19 +718,20 @@ const relatoriosRepository = {
     }));
 
     // 3. Matriz Hora x Dia com filtro opcional de produto e origem
-    const matrizParams = [filterProd, filterOrigem];
+    const matrizParams = [tenant_id, filterProd, filterOrigem];
     const matrizRes = await query(`
       SELECT 
-        ((p.data_hora AT TIME ZONE 'America/Campo_Grande') - INTERVAL '6 hours')::date as dia_evento,
-        EXTRACT(HOUR FROM (p.data_hora AT TIME ZONE 'America/Campo_Grande'))::int as hora,
+        ((p.data_hora AT TIME ZONE '${tz}') - INTERVAL '6 hours')::date as dia_evento,
+        EXTRACT(HOUR FROM (p.data_hora AT TIME ZONE '${tz}'))::int as hora,
         COUNT(DISTINCT p.id) as qtd_pedidos,
         COALESCE(SUM(i.quantidade), 0) as qtd_itens,
         COALESCE(SUM(i.subtotal), 0) as faturamento
       FROM expobai.pedidos p
       JOIN expobai.pedido_itens i ON i.pedido_id = p.id
       WHERE p.status = 'concluido'
-        AND ($1::text IS NULL OR i.produto_id::text = $1 OR i.nome_produto = $1)
-        AND ($2::text IS NULL OR p.origem = $2)
+        AND p.tenant_id = $1
+        AND ($2::text IS NULL OR i.produto_id::text = $2 OR i.nome_produto = $2)
+        AND ($3::text IS NULL OR p.origem = $3)
       GROUP BY dia_evento, hora
       ORDER BY dia_evento, hora
     `, matrizParams);
@@ -709,27 +740,28 @@ const relatoriosRepository = {
     const topItensRes = await query(`
       WITH RankedItens AS (
         SELECT 
-          ((p.data_hora AT TIME ZONE 'America/Campo_Grande') - INTERVAL '6 hours')::date as dia_evento,
-          EXTRACT(HOUR FROM (p.data_hora AT TIME ZONE 'America/Campo_Grande'))::int as hora,
+          ((p.data_hora AT TIME ZONE '${tz}') - INTERVAL '6 hours')::date as dia_evento,
+          EXTRACT(HOUR FROM (p.data_hora AT TIME ZONE '${tz}'))::int as hora,
           i.nome_produto,
           SUM(i.quantidade) as qtd,
           SUM(i.subtotal) as subtotal,
           ROW_NUMBER() OVER(
-            PARTITION BY ((p.data_hora AT TIME ZONE 'America/Campo_Grande') - INTERVAL '6 hours')::date, 
-                         EXTRACT(HOUR FROM (p.data_hora AT TIME ZONE 'America/Campo_Grande'))::int 
+            PARTITION BY ((p.data_hora AT TIME ZONE '${tz}') - INTERVAL '6 hours')::date, 
+                         EXTRACT(HOUR FROM (p.data_hora AT TIME ZONE '${tz}'))::int 
             ORDER BY SUM(i.quantidade) DESC
           ) as rnk
         FROM expobai.pedidos p
         JOIN expobai.pedido_itens i ON i.pedido_id = p.id
         WHERE p.status = 'concluido'
-          AND ($1::text IS NULL OR p.origem = $1)
+          AND p.tenant_id = $1
+          AND ($2::text IS NULL OR p.origem = $2)
         GROUP BY dia_evento, hora, i.nome_produto
       )
       SELECT dia_evento, hora, rnk, nome_produto, qtd, subtotal
       FROM RankedItens
       WHERE rnk <= 3
       ORDER BY dia_evento, hora, rnk
-    `, [filterOrigem]);
+    `, [tenant_id, filterOrigem]);
 
     const topMap = {};
     topItensRes.rows.forEach(r => {
@@ -830,9 +862,9 @@ const relatoriosRepository = {
         SUM(total) as faturamento,
         ROUND(AVG(total), 2) as ticket_medio
       FROM expobai.pedidos
-      WHERE status = 'concluido'
+      WHERE status = 'concluido' AND tenant_id = $1
       GROUP BY origem
-    `);
+    `, [tenant_id]);
 
     // Linha do tempo das vendas mobile (para conferência e auditoria de saídas no parque)
     const mobileTimelineRes = await query(`
@@ -841,18 +873,18 @@ const relatoriosRepository = {
         p.numero_pedido,
         p.total,
         p.forma_pagamento,
-        TO_CHAR(p.data_hora AT TIME ZONE 'America/Campo_Grande', 'YYYY-MM-DD HH24:MI:SS') as horario_ms,
-        EXTRACT(HOUR FROM p.data_hora AT TIME ZONE 'America/Campo_Grande')::int as hora,
-        ((p.data_hora AT TIME ZONE 'America/Campo_Grande') - INTERVAL '6 hours')::date as dia_evento,
+        TO_CHAR(p.data_hora AT TIME ZONE '${tz}', 'YYYY-MM-DD HH24:MI:SS') as horario_ms,
+        EXTRACT(HOUR FROM p.data_hora AT TIME ZONE '${tz}')::int as hora,
+        ((p.data_hora AT TIME ZONE '${tz}') - INTERVAL '6 hours')::date as dia_evento,
         (
           SELECT string_agg(i.quantidade || 'x ' || i.nome_produto, ', ')
           FROM expobai.pedido_itens i
           WHERE i.pedido_id = p.id
         ) as itens
       FROM expobai.pedidos p
-      WHERE p.origem = 'mobile' AND p.status = 'concluido'
+      WHERE p.origem = 'mobile' AND p.status = 'concluido' AND p.tenant_id = $1
       ORDER BY p.data_hora ASC
-    `);
+    `, [tenant_id]);
 
     return {
       dias,

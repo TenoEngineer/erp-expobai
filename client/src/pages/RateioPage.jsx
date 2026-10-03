@@ -186,7 +186,7 @@ export default function RateioPage() {
                 Rateio & Divisão de Sócios
               </h1>
               <p className="text-xs text-slate-400 mt-0.5 font-medium">
-                Alex (Espetinhos) &bull; Heitor (Bebidas/Pão) &bull; Pais (Cookies)
+                Gestão de rateio e conciliação financeira entre sócios e despesas operacionais
               </p>
             </div>
           </div>

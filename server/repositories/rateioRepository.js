@@ -1,4 +1,15 @@
 const { query } = require('../db');
+const configuracoesRepo = require('./configuracoesRepository');
+
+async function getTenantTimezone(tenantId) {
+  try {
+    const tz = await configuracoesRepo.get('fuso_horario', tenantId);
+    if (tz && (/^[A-Za-z_]+\/[A-Za-z_]+$/.test(tz))) {
+      return tz;
+    }
+  } catch (err) {}
+  return 'America/Campo_Grande';
+}
 
 const rateioRepository = {
   // 1. Obter todos os custos de exposição da feira
@@ -85,37 +96,38 @@ const rateioRepository = {
 
   // 8. CÁLCULO GERAL DO RATEIO E LIQUIDAÇÃO CONCILIADA
   async getRelatorioRateio({ data_inicio, data_fim, periodo, tenant_id = 'tenda-muller' } = {}) {
+    const tz = await getTenantTimezone(tenant_id);
     let whereConditions = ["p.status = 'concluido'", "p.tenant_id = $1"];
     const params = [tenant_id];
 
-    // Filtros de Data com Timezone de Amambai/MS (America/Campo_Grande) e corte às 06h
+    // Filtros de Data com Timezone configurável por tenant e corte às 06h
     if (data_inicio && data_fim) {
       if (data_inicio.includes(':') || data_fim.includes(':')) {
         const start = data_inicio.includes(':') ? data_inicio.replace('T', ' ') : `${data_inicio} 00:00:00`;
         const end = data_fim.includes(':') ? data_fim.replace('T', ' ') : `${data_fim} 23:59:59.999`;
         params.push(start);
         params.push(end);
-        whereConditions.push(`(p.data_hora AT TIME ZONE 'America/Campo_Grande') >= $${params.length - 1}::timestamp AND (p.data_hora AT TIME ZONE 'America/Campo_Grande') <= $${params.length}::timestamp`);
+        whereConditions.push(`(p.data_hora AT TIME ZONE '${tz}') >= $${params.length - 1}::timestamp AND (p.data_hora AT TIME ZONE '${tz}') <= $${params.length}::timestamp`);
       } else {
         params.push(data_inicio);
         params.push(data_fim);
-        whereConditions.push(`((p.data_hora AT TIME ZONE 'America/Campo_Grande') - INTERVAL '6 hours')::date >= $${params.length - 1}::date AND ((p.data_hora AT TIME ZONE 'America/Campo_Grande') - INTERVAL '6 hours')::date <= $${params.length}::date`);
+        whereConditions.push(`((p.data_hora AT TIME ZONE '${tz}') - INTERVAL '6 hours')::date >= $${params.length - 1}::date AND ((p.data_hora AT TIME ZONE '${tz}') - INTERVAL '6 hours')::date <= $${params.length}::date`);
       }
     } else if (data_inicio) {
       if (data_inicio.includes(':')) {
         params.push(data_inicio.replace('T', ' '));
-        whereConditions.push(`(p.data_hora AT TIME ZONE 'America/Campo_Grande') >= $${params.length}::timestamp`);
+        whereConditions.push(`(p.data_hora AT TIME ZONE '${tz}') >= $${params.length}::timestamp`);
       } else {
         params.push(data_inicio);
-        whereConditions.push(`((p.data_hora AT TIME ZONE 'America/Campo_Grande') - INTERVAL '6 hours')::date = $${params.length}::date`);
+        whereConditions.push(`((p.data_hora AT TIME ZONE '${tz}') - INTERVAL '6 hours')::date = $${params.length}::date`);
       }
     } else if (periodo) {
       if (periodo === 'hoje') {
-        whereConditions.push("((p.data_hora AT TIME ZONE 'America/Campo_Grande') - INTERVAL '6 hours')::date = ((NOW() AT TIME ZONE 'America/Campo_Grande') - INTERVAL '6 hours')::date");
+        whereConditions.push(`((p.data_hora AT TIME ZONE '${tz}') - INTERVAL '6 hours')::date = ((NOW() AT TIME ZONE '${tz}') - INTERVAL '6 hours')::date`);
       } else if (periodo === 'ontem') {
-        whereConditions.push("((p.data_hora AT TIME ZONE 'America/Campo_Grande') - INTERVAL '6 hours')::date = (((NOW() AT TIME ZONE 'America/Campo_Grande') - INTERVAL '6 hours') - INTERVAL '1 day')::date");
+        whereConditions.push(`((p.data_hora AT TIME ZONE '${tz}') - INTERVAL '6 hours')::date = (((NOW() AT TIME ZONE '${tz}') - INTERVAL '6 hours') - INTERVAL '1 day')::date`);
       } else if (periodo === '7dias') {
-        whereConditions.push("((p.data_hora AT TIME ZONE 'America/Campo_Grande') - INTERVAL '6 hours')::date >= (((NOW() AT TIME ZONE 'America/Campo_Grande') - INTERVAL '6 hours') - INTERVAL '7 days')::date");
+        whereConditions.push(`((p.data_hora AT TIME ZONE '${tz}') - INTERVAL '6 hours')::date >= (((NOW() AT TIME ZONE '${tz}') - INTERVAL '6 hours') - INTERVAL '7 days')::date`);
       }
     }
 

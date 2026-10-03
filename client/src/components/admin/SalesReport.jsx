@@ -294,19 +294,16 @@ export default function SalesReport({ config, onNavigateToCustos }) {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h3 className="font-extrabold text-xl text-slate-100 flex items-center gap-2">
-            <span>Relatório Analítico & Fechamento de Caixa</span>
+            <span>Fechamento de Caixa</span>
             <span className="text-xs bg-emerald-950 text-emerald-400 border border-emerald-500/30 px-2.5 py-0.5 rounded-full font-mono font-bold">
               {getPeriodoDescricao()}
             </span>
           </h3>
-          <p className="text-xs text-slate-400 mt-0.5">
-            Análise aprofundada de vendas, conciliação financeira de tesouraria, horários de pico e curva ABC
-          </p>
         </div>
 
         {/* Botões de Ação & Visualização */}
         <div className="flex items-center gap-2 flex-wrap">
-          {/* Alternar Visualização: Painel vs Conferência vs Documento A4 */}
+          {/* Alternar Visualização: Painel vs Documento A4 */}
           <div className="bg-slate-900 border border-slate-800 p-1 rounded-xl flex items-center gap-1">
             <button
               onClick={() => setViewMode('dashboard')}
@@ -318,20 +315,6 @@ export default function SalesReport({ config, onNavigateToCustos }) {
             >
               <LayoutDashboard className="w-3.5 h-3.5" />
               <span>Painel</span>
-            </button>
-            <button
-              onClick={() => {
-                setConferenciaForma('todos');
-                setViewMode('conferencia');
-              }}
-              className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-all ${
-                viewMode === 'conferencia'
-                  ? 'bg-emerald-600 text-white shadow'
-                  : 'text-slate-400 hover:text-slate-200'
-              }`}
-            >
-              <DollarSign className="w-3.5 h-3.5" />
-              <span>Conferência Lançamentos</span>
             </button>
             <button
               onClick={() => setViewMode('relatorio_executivo')}
@@ -384,11 +367,6 @@ export default function SalesReport({ config, onNavigateToCustos }) {
                   </span>
                 )}
               </div>
-              <p className="text-xs text-slate-400 mt-1">
-                Aberto em <b className="text-slate-200">{formatDateTimeMS(caixaAtivo?.aberto_em)}</b> &bull; Total acumulado:{' '}
-                <span className="text-emerald-400 font-bold font-mono text-sm">{formatPrice(caixaAtivo?.totais?.faturamento_total)}</span>{' '}
-                ({caixaAtivo?.totais?.total_pedidos || 0} pedidos)
-              </p>
             </div>
           </div>
 

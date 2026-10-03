@@ -136,15 +136,11 @@ export default function HourlyAnalysisReport({ config }) {
                 <Flame className="w-3 h-3 text-amber-400" />
                 Inteligência de Vendas
               </span>
-              <span className="text-slate-500 text-xs">&bull; Expobai 2026</span>
             </div>
             <h2 className="text-xl sm:text-2xl font-black text-white flex items-center gap-2">
               <Clock className="w-6 h-6 text-amber-400" />
               Comparativo de Vendas por Horário
             </h2>
-            <p className="text-xs sm:text-sm text-slate-400 mt-1 max-w-2xl">
-              Análise dos horários de pico, volume de produtos e comportamento de consumo em cada noite da feira.
-            </p>
           </div>
 
           {/* Quick Metrics no Header */}
@@ -306,9 +302,6 @@ export default function HourlyAnalysisReport({ config }) {
               <BarChart3 className="w-5 h-5 text-amber-400" />
               Matriz Horária & Distribuição Noturna
             </h3>
-            <p className="text-xs text-slate-400 mt-0.5">
-              Ciclo da feira ordenado das 16h até 04h da madrugada. Células mais coloridas indicam maior concentração de vendas.
-            </p>
           </div>
 
           <div className="hidden sm:flex items-center gap-2 text-[10px] font-mono text-slate-400">
@@ -451,12 +444,9 @@ export default function HourlyAnalysisReport({ config }) {
               <h3 className="text-base font-extrabold text-white flex items-center gap-2">
                 <span>Auditoria de Vendas Móveis (Celular vs Tablet)</span>
                 <span className="px-2 py-0.5 rounded-full bg-purple-950 text-purple-300 border border-purple-500/40 text-[10px] font-bold">
-                  119 Vendas
+                  {(dispositivos?.mobile_timeline || []).length} Vendas
                 </span>
               </h3>
-              <p className="text-xs text-slate-400 mt-0.5">
-                Investigação das vendas registradas como 'mobile' para apuração das saídas pelo parque.
-              </p>
             </div>
           </div>
 
@@ -475,30 +465,31 @@ export default function HourlyAnalysisReport({ config }) {
           <div className="bg-slate-950 p-3.5 rounded-xl border border-slate-800 space-y-1">
             <span className="text-[10px] uppercase font-bold text-slate-400 block">Total de Vendas Móveis:</span>
             <div className="flex items-baseline gap-2">
-              <span className="text-xl font-black text-purple-300 font-mono">119 pedidos</span>
-              <span className="text-xs text-emerald-400 font-mono font-bold">(R$ 1.603,00)</span>
+              <span className="text-xl font-black text-purple-300 font-mono">
+                {(dispositivos?.mobile_timeline || []).length} pedidos
+              </span>
             </div>
             <p className="text-[11px] text-slate-400 leading-tight pt-1">
-              Ocorreram exclusivamente nas noites de <b>Sábado (64 vendas)</b> e <b>Domingo (55 vendas)</b>. Quinta e sexta não tiveram uso móvel.
+              Pedidos realizados via celular ou tablet portátil fora do ponto fixo do caixa.
             </p>
           </div>
 
           <div className="bg-slate-950 p-3.5 rounded-xl border border-slate-800 space-y-1">
-            <span className="text-[10px] uppercase font-bold text-slate-400 block">Perfil dos Produtos:</span>
-            <span className="text-xl font-black text-amber-300 font-mono">88% Bebidas & Cookies</span>
+            <span className="text-[10px] uppercase font-bold text-slate-400 block">Dispositivos Conectados:</span>
+            <span className="text-xl font-black text-amber-300 font-mono">Mobile & Desktop</span>
             <p className="text-[11px] text-slate-400 leading-tight pt-1">
-              58 Águas, 52 Amstel, 31 Cookies, 25 Heineken e 23 Refrigerantes. Apenas 3 pedidos continham espetinho, confirmando foco em pronta-entrega ambulante.
+              Rastreamento automático da origem dos pedidos pelo tamanho de tela do aparelho.
             </p>
           </div>
 
           <div className="bg-slate-950 p-3.5 rounded-xl border border-slate-800 space-y-1">
-            <span className="text-[10px] uppercase font-bold text-slate-400 block">Registro Celular x Tablet:</span>
+            <span className="text-[10px] uppercase font-bold text-slate-400 block">Auditoria de Vendas:</span>
             <span className="text-base font-bold text-cyan-300 flex items-center gap-1 mt-0.5">
               <Info className="w-4 h-4 text-cyan-400 shrink-0" />
               Detecção Unificada
             </span>
             <p className="text-[11px] text-slate-400 leading-tight pt-1">
-              O sistema gravou a origem como <code className="text-purple-300">mobile</code> para ambos (telas &lt; 1024px). O critério para saber quais foram suas saídas é a <b>linha do tempo dos blocos de horário</b> abaixo.
+              Visualize abaixo os pedidos em tempo real ordenados por horário e forma de pagamento.
             </p>
           </div>
         </div>
@@ -507,7 +498,7 @@ export default function HourlyAnalysisReport({ config }) {
         {showMobileDetails && (
           <div className="pt-2 space-y-3">
             <div className="flex items-center justify-between text-xs text-slate-400">
-              <span className="font-bold text-slate-300">Linha do Tempo Cronológica dos 119 Pedidos Móveis:</span>
+              <span className="font-bold text-slate-300">Linha do Tempo Cronológica dos Pedidos Móveis:</span>
               <span>Horário oficial de MS</span>
             </div>
 

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Save, Check, Printer, RefreshCw, AlertCircle, Wifi, Usb, Monitor, Scissors, Sparkles } from 'lucide-react';
+import { Save, Check, Printer, RefreshCw, AlertCircle, Wifi, Usb, Monitor, Scissors, Sparkles, Globe } from 'lucide-react';
 import { saveConfig, getPrinters, testPrinter } from '../../services/api';
 
 export default function ConfigManagement({ config = {}, onRefresh, onNavigateToCombos }) {
@@ -7,6 +7,7 @@ export default function ConfigManagement({ config = {}, onRefresh, onNavigateToC
     nome_estande: '',
     chave_pix: '',
     prefixo_pedido: 'EXP',
+    fuso_horario: 'America/Campo_Grande',
     impressora_tipo: 'navegador', // 'navegador', 'usb', 'rede', 'desativado'
     impressora_ip: '192.168.1.200',
     impressora_porta: '9100',
@@ -35,11 +36,12 @@ export default function ConfigManagement({ config = {}, onRefresh, onNavigateToC
       }
 
       setFormData({
-        nome_estande: config.nome_estande || 'Tenda dos Müller',
+        nome_estande: config.nome_estande || '',
         chave_pix: config.chave_pix || '',
         pix_cnpj: config.pix_cnpj || '',
         pix_qrcode_url: config.pix_qrcode_url || '/img/pix-qrcode.jpeg',
         prefixo_pedido: config.prefixo_pedido || 'EXP',
+        fuso_horario: config.fuso_horario || 'America/Campo_Grande',
         impressora_tipo: tipo,
         impressora_ip: config.impressora_ip || '192.168.1.200',
         impressora_porta: config.impressora_porta || '9100',
@@ -524,7 +526,7 @@ export default function ConfigManagement({ config = {}, onRefresh, onNavigateToC
             Identificação da Barraca & PIX
           </h4>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             <div>
               <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-1">
                 Nome do Estande / Barraca
@@ -549,6 +551,28 @@ export default function ConfigManagement({ config = {}, onRefresh, onNavigateToC
                 onChange={(e) => setFormData({ ...formData, prefixo_pedido: e.target.value })}
                 className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2.5 text-sm text-white font-mono focus:outline-none focus:border-amber-500"
               />
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-1 flex items-center gap-1.5">
+                <Globe className="w-3.5 h-3.5 text-emerald-400" />
+                <span>Fuso Horário Oficial</span>
+              </label>
+              <select
+                value={formData.fuso_horario || 'America/Campo_Grande'}
+                onChange={(e) => setFormData({ ...formData, fuso_horario: e.target.value })}
+                className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-amber-500 font-medium"
+              >
+                <option value="America/Campo_Grande">Mato Grosso do Sul (MS / Cuiabá) - UTC-4</option>
+                <option value="America/Sao_Paulo">Brasília / SP / RJ / Sul / Sudeste / NE - UTC-3</option>
+                <option value="America/Cuiaba">Mato Grosso (MT) - UTC-4</option>
+                <option value="America/Manaus">Amazonas (AM) - UTC-4</option>
+                <option value="America/Porto_Velho">Rondônia (RO) - UTC-4</option>
+                <option value="America/Rio_Branco">Acre (AC) - UTC-5</option>
+                <option value="America/Belem">Pará / Amapá (PA/AP) - UTC-3</option>
+                <option value="America/Fortaleza">Nordeste (CE/PE/BA) - UTC-3</option>
+                <option value="America/Noronha">Fernando de Noronha - UTC-2</option>
+              </select>
             </div>
           </div>
 
