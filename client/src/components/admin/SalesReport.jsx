@@ -793,7 +793,7 @@ export default function SalesReport({ config, onNavigateToCustos }) {
                 title="Clique para auditar todos os lançamentos em PIX"
               >
                 <div className="flex items-center justify-between text-xs text-slate-300 font-bold">
-                  <span className="group-hover:text-emerald-300 transition-colors">📱 PIX (Pais)</span>
+                  <span className="group-hover:text-emerald-300 transition-colors">📱 PIX</span>
                   <QrCode className="w-4 h-4 text-emerald-400 group-hover:scale-110 transition-transform" />
                 </div>
                 <div className="mt-3">
@@ -820,7 +820,7 @@ export default function SalesReport({ config, onNavigateToCustos }) {
                 title="Clique para auditar todos os lançamentos em Dinheiro"
               >
                 <div className="flex items-center justify-between text-xs text-slate-300 font-bold">
-                  <span className="group-hover:text-amber-300 transition-colors">💵 Dinheiro (Caixa)</span>
+                  <span className="group-hover:text-amber-300 transition-colors">💵 Dinheiro</span>
                   <Banknote className="w-4 h-4 text-amber-400 group-hover:scale-110 transition-transform" />
                 </div>
                 <div className="mt-3">
@@ -847,7 +847,7 @@ export default function SalesReport({ config, onNavigateToCustos }) {
                 title="Clique para auditar todos os lançamentos em Débito"
               >
                 <div className="flex items-center justify-between text-xs text-slate-300 font-bold">
-                  <span className="group-hover:text-cyan-300 transition-colors">💳 Débito (Alex)</span>
+                  <span className="group-hover:text-cyan-300 transition-colors">💳 Cartão Débito</span>
                   <CreditCard className="w-4 h-4 text-cyan-400 group-hover:scale-110 transition-transform" />
                 </div>
                 <div className="mt-3">
@@ -874,7 +874,7 @@ export default function SalesReport({ config, onNavigateToCustos }) {
                 title="Clique para auditar todos os lançamentos em Crédito"
               >
                 <div className="flex items-center justify-between text-xs text-slate-300 font-bold">
-                  <span className="group-hover:text-purple-300 transition-colors">💳 Crédito (Alex)</span>
+                  <span className="group-hover:text-purple-300 transition-colors">💳 Cartão Crédito</span>
                   <CreditCard className="w-4 h-4 text-purple-400 group-hover:scale-110 transition-transform" />
                 </div>
                 <div className="mt-3">

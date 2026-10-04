@@ -188,12 +188,12 @@ export default function PaymentAuditReport({ config, initialForma = 'todos' }) {
   const handleCopyWhatsapp = () => {
     if (!data?.lancamentos) return;
 
-    const formaLabel = formaPagamento === 'pix' ? '📱 PIX (Conta dos Pais)' :
-      formaPagamento === 'debito' ? '💳 CARTÃO DE DÉBITO (Alex)' :
-      formaPagamento === 'credito' ? '💳 CARTÃO DE CRÉDITO (Alex)' :
-      formaPagamento === 'dinheiro' ? '💵 DINHEIRO EM ESPÉCIE (Caixa)' : '🌐 TODOS OS PAGAMENTOS';
+    const formaLabel = formaPagamento === 'pix' ? '📱 PIX' :
+      formaPagamento === 'debito' ? '💳 CARTÃO DE DÉBITO' :
+      formaPagamento === 'credito' ? '💳 CARTÃO DE CRÉDITO' :
+      formaPagamento === 'dinheiro' ? '💵 DINHEIRO EM ESPÉCIE' : '🌐 TODOS OS PAGAMENTOS';
 
-    let txt = `📋 *CONFERÊNCIA DE PAGAMENTOS - EXPOBAI 2026*\n`;
+    let txt = `📋 *CONFERÊNCIA DE PAGAMENTOS - ERP EXPOBAI*\n`;
     txt += `🏷️ *Método:* ${formaLabel}\n`;
     txt += `💰 *Total Auditado:* ${formatPrice(data.metricas?.valor_filtrado)}\n`;
     txt += `📦 *Transações:* ${data.metricas?.qtd_filtrado} lançamentos\n`;
@@ -210,7 +210,7 @@ export default function PaymentAuditReport({ config, initialForma = 'todos' }) {
     });
 
     txt += `\n━━━━━━━━━━━━━━━━━━━━\n`;
-    txt += `✅ *Total a bater com o extrato/maquininha: ${formatPrice(data.metricas?.valor_filtrado)}*\n`;
+    txt += `✅ *Total auditado: ${formatPrice(data.metricas?.valor_filtrado)}*\n`;
 
     navigator.clipboard.writeText(txt).then(() => {
       setCopied(true);
@@ -285,7 +285,7 @@ export default function PaymentAuditReport({ config, initialForma = 'todos' }) {
               <span>Conferência de Lançamentos por Pagamento</span>
             </h3>
             <p className="text-xs text-slate-400 mt-0.5">
-              Extrato detalhado centavo por centavo para conciliação direta com PIX (pais), maquininha de cartão (Alex) e dinheiro (caixa).
+              Extrato detalhado de lançamentos por forma de pagamento.
             </p>
           </div>
 

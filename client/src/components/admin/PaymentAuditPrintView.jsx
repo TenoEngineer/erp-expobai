@@ -28,8 +28,8 @@ export default function PaymentAuditPrintView({
     formaPagamento === 'dinheiro' ? 'DINHEIRO EM ESPÉCIE' : 'TODOS OS PAGAMENTOS';
 
   const destinoResponsavel = data?.conta_destino?.responsavel || (
-    formaPagamento === 'pix' ? 'Conta Bancária dos Pais' :
-    formaPagamento === 'debito' || formaPagamento === 'credito' ? 'Maquininha do Alex' :
+    formaPagamento === 'pix' ? 'Conta PIX' :
+    formaPagamento === 'debito' || formaPagamento === 'credito' ? 'Maquininha de Cartão' :
     formaPagamento === 'dinheiro' ? 'Gaveta do Caixa' : 'Consolidado'
   );
 
