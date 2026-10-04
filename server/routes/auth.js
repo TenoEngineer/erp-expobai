@@ -190,4 +190,51 @@ router.post('/alterar-senha', authenticateToken, async (req, res) => {
   }
 });
 
+// 6. Listar dispositivos ativos deste estande (Terminal Tracking)
+router.get('/dispositivos', authenticateToken, async (req, res) => {
+  try {
+    const tenantId = req.tenantId;
+    const { query } = require('../db');
+    const result = await query(`
+      SELECT d.id, d.device_id, d.device_info, d.ip_address, d.ultimo_acesso,
+             u.nome as usuario_nome,
+             (d.ultimo_acesso >= NOW() - INTERVAL '20 minutes') as is_online
+      FROM expobai.dispositivos_ativos d
+      LEFT JOIN expobai.usuarios u ON d.usuario_id = u.id
+      WHERE d.tenant_id = $1
+      ORDER BY d.ultimo_acesso DESC
+    `, [tenantId]);
+    res.json(result.rows);
+  } catch (err) {
+    console.error('Erro ao listar dispositivos:', err);
+    res.status(500).json({ error: 'Erro ao listar dispositivos conectados' });
+  }
+});
+
+// 7. Desconectar outros aparelhos (Reset de sessões do estande para liberar vagas)
+router.post('/desconectar-dispositivos', authenticateToken, async (req, res) => {
+  try {
+    const tenantId = req.tenantId;
+    const currentDeviceId = req.headers['x-device-id'] || null;
+    const { query } = require('../db');
+    
+    if (currentDeviceId) {
+      await query(`
+        DELETE FROM expobai.dispositivos_ativos
+        WHERE tenant_id = $1 AND device_id != $2
+      `, [tenantId, currentDeviceId]);
+    } else {
+      await query(`
+        DELETE FROM expobai.dispositivos_ativos
+        WHERE tenant_id = $1
+      `, [tenantId]);
+    }
+
+    res.json({ success: true, message: 'Todos os outros aparelhos foram desconectados com sucesso.' });
+  } catch (err) {
+    console.error('Erro ao desconectar dispositivos:', err);
+    res.status(500).json({ error: 'Erro ao desconectar outros aparelhos' });
+  }
+});
+
 module.exports = router;

@@ -5,23 +5,53 @@ const api = axios.create({
   timeout: 10000,
 });
 
-// Interceptor de Requisição: Anexa Token JWT automaticamente
+// Identificador único e persistente para este dispositivo físico (Hardware Fingerprint)
+export const getDeviceId = () => {
+  let deviceId = localStorage.getItem('expoerp_device_id');
+  if (!deviceId) {
+    deviceId = 'dev_' + Math.random().toString(36).substring(2, 9) + Date.now().toString(36);
+    localStorage.setItem('expoerp_device_id', deviceId);
+  }
+  return deviceId;
+};
+
+// Interceptor de Requisição: Anexa Token JWT e Device ID automaticamente
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem('expoerp_token');
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
+  config.headers['X-Device-Id'] = getDeviceId();
   return config;
 }, (error) => Promise.reject(error));
 
-// Interceptor de Resposta: Trata expiração de sessão 401
+// Interceptor de Resposta: Trata 401 e 403 (Expiração, Bloqueio de Licença e Limite de Aparelhos)
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response?.status === 401) {
+    const status = error.response?.status;
+    const code = error.response?.data?.code;
+    const msg = error.response?.data?.error;
+
+    if (status === 401) {
       localStorage.removeItem('expoerp_token');
       localStorage.removeItem('expoerp_user');
       window.dispatchEvent(new Event('expoerp:logout'));
+    } else if (status === 403) {
+      if (code === 'TENANT_EXPIRED' || code === 'TENANT_INACTIVE') {
+        localStorage.removeItem('expoerp_token');
+        window.dispatchEvent(new CustomEvent('expoerp:tenant_lockout', { 
+          detail: { code, message: msg } 
+        }));
+      } else if (code === 'DEVICE_LIMIT_EXCEEDED') {
+        window.dispatchEvent(new CustomEvent('expoerp:device_limit', { 
+          detail: { 
+            message: msg, 
+            limite: error.response?.data?.limite, 
+            ativos: error.response?.data?.ativos 
+          } 
+        }));
+      }
     }
     return Promise.reject(error);
   }
@@ -325,6 +355,19 @@ export const getTenantUsuarios = async (tenantId) => {
 
 export const createTenantUsuario = async (tenantId, userData) => {
   const { data } = await api.post(`/tenants/${tenantId}/usuarios`, userData);
+  return data;
+};
+
+// =========================================================================
+// GESTÃO DE DISPOSITIVOS E SESSÕES ATIVAS
+// =========================================================================
+export const getDispositivosAtivos = async () => {
+  const { data } = await api.get('/auth/dispositivos');
+  return data;
+};
+
+export const desconectarOutrosDispositivos = async () => {
+  const { data } = await api.post('/auth/desconectar-dispositivos');
   return data;
 };
 

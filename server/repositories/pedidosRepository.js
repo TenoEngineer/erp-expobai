@@ -13,17 +13,54 @@ const pedidosRepository = {
       const numeroPedido = parseInt(numRes.rows[0].proximo_numero, 10);
       const codigoIdentificador = `EXP-${String(numeroPedido).padStart(3, '0')}`;
 
-      // 2. Calcular total dos itens
+      // 2. Blindagem contra Fraude/Adulteração de Preços no Frontend:
+      // Busca todos os produtos do pedido diretamente do banco de dados deste tenant
+      const productIds = itens
+        .map(i => i.produto_id || i.id)
+        .filter(id => id && Number.isInteger(Number(id)))
+        .map(id => Number(id));
+
+      const dbProductsMap = new Map();
+      if (productIds.length > 0) {
+        const prodsRes = await client.query(`
+          SELECT id, nome, preco, preco_custo, is_combo, ativo
+          FROM expobai.produtos
+          WHERE id = ANY($1::int[]) AND tenant_id = $2
+        `, [productIds, tenant_id]);
+
+        prodsRes.rows.forEach(p => {
+          dbProductsMap.set(p.id, p);
+        });
+      }
+
       let totalCalculado = 0;
       const itensValidados = itens.map(item => {
+        const prodId = item.produto_id || item.id || null;
+        const dbProduct = prodId ? dbProductsMap.get(Number(prodId)) : null;
+
+        // Se o produto está cadastrado no banco deste tenant, USA O PREÇO AUTORITATIVO DO BANCO!
+        // Impedindo manipulação do total no JavaScript do navegador ou ferramentas de interceptação
+        let precoUnit;
+        let precoCusto;
+        let nomeProduto;
+
+        if (dbProduct) {
+          precoUnit = parseFloat(dbProduct.preco);
+          precoCusto = parseFloat(dbProduct.preco_custo) || 0;
+          nomeProduto = dbProduct.nome;
+        } else {
+          precoUnit = parseFloat(item.preco_unitario || item.preco) || 0;
+          precoCusto = parseFloat(item.preco_custo) || 0;
+          nomeProduto = item.nome_produto || item.nome || 'Item Avulso';
+        }
+
         const qtd = Math.max(1, parseInt(item.quantidade, 10) || 1);
-        const precoUnit = parseFloat(item.preco_unitario || item.preco);
-        const subtotal = qtd * precoUnit;
-        const precoCusto = parseFloat(item.preco_custo) || 0;
+        const subtotal = Math.round(qtd * precoUnit * 100) / 100;
         totalCalculado += subtotal;
+
         return {
-          produto_id: item.produto_id || item.id || null,
-          nome_produto: item.nome_produto || item.nome,
+          produto_id: prodId,
+          nome_produto: nomeProduto,
           quantidade: qtd,
           preco_unitario: precoUnit,
           subtotal,
@@ -31,6 +68,8 @@ const pedidosRepository = {
           combo_info: item.combo_info ? JSON.stringify(item.combo_info) : null
         };
       });
+
+      totalCalculado = Math.round(totalCalculado * 100) / 100;
 
       // Preparar pagamentos (se misto ou único)
       let jsonPagamentos = null;

@@ -15,6 +15,32 @@ router.get('/fechamento', async (req, res) => {
       sessao_id, 
       tenant_id: tenantId 
     });
+
+    // Feature Gating: Se o estande não contratou mod_custos_cmv, sanitiza custos e lucros para evitar vazamento
+    const tenantModulos = req.user?.modulos || [];
+    const isSuperAdmin = req.user?.role === 'superadmin';
+    const hasCustos = isSuperAdmin || tenantModulos.includes('mod_custos_cmv');
+
+    if (!hasCustos && fechamento) {
+      if (fechamento.indicadores) {
+        delete fechamento.indicadores.custo_total_produtos;
+        delete fechamento.indicadores.lucro_bruto_total;
+        delete fechamento.indicadores.margem_lucro_media_pct;
+      }
+      if (Array.isArray(fechamento.rankingProdutos)) {
+        fechamento.rankingProdutos = fechamento.rankingProdutos.map(p => {
+          const { preco_custo, custo_total, lucro_bruto, margem_lucro_pct, ...rest } = p;
+          return rest;
+        });
+      }
+      if (Array.isArray(fechamento.mixCategorias)) {
+        fechamento.mixCategorias = fechamento.mixCategorias.map(c => {
+          const { custo_total, lucro_bruto, ...rest } = c;
+          return rest;
+        });
+      }
+    }
+
     res.json(fechamento);
   } catch (err) {
     console.error('Erro ao gerar relatório de fechamento de caixa:', err);
@@ -22,8 +48,8 @@ router.get('/fechamento', async (req, res) => {
   }
 });
 
-// Relatório detalhado de todos os lançamentos por tipo de pagamento para conciliação (Pix, Débito, Crédito, Dinheiro)
-router.get('/lancamentos-pagamento', async (req, res) => {
+// Relatório detalhado de todos os lançamentos por tipo de pagamento para conciliação (Exige mod_custos_cmv ou mod_rateio_socios)
+router.get('/lancamentos-pagamento', requireModule('mod_custos_cmv', 'mod_rateio_socios'), async (req, res) => {
   try {
     const { forma_pagamento, data_inicio, data_fim, periodo, sessao_id } = req.query;
     const tenantId = req.tenantId || 'tenda-muller';

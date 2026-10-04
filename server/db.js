@@ -258,6 +258,19 @@ async function initDB() {
         ('tenda-muller', 'Heitor Müller (Admin Tenda)', 'muller@expoerp.com.br', '$2b$12$UOaM0vvpjjtDOcatHTHPrueB1J2OrvxRVgyB99yorGeLu7c0qsylK', '1020', 'admin'),
         ('tenda-muller', 'Operador Caixa', 'caixa@expoerp.com.br', '$2b$12$vs3RuaSHTbzvZf2YBVRMJ.6G97ff7Xd9u8fe4DNiOCtdhee7x287q', '1234', 'caixa')
       ON CONFLICT (email) DO NOTHING;
+
+      -- Migrações v8: Rastreio de Dispositivos e Limite de Aparelhos Conectados
+      CREATE TABLE IF NOT EXISTS expobai.dispositivos_ativos (
+        id SERIAL PRIMARY KEY,
+        tenant_id VARCHAR(50) NOT NULL REFERENCES expobai.tenants(id) ON DELETE CASCADE,
+        device_id VARCHAR(100) NOT NULL,
+        device_info VARCHAR(255),
+        usuario_id INTEGER REFERENCES expobai.usuarios(id) ON DELETE SET NULL,
+        ip_address VARCHAR(50),
+        ultimo_acesso TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+        CONSTRAINT uq_tenant_device UNIQUE (tenant_id, device_id)
+      );
+      CREATE INDEX IF NOT EXISTS idx_dispositivos_tenant_acesso ON expobai.dispositivos_ativos(tenant_id, ultimo_acesso);
     `);
 
     // 3. Seed inicial de categorias se estiver vazio

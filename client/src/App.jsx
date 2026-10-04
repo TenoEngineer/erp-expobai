@@ -6,6 +6,7 @@ import AnalisePage from './pages/AnalisePage';
 import SuperAdminPage from './pages/SuperAdminPage';
 import LoginPage from './pages/LoginPage';
 import SalesReport from './components/admin/SalesReport';
+import SecurityLockoutModal from './components/SecurityLockoutModal';
 import { getConfig, getMe } from './services/api';
 
 export default function App() {
@@ -73,13 +74,16 @@ export default function App() {
   // Se não estiver autenticado, exibe a tela de login
   if (!currentUser) {
     return (
-      <LoginPage 
-        onLoginSuccess={(user) => {
-          setCurrentUser(user);
-          setActiveTab('pos');
-          fetchConfig();
-        }} 
-      />
+      <>
+        <LoginPage 
+          onLoginSuccess={(user) => {
+            setCurrentUser(user);
+            setActiveTab('pos');
+            fetchConfig();
+          }} 
+        />
+        <SecurityLockoutModal onLogout={handleLogout} />
+      </>
     );
   }
 
@@ -132,6 +136,9 @@ export default function App() {
           ⚡ <b>ExpoERP</b> &bull; Frente de Caixa &amp; Gestão para Feiras, Tendas e Eventos &bull; {currentUser?.tenant_nome ? `${currentUser.tenant_nome} • ` : ''}<i>Alta Performance</i>
         </p>
       </footer>
+
+      {/* Modal de Bloqueio de Segurança (Licença Expirada / Limite de Aparelhos) */}
+      <SecurityLockoutModal onLogout={handleLogout} />
     </div>
   );
 }
