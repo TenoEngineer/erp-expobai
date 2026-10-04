@@ -36,6 +36,8 @@ import ExecutiveReportPrintView from './ExecutiveReportPrintView';
 import EditOrderModal from '../EditOrderModal';
 import { executeOrderPrint } from '../../services/printManager';
 import PaymentAuditReport from './PaymentAuditReport';
+import AbrirCaixaModal from '../caixa/AbrirCaixaModal';
+import FecharCaixaModal from '../caixa/FecharCaixaModal';
 
 export default function SalesReport({ config, onNavigateToCustos }) {
   const [report, setReport] = useState(null);
@@ -56,8 +58,9 @@ export default function SalesReport({ config, onNavigateToCustos }) {
   const [modoFiltro, setModoFiltro] = useState('caixa_atual'); // 'caixa_atual', 'caixa_historico', 'periodo'
   const [caixaSelecionadoId, setCaixaSelecionadoId] = useState(null);
 
-  // Modal Fechamento de Caixa
+  // Modal Fechamento & Abertura de Caixa
   const [showFecharModal, setShowFecharModal] = useState(false);
+  const [showAbrirModal, setShowAbrirModal] = useState(false);
   const [obsFechamento, setObsFechamento] = useState('');
   const [fechandoLoading, setFechandoLoading] = useState(false);
 
@@ -196,31 +199,19 @@ export default function SalesReport({ config, onNavigateToCustos }) {
     fetchReport('periodo', null, 'personalizado', start, end);
   };
 
-  const handleConfirmFecharCaixa = async (e) => {
-    e.preventDefault();
-    try {
-      setFechandoLoading(true);
-      const res = await fecharCaixa({ observacoes: obsFechamento });
-      setShowFecharModal(false);
-      setObsFechamento('');
-      
-      const sessaoFechada = res?.resultado?.sessao_fechada;
-      alert(`🎉 Caixa #${sessaoFechada?.id || ''} encerrado com sucesso!\nUm novo caixa foi iniciado automaticamente para as próximas vendas.`);
-
-      // Recarrega dados do caixa e histórico
-      await loadCaixaData();
-
-      // Visualiza o relatório do caixa que acabou de ser fechado
-      if (sessaoFechada?.id) {
-        handleSelectCaixaHistorico(sessaoFechada.id);
-      } else {
-        handleSelectCaixaAtual();
-      }
-    } catch (err) {
-      alert('Erro ao fechar caixa: ' + (err.response?.data?.error || err.message));
-    } finally {
-      setFechandoLoading(false);
+  const handleFecharSuccess = async (resultado) => {
+    setShowFecharModal(false);
+    await loadCaixaData();
+    const sessaoFechada = resultado?.sessao_fechada;
+    if (sessaoFechada?.id) {
+      handleSelectCaixaHistorico(sessaoFechada.id);
     }
+  };
+
+  const handleAbrirSuccess = async (novaSessao) => {
+    setShowAbrirModal(false);
+    await loadCaixaData();
+    handleSelectCaixaAtual();
   };
 
   const handleCancel = async (id, num) => {
@@ -353,33 +344,57 @@ export default function SalesReport({ config, onNavigateToCustos }) {
       <div className="bg-slate-900 border border-slate-800 p-4 sm:p-5 rounded-2xl shadow-xl space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="flex items-center gap-3.5">
-            <div className="w-12 h-12 rounded-2xl bg-emerald-500/20 border border-emerald-400/40 flex items-center justify-center text-emerald-400 shrink-0">
+            <div className={`w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 ${
+              caixaAtivo?.status === 'aberto' 
+                ? 'bg-emerald-500/20 border border-emerald-400/40 text-emerald-400' 
+                : 'bg-rose-500/20 border border-rose-400/40 text-rose-400'
+            }`}>
               <DollarSign className="w-6 h-6" />
             </div>
             <div>
               <div className="flex items-center gap-2 flex-wrap">
                 <h4 className="font-black text-base text-white">
-                  {caixaAtivo?.status === 'aberto' ? '🟢 Caixa Atual em Aberto' : 'Caixa'}
+                  {caixaAtivo?.status === 'aberto' ? `🟢 Caixa Atual #${caixaAtivo.id} em Aberto` : '🔴 Caixa Fechado'}
                 </h4>
-                {caixaAtivo?.aberto_em && (
+                {caixaAtivo?.status === 'aberto' && caixaAtivo?.aberto_em ? (
                   <span className="text-xs bg-emerald-950 text-emerald-300 font-mono font-bold px-2.5 py-0.5 rounded-full border border-emerald-500/30">
                     Aberto há {getTempoDecorrido(caixaAtivo.aberto_em)}
                   </span>
+                ) : (
+                  <span className="text-xs bg-rose-950 text-rose-300 font-mono font-bold px-2.5 py-0.5 rounded-full border border-rose-500/30">
+                    Nenhum turno em andamento
+                  </span>
                 )}
               </div>
+              <p className="text-xs text-slate-400 mt-0.5">
+                {caixaAtivo?.status === 'aberto' 
+                  ? `Operador: ${caixaAtivo.operador || 'Caixa'} • Fundo Inicial: ${formatPrice(caixaAtivo.valor_abertura)}` 
+                  : 'O caixa está encerrado. Clique no botão ao lado para abrir e informar o fundo de troco inicial em dinheiro.'}
+              </p>
             </div>
           </div>
 
-          {/* Botão de Fechar Caixa */}
+          {/* Botão de Fechar ou Abrir Caixa */}
           <div className="flex items-center gap-2">
-            <button
-              onClick={() => setShowFecharModal(true)}
-              className="px-5 py-2.5 bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-500 hover:to-emerald-600 text-white font-black text-xs uppercase tracking-wider rounded-xl shadow-lg shadow-emerald-950/60 border border-emerald-400/40 flex items-center gap-2 transition-all active:scale-95 cursor-pointer"
-              title="Encerrar este caixa e iniciar um novo para as próximas vendas"
-            >
-              <Lock className="w-4 h-4 text-emerald-200" />
-              <span>🔒 Fechar Caixa Agora</span>
-            </button>
+            {caixaAtivo?.status === 'aberto' ? (
+              <button
+                onClick={() => setShowFecharModal(true)}
+                className="px-5 py-2.5 bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-500 hover:to-amber-600 text-white font-black text-xs uppercase tracking-wider rounded-xl shadow-lg shadow-amber-950/60 border border-amber-400/40 flex items-center gap-2 transition-all active:scale-95 cursor-pointer"
+                title="Encerrar este caixa e fechar o turno"
+              >
+                <Lock className="w-4 h-4 text-amber-200" />
+                <span>🔒 Fechar Caixa Agora</span>
+              </button>
+            ) : (
+              <button
+                onClick={() => setShowAbrirModal(true)}
+                className="px-5 py-2.5 bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-500 hover:to-emerald-600 text-white font-black text-xs uppercase tracking-wider rounded-xl shadow-lg shadow-emerald-950/60 border border-emerald-400/40 flex items-center gap-2 transition-all active:scale-95 cursor-pointer"
+                title="Abrir novo caixa e informar fundo de troco inicial"
+              >
+                <Unlock className="w-4 h-4 text-emerald-200" />
+                <span>🔓 Abrir Novo Caixa</span>
+              </button>
+            )}
           </div>
         </div>
 
@@ -529,83 +544,19 @@ export default function SalesReport({ config, onNavigateToCustos }) {
         )}
       </div>
 
-      {/* MODAL FECHAR CAIXA */}
-      {showFecharModal && (
-        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-slate-900 border border-slate-700 w-full max-w-md rounded-2xl shadow-2xl p-5 animate-in fade-in zoom-in-95">
-            <div className="flex items-center justify-between border-b border-slate-800 pb-3 mb-4">
-              <h3 className="font-black text-base text-white flex items-center gap-2">
-                <Lock className="w-5 h-5 text-emerald-400" />
-                <span>Realizar Fechamento de Caixa</span>
-              </h3>
-              <button 
-                onClick={() => setShowFecharModal(false)}
-                className="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
+      {/* MODAIS DE FECHAMENTO E ABERTURA DE CAIXA */}
+      <FecharCaixaModal
+        isOpen={showFecharModal}
+        onClose={() => setShowFecharModal(false)}
+        onSuccess={handleFecharSuccess}
+        caixaAtivo={caixaAtivo}
+      />
 
-            <div className="bg-slate-950 p-4 rounded-xl border border-slate-800 space-y-2 text-xs mb-4">
-              <div className="flex justify-between text-slate-300">
-                <span>Início do Caixa:</span>
-                <b className="font-mono text-white">{formatDateTimeMS(caixaAtivo?.aberto_em)}</b>
-              </div>
-              <div className="flex justify-between text-slate-300">
-                <span>Encerramento:</span>
-                <b className="font-mono text-emerald-400">Agora ({new Date().toLocaleTimeString('pt-BR', { timeZone: 'America/Campo_Grande' })})</b>
-              </div>
-              <div className="flex justify-between text-slate-300">
-                <span>Duração do Caixa:</span>
-                <b className="text-amber-300">{getTempoDecorrido(caixaAtivo?.aberto_em)}</b>
-              </div>
-              <div className="pt-2 border-t border-slate-800 flex justify-between font-black text-sm text-emerald-300">
-                <span>Total Faturado no Caixa:</span>
-                <span className="font-mono">{formatPrice(caixaAtivo?.totais?.faturamento_total)}</span>
-              </div>
-              <div className="text-right text-[11px] text-slate-400 font-mono">
-                {caixaAtivo?.totais?.total_pedidos || 0} pedidos faturados
-              </div>
-            </div>
-
-            <form onSubmit={handleConfirmFecharCaixa} className="space-y-4">
-              <div>
-                <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-1">
-                  Observações (Opcional)
-                </label>
-                <input
-                  type="text"
-                  value={obsFechamento}
-                  onChange={(e) => setObsFechamento(e.target.value)}
-                  className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-emerald-500"
-                  placeholder="Ex: Fechamento domingo à noite"
-                />
-              </div>
-
-              <p className="text-[11px] text-slate-400">
-                💡 Ao confirmar, este caixa será encerrado e um novo caixa será iniciado imediatamente para registrar as próximas vendas.
-              </p>
-
-              <div className="pt-2 flex items-center justify-end gap-2 border-t border-slate-800">
-                <button
-                  type="button"
-                  onClick={() => setShowFecharModal(false)}
-                  className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl font-bold text-xs"
-                >
-                  Cancelar
-                </button>
-                <button
-                  type="submit"
-                  disabled={fechandoLoading}
-                  className="px-5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl font-black text-xs uppercase tracking-wider shadow-lg disabled:opacity-50"
-                >
-                  {fechandoLoading ? 'Fechando...' : 'Confirmar Fechamento'}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+      <AbrirCaixaModal
+        isOpen={showAbrirModal}
+        onClose={() => setShowAbrirModal(false)}
+        onSuccess={handleAbrirSuccess}
+      />
 
       {loading && (
         <div className="p-8 text-center text-slate-400 bg-slate-900/50 rounded-2xl border border-slate-800">

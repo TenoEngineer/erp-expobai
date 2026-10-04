@@ -10,20 +10,9 @@ const caixaRepository = {
       LIMIT 1
     `, [tenantId]);
     
-    // Se não houver caixa aberto, cria um automaticamente
+    // Se não houver caixa aberto no momento, retorna null (caixa fechado)
     if (res.rows.length === 0) {
-      const minPedidoRes = await query(
-        'SELECT MIN(data_hora) as primeiro_pedido FROM expobai.pedidos WHERE tenant_id = $1',
-        [tenantId]
-      );
-      const dataInicio = minPedidoRes.rows[0]?.primeiro_pedido || new Date();
-      
-      const newSessao = await query(`
-        INSERT INTO expobai.sessoes_caixa (operador, valor_abertura, status, aberto_em, observacoes, tenant_id)
-        VALUES ('Caixa Principal', 0, 'aberto', $1, 'Abertura inicial do caixa', $2)
-        RETURNING *
-      `, [dataInicio, tenantId]);
-      res = newSessao;
+      return null;
     }
 
     const sessao = res.rows[0];
@@ -94,9 +83,9 @@ const caixaRepository = {
 
     const valorContado = valor_fechamento_dinheiro !== null ? parseFloat(valor_fechamento_dinheiro) : null;
     const saldoEsperado = aberta.totais.saldo_esperado_gaveta;
-    const diferenca = valorContado !== null ? (valorContado - saldoEsperado) : 0;
+    const diferenca = valorContado !== null ? Math.round((valorContado - saldoEsperado) * 100) / 100 : 0;
 
-    // 1. Encerra o caixa atual
+    // Encerra o caixa atual e NÃO abre automaticamente outro. O caixa permanece fechado até abertura explícita.
     const res = await query(`
       UPDATE expobai.sessoes_caixa 
       SET 
@@ -108,16 +97,8 @@ const caixaRepository = {
       RETURNING *
     `, [valorContado, observacoes ? `[Fechamento: ${observacoes}]` : '', aberta.id, tenant_id]);
 
-    // 2. Abre imediatamente um novo caixa para as próximas vendas continuarem livremente
-    const novoCaixa = await query(`
-      INSERT INTO expobai.sessoes_caixa (operador, valor_abertura, status, aberto_em, observacoes, tenant_id)
-      VALUES ($1, 0, 'aberto', CURRENT_TIMESTAMP, 'Aberto automaticamente após fechamento do Caixa #' || $2, $3)
-      RETURNING *
-    `, [aberta.operador || 'Caixa Principal', aberta.id, tenant_id]);
-
     return {
       sessao_fechada: res.rows[0],
-      nova_sessao: novoCaixa.rows[0],
       resumo: {
         ...aberta.totais,
         valor_contado: valorContado,

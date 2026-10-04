@@ -5,10 +5,12 @@ import CartPanel from '../components/CartPanel';
 import CheckoutModal from '../components/CheckoutModal';
 import ReceiptModal from '../components/ReceiptModal';
 import RecentOrdersModal from '../components/RecentOrdersModal';
-import { getCategorias, getProdutos, createPedido, getPedidos } from '../services/api';
+import { getCategorias, getProdutos, createPedido, getPedidos, getCaixaStatus } from '../services/api';
 import { executeOrderPrint } from '../services/printManager';
-import { RefreshCw, CheckCircle2, Printer, X, Sparkles, Receipt, Trash2, Clock, ShoppingBag, ArrowRight } from 'lucide-react';
+import { RefreshCw, CheckCircle2, Printer, X, Sparkles, Receipt, Trash2, Clock, ShoppingBag, ArrowRight, Lock, Unlock, AlertCircle } from 'lucide-react';
 import confetti from 'canvas-confetti';
+import AbrirCaixaModal from '../components/caixa/AbrirCaixaModal';
+import FecharCaixaModal from '../components/caixa/FecharCaixaModal';
 
 export default function PosPage({ config, onCartCountChange }) {
   const isMobileClient = typeof window !== 'undefined' && (window.innerWidth < 1024 || /Android|iPhone|iPad|iPod/i.test(navigator.userAgent));
@@ -28,6 +30,30 @@ export default function PosPage({ config, onCartCountChange }) {
   const [lastOrder, setLastOrder] = useState(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [orderNotification, setOrderNotification] = useState(null);
+
+  // Estados de Sessão e Abertura/Fechamento de Caixa
+  const [caixaStatus, setCaixaStatus] = useState(null);
+  const [isAbrirCaixaOpen, setIsAbrirCaixaOpen] = useState(false);
+  const [isFecharCaixaOpen, setIsFecharCaixaOpen] = useState(false);
+
+  const checkCaixa = async () => {
+    try {
+      const res = await getCaixaStatus();
+      setCaixaStatus(res);
+      return res;
+    } catch (err) {
+      console.error('Erro ao verificar status do caixa:', err);
+      return null;
+    }
+  };
+
+  const handleOpenCheckout = () => {
+    if (caixaStatus && !caixaStatus.is_aberto) {
+      setIsAbrirCaixaOpen(true);
+      return;
+    }
+    setIsCheckoutOpen(true);
+  };
 
   // Sincronização e Auto-impressão de vendas feitas no Celular para o Computador do Caixa
   const [incomingMobileOrder, setIncomingMobileOrder] = useState(null);
@@ -130,13 +156,14 @@ export default function PosPage({ config, onCartCountChange }) {
     };
   }, [isMobileClient, autoPrintMobile]);
 
-  // Carregar Categorias e Produtos
+  // Carregar Categorias, Produtos e Status do Caixa
   const loadData = async () => {
     try {
       setLoading(true);
       const [cats, prods] = await Promise.all([
         getCategorias(),
-        getProdutos()
+        getProdutos(),
+        checkCaixa()
       ]);
       setCategories(cats);
       setProducts(prods);
@@ -268,6 +295,12 @@ export default function PosPage({ config, onCartCountChange }) {
   // Abre o modal de recibo para conferência e impressão sob demanda
   // =========================================================================
   const handleConfirmOrder = async (orderPayload) => {
+    if (caixaStatus && !caixaStatus.is_aberto) {
+      setIsCheckoutOpen(false);
+      setIsAbrirCaixaOpen(true);
+      return;
+    }
+
     try {
       setIsProcessing(true);
       const savedOrder = await createPedido({
@@ -284,7 +317,10 @@ export default function PosPage({ config, onCartCountChange }) {
       // 2. Limpa o carrinho instantaneamente
       setCart([]);
 
-      // 3. Abre o modal com os dados do pedido para imprimir se necessário
+      // 3. Atualiza status do caixa
+      checkCaixa();
+
+      // 4. Abre o modal com os dados do pedido para imprimir se necessário
       setIsReceiptOpen(true);
 
     } catch (err) {
@@ -359,8 +395,8 @@ export default function PosPage({ config, onCartCountChange }) {
   // Atalhos de teclado no PDV: 1-9, 0, Q-P adicionam produtos; Enter/Espaço/F2 abre cobrança; +/- ajusta quantidade
   useEffect(() => {
     const handleKeyDown = (e) => {
-      // Se qualquer modal estiver aberto (Cobrança, Recibo, Pedidos Recentes), não processar atalhos da tela de produtos
-      if (isCheckoutOpen || isReceiptOpen || isRecentOrdersOpen) return;
+      // Se qualquer modal estiver aberto (Cobrança, Recibo, Pedidos Recentes, Caixa), não processar atalhos da tela de produtos
+      if (isCheckoutOpen || isReceiptOpen || isRecentOrdersOpen || isAbrirCaixaOpen || isFecharCaixaOpen) return;
 
       // Se o usuário estiver digitando em um campo de texto/número, não interceptar como atalho de produto
       if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.isContentEditable)) {
@@ -376,7 +412,7 @@ export default function PosPage({ config, onCartCountChange }) {
         if (cart.length > 0) {
           e.preventDefault();
           e.stopPropagation();
-          setIsCheckoutOpen(true);
+          handleOpenCheckout();
         }
         return;
       }
@@ -424,7 +460,7 @@ export default function PosPage({ config, onCartCountChange }) {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [filteredProducts, cart, isCheckoutOpen, isReceiptOpen, isRecentOrdersOpen, isMobileCartOpen]);
+  }, [filteredProducts, cart, isCheckoutOpen, isReceiptOpen, isRecentOrdersOpen, isMobileCartOpen, isAbrirCaixaOpen, isFecharCaixaOpen, caixaStatus]);
 
   if (loading && products.length === 0) {
     return (
@@ -539,9 +575,36 @@ export default function PosPage({ config, onCartCountChange }) {
       {/* Coluna Esquerda: Categorias & Grade de Produtos */}
       <div className="flex-1 flex flex-col gap-3 min-w-0">
         
+        {/* Banner de Aviso quando o Caixa está Fechado */}
+        {caixaStatus && !caixaStatus.is_aberto && (
+          <div className="bg-rose-950/80 border-2 border-rose-500/80 text-rose-100 p-3.5 sm:p-4 rounded-2xl flex flex-wrap items-center justify-between gap-3 shadow-xl backdrop-blur-md animate-in slide-in-from-top-2">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-rose-500/20 border border-rose-500/40 flex items-center justify-center text-rose-400 shrink-0">
+                <Lock className="w-5 h-5" />
+              </div>
+              <div>
+                <p className="font-black text-sm uppercase tracking-wide text-rose-200">
+                  Caixa Fechado no Momento
+                </p>
+                <p className="text-xs text-rose-300">
+                  Abra o caixa e declare o fundo de troco em dinheiro antes de iniciar as vendas.
+                </p>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => setIsAbrirCaixaOpen(true)}
+              className="px-4 py-2.5 bg-emerald-500 hover:bg-emerald-400 active:scale-95 text-slate-950 font-black text-xs uppercase tracking-wider rounded-xl transition-all shadow flex items-center gap-2 cursor-pointer shrink-0"
+            >
+              <Unlock className="w-4 h-4" />
+              Abrir Caixa &amp; Informar Troco
+            </button>
+          </div>
+        )}
+
         {/* Barra Rápida de Ações do PDV & Horário Oficial MS */}
         <div className="flex flex-wrap items-center justify-between gap-2.5 bg-slate-900 border border-slate-800 px-3.5 py-2.5 lg:px-3 lg:py-2 rounded-2xl shadow">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             <button
               type="button"
               onClick={() => setIsRecentOrdersOpen(true)}
@@ -551,6 +614,35 @@ export default function PosPage({ config, onCartCountChange }) {
               <Receipt className="w-5 h-5 lg:w-4 lg:h-4 text-amber-400 shrink-0" />
               <span className="truncate">⚡ Vendas Recentes <span className="hidden xs:inline">/ Correções</span></span>
             </button>
+
+            {/* Status do Caixa (Aberto com Troco / Fechado) */}
+            {caixaStatus?.is_aberto ? (
+              <button
+                type="button"
+                onClick={() => setIsFecharCaixaOpen(true)}
+                className="h-13 sm:h-12 lg:h-9 px-3 bg-emerald-950/70 border border-emerald-500/50 hover:border-emerald-400 text-emerald-300 rounded-xl font-bold text-xs flex items-center gap-2 transition-all active:scale-95 cursor-pointer"
+                title="Caixa aberto. Clique para conferir valores ou fechar caixa."
+              >
+                <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse" />
+                <span>Caixa #{caixaStatus.sessao?.id} Aberto</span>
+                <span className="text-[10px] text-emerald-400/90 bg-emerald-950 px-1.5 py-0.5 rounded border border-emerald-800 font-mono">
+                  Troco: {formatPrice(caixaStatus.sessao?.valor_abertura || 0)}
+                </span>
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setIsAbrirCaixaOpen(true)}
+                className="h-13 sm:h-12 lg:h-9 px-3 bg-rose-950/70 border border-rose-500/60 hover:border-rose-400 text-rose-300 rounded-xl font-bold text-xs flex items-center gap-2 transition-all active:scale-95 cursor-pointer"
+                title="Caixa fechado. Clique para abrir e informar o fundo de troco."
+              >
+                <Lock className="w-3.5 h-3.5 text-rose-400" />
+                <span>Caixa Fechado</span>
+                <span className="text-[10px] bg-rose-900/80 text-rose-200 px-1.5 py-0.5 rounded font-black uppercase">
+                  Abrir
+                </span>
+              </button>
+            )}
 
             {/* Toggle de Auto-impressão do celular no Computador */}
             {!isMobileClient && (
@@ -620,7 +712,7 @@ export default function PosPage({ config, onCartCountChange }) {
           onRemoveItem={handleRemoveItem}
           onClearCart={handleClearCart}
           onAddCustomCombo={handleAddCustomCombo}
-          onOpenCheckout={() => setIsCheckoutOpen(true)}
+          onOpenCheckout={handleOpenCheckout}
         />
       </div>
 
@@ -656,7 +748,7 @@ export default function PosPage({ config, onCartCountChange }) {
           {/* Botão Gigante: FINALIZAR COMPRA */}
           <button
             type="button"
-            onClick={() => setIsCheckoutOpen(true)}
+            onClick={handleOpenCheckout}
             className="flex-1 h-16 bg-gradient-to-r from-emerald-500 via-emerald-400 to-green-500 active:from-emerald-400 active:to-green-400 text-slate-950 font-black text-base xs:text-lg sm:text-xl uppercase tracking-wider rounded-2xl shadow-xl shadow-emerald-950 flex items-center justify-between px-4 sm:px-5 active:scale-[0.98] transition-all border-2 border-emerald-300"
           >
             <span className="truncate">FINALIZAR COMPRA</span>
@@ -742,7 +834,7 @@ export default function PosPage({ config, onCartCountChange }) {
                   type="button"
                   onClick={() => {
                     setIsMobileCartOpen(false);
-                    setIsCheckoutOpen(true);
+                    handleOpenCheckout();
                   }}
                   className="h-15 sm:h-16 bg-gradient-to-r from-emerald-500 to-green-500 text-slate-950 font-black text-lg uppercase tracking-wider rounded-2xl shadow-xl shadow-emerald-950 active:scale-95"
                 >
@@ -779,6 +871,24 @@ export default function PosPage({ config, onCartCountChange }) {
         onClose={() => setIsRecentOrdersOpen(false)}
         config={config}
         onReprintOrder={handleReimprimir}
+      />
+
+      {/* Modais de Abertura e Fechamento de Caixa */}
+      <AbrirCaixaModal
+        isOpen={isAbrirCaixaOpen}
+        onClose={() => setIsAbrirCaixaOpen(false)}
+        onSuccess={async () => {
+          await checkCaixa();
+        }}
+      />
+
+      <FecharCaixaModal
+        isOpen={isFecharCaixaOpen}
+        onClose={() => setIsFecharCaixaOpen(false)}
+        caixaAtivo={caixaStatus?.sessao}
+        onSuccess={async () => {
+          await checkCaixa();
+        }}
       />
 
     </div>

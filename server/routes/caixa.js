@@ -7,9 +7,15 @@ router.get('/status', async (req, res) => {
   try {
     const tenantId = req.tenantId || 'tenda-muller';
     const sessaoAberta = await caixaRepo.getSessaoAberta(tenantId);
+    let ultimoFechado = null;
+    if (!sessaoAberta) {
+      const historico = await caixaRepo.listarHistorico(1, tenantId);
+      ultimoFechado = historico[0] || null;
+    }
     res.json({
       is_aberto: Boolean(sessaoAberta),
-      sessao: sessaoAberta
+      sessao: sessaoAberta,
+      ultimo_fechado: ultimoFechado
     });
   } catch (err) {
     console.error('Erro ao consultar status do caixa:', err);
