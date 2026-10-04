@@ -20,7 +20,14 @@ router.post('/login', async (req, res) => {
     }
 
     if (!usuario.tenant_ativo) {
-      return res.status(403).json({ error: 'Esta tenda/empresa está inativa ou com licença expirada. Contate o suporte ExpoERP.' });
+      return res.status(403).json({ error: 'Esta tenda/empresa está inativa ou suspensa. Contate o suporte ExpoERP.' });
+    }
+
+    if (usuario.role !== 'superadmin' && usuario.tenant_valido_ate && new Date(usuario.tenant_valido_ate) < new Date()) {
+      return res.status(403).json({ 
+        error: 'Sua licença ou período contratado expirou. Entre em contato para renovar o acesso ao sistema.',
+        code: 'TENANT_EXPIRED'
+      });
     }
 
     const senhaValida = await bcrypt.compare(senha, usuario.senha_hash);
@@ -81,6 +88,13 @@ router.post('/login-pin', async (req, res) => {
 
     if (!usuario.tenant_ativo) {
       return res.status(403).json({ error: 'Esta tenda está suspensa ou inativa' });
+    }
+
+    if (usuario.role !== 'superadmin' && usuario.tenant_valido_ate && new Date(usuario.tenant_valido_ate) < new Date()) {
+      return res.status(403).json({ 
+        error: 'Sua licença expirou. Renove seu plano para continuar.',
+        code: 'TENANT_EXPIRED'
+      });
     }
 
     await usuariosRepo.updateLastLogin(usuario.id);

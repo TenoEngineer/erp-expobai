@@ -242,6 +242,16 @@ export const autoAtribuirSocios = async () => {
   return data;
 };
 
+export const getSociosLista = async () => {
+  const { data } = await api.get('/rateio/socios');
+  return data;
+};
+
+export const saveSociosLista = async (socios) => {
+  const { data } = await api.post('/rateio/socios', { socios });
+  return data;
+};
+
 export const getComparativoHorarios = async (params = {}) => {
   const query = new URLSearchParams();
   if (params.produto_id) query.append('produto_id', params.produto_id);

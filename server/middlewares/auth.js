@@ -2,6 +2,36 @@ const jwt = require('jsonwebtoken');
 
 const JWT_SECRET = process.env.JWT_SECRET || 'expoerp-super-secret-jwt-key-2026-production';
 
+const tenantStatusCache = new Map();
+
+async function checkTenantActiveAndValid(tenantId) {
+  const now = Date.now();
+  const cached = tenantStatusCache.get(tenantId);
+  if (cached && (now - cached.timestamp < 30000)) {
+    return cached;
+  }
+
+  try {
+    const { query } = require('../db');
+    const res = await query('SELECT ativo, valido_ate FROM expobai.tenants WHERE id = $1', [tenantId]);
+    if (res.rows.length === 0) {
+      const data = { exists: false, ativo: false, valido_ate: null, timestamp: now };
+      tenantStatusCache.set(tenantId, data);
+      return data;
+    }
+    const data = {
+      exists: true,
+      ativo: res.rows[0].ativo,
+      valido_ate: res.rows[0].valido_ate,
+      timestamp: now
+    };
+    tenantStatusCache.set(tenantId, data);
+    return data;
+  } catch (err) {
+    return { exists: true, ativo: true, valido_ate: null, timestamp: now };
+  }
+}
+
 /**
  * Middleware que valida o token JWT e injeta req.user e req.tenantId
  */
@@ -27,7 +57,7 @@ function authenticateToken(req, res, next) {
     return res.status(401).json({ error: 'Acesso não autorizado: token JWT ausente' });
   }
 
-  jwt.verify(token, JWT_SECRET, (err, decoded) => {
+  jwt.verify(token, JWT_SECRET, async (err, decoded) => {
     if (err) {
       if (err.name === 'TokenExpiredError') {
         return res.status(401).json({ error: 'Sessão expirada. Faça login novamente.', code: 'TOKEN_EXPIRED' });
@@ -41,6 +71,23 @@ function authenticateToken(req, res, next) {
       req.tenantId = req.query.tenant_id;
     } else {
       req.tenantId = decoded.tenant_id || 'tenda-muller';
+    }
+
+    // Blindagem de Segurança: Se não for superadmin, valida se a empresa está ativa e com licença não expirada
+    if (decoded.role !== 'superadmin' && req.tenantId) {
+      const tenantStatus = await checkTenantActiveAndValid(req.tenantId);
+      if (!tenantStatus.exists || !tenantStatus.ativo) {
+        return res.status(403).json({ 
+          error: 'Acesso bloqueado: empresa/estande inativo ou suspenso. Contate o suporte.', 
+          code: 'TENANT_INACTIVE' 
+        });
+      }
+      if (tenantStatus.valido_ate && new Date(tenantStatus.valido_ate) < new Date()) {
+        return res.status(403).json({ 
+          error: 'Acesso bloqueado: período contratado expirou. Entre em contato para renovar sua licença.', 
+          code: 'TENANT_EXPIRED' 
+        });
+      }
     }
 
     next();

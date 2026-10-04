@@ -49,6 +49,47 @@ const rateioRepository = {
     return res.rows[0];
   },
 
+  // 4.1 Obter lista de sócios da tenda
+  async getSociosLista(tenant_id = 'tenda-muller') {
+    const raw = await configuracoesRepo.get('rateio_socios_lista', tenant_id);
+    if (raw) {
+      try {
+        const parsed = typeof raw === 'string' ? JSON.parse(raw) : raw;
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      } catch (e) {}
+    }
+    if (tenant_id === 'tenda-muller') {
+      return [
+        { id: 'alex', nome: 'Alex (Espetinhos)', cor: '#a855f7', icone: 'beef' },
+        { id: 'heitor', nome: 'Heitor (Bebidas/Pão)', cor: '#10b981', icone: 'cupsoda' },
+        { id: 'pais', nome: 'Pais (Cookies)', cor: '#f59e0b', icone: 'cake' }
+      ];
+    }
+    // Default para outros tenants: Sócios genéricos ou derivados dos produtos cadastrados
+    const distinctSocios = await query(`
+      SELECT DISTINCT socio FROM expobai.produtos 
+      WHERE tenant_id = $1 AND socio IS NOT NULL AND TRIM(socio) != ''
+    `, [tenant_id]);
+    if (distinctSocios.rows.length > 0) {
+      return distinctSocios.rows.map((r, idx) => ({
+        id: r.socio,
+        nome: r.socio.charAt(0).toUpperCase() + r.socio.slice(1),
+        cor: idx % 3 === 0 ? '#a855f7' : idx % 3 === 1 ? '#10b981' : '#f59e0b',
+        icone: 'users'
+      }));
+    }
+    return [
+      { id: 'socio_1', nome: 'Sócio 1', cor: '#a855f7', icone: 'users' },
+      { id: 'socio_2', nome: 'Sócio 2', cor: '#10b981', icone: 'users' }
+    ];
+  },
+
+  // 4.2 Salvar lista de sócios da tenda
+  async saveSociosLista(socios, tenant_id = 'tenda-muller') {
+    await configuracoesRepo.set('rateio_socios_lista', JSON.stringify(socios), tenant_id);
+    return this.getSociosLista(tenant_id);
+  },
+
   // 5. Listar todos os produtos e seus respectivos sócios
   async getProdutosSocios(tenant_id = 'tenda-muller') {
     const res = await query(`
@@ -62,13 +103,13 @@ const rateioRepository = {
   },
 
   // 6. Atualizar sócio de um produto
-  async updateProductSocio(id, socio) {
+  async updateProductSocio(id, socio, tenant_id = 'tenda-muller') {
     const res = await query(`
       UPDATE expobai.produtos
       SET socio = $1
-      WHERE id = $2
+      WHERE id = $2 AND tenant_id = $3
       RETURNING id, nome, preco, socio
-    `, [socio, id]);
+    `, [socio, id, tenant_id]);
     return res.rows[0];
   },
 
@@ -133,48 +174,74 @@ const rateioRepository = {
 
     const whereClause = `WHERE ${whereConditions.join(' AND ')}`;
 
+    // 0. Buscar lista de sócios configurada para este tenant
+    const sociosLista = await this.getSociosLista(tenant_id);
+    const sociosMap = {};
+    sociosLista.forEach(s => {
+      sociosMap[s.id] = {
+        id: s.id,
+        nome: s.nome,
+        papel: s.papel || s.nome,
+        icone: s.icone || 'users',
+        cor: s.cor || '#a855f7',
+        recebe_por: s.recebe_por || (s.id === 'alex' ? 'cartao' : s.id === 'pais' ? 'pix' : 'nenhum'),
+        vendas_brutas: 0,
+        quantidade_itens: 0,
+        custos_atribuidos: 0,
+        adiantamentos: 0,
+        posse_em_conta: 0,
+        direito_liquido: 0,
+        saldo_balanco: 0,
+        status: 'quitado'
+      };
+    });
+
     // A. Buscar todos os custos de evento da tenda
     const custosRows = (await query('SELECT * FROM expobai.custos_evento WHERE tenant_id = $1 ORDER BY id ASC', [tenant_id])).rows;
     let custoTotalEvento = 0;
-    let custoAlex = 0;
-    let custoHeitor = 0;
-    let custoPais = 0;
     let custosPagosDoCaixa = 0;
-    let adiantamentos = { alex: 0, heitor: 0, pais: 0 };
 
     custosRows.forEach(c => {
       const v = parseFloat(c.valor) || 0;
       custoTotalEvento += v;
 
       // Rateio do custo
-      if (c.divisao === 'alex_heitor') {
-        custoAlex += v * 0.5;
-        custoHeitor += v * 0.5;
-      } else if (c.divisao === 'todos') {
-        custoAlex += v / 3;
-        custoHeitor += v / 3;
-        custoPais += v / 3;
-      } else if (c.divisao === 'somente_alex') {
-        custoAlex += v;
-      } else if (c.divisao === 'somente_heitor') {
-        custoHeitor += v;
-      } else if (c.divisao === 'somente_pais') {
-        custoPais += v;
+      if (c.divisao === 'todos') {
+        const count = sociosLista.length || 1;
+        sociosLista.forEach(s => {
+          if (sociosMap[s.id]) sociosMap[s.id].custos_atribuidos += v / count;
+        });
+      } else if (c.divisao === 'alex_heitor') {
+        if (sociosMap['alex'] && sociosMap['heitor']) {
+          sociosMap['alex'].custos_atribuidos += v * 0.5;
+          sociosMap['heitor'].custos_atribuidos += v * 0.5;
+        } else {
+          const count = sociosLista.length || 1;
+          sociosLista.forEach(s => {
+            if (sociosMap[s.id]) sociosMap[s.id].custos_atribuidos += v / count;
+          });
+        }
+      } else if (typeof c.divisao === 'string' && c.divisao.startsWith('somente_')) {
+        const target = c.divisao.replace('somente_', '');
+        if (sociosMap[target]) {
+          sociosMap[target].custos_atribuidos += v;
+        } else if (sociosLista[0]) {
+          sociosMap[sociosLista[0].id].custos_atribuidos += v;
+        }
+      } else if (sociosMap[c.divisao]) {
+        sociosMap[c.divisao].custos_atribuidos += v;
       } else {
-        // default 50/50 entre Alex e Heitor
-        custoAlex += v * 0.5;
-        custoHeitor += v * 0.5;
+        const count = sociosLista.length || 1;
+        sociosLista.forEach(s => {
+          if (sociosMap[s.id]) sociosMap[s.id].custos_atribuidos += v / count;
+        });
       }
 
       // Quem pagou/adiantou o custo
       if (c.pago_por === 'caixa') {
         custosPagosDoCaixa += v;
-      } else if (c.pago_por === 'alex') {
-        adiantamentos.alex += v;
-      } else if (c.pago_por === 'heitor') {
-        adiantamentos.heitor += v;
-      } else if (c.pago_por === 'pais') {
-        adiantamentos.pais += v;
+      } else if (sociosMap[c.pago_por]) {
+        sociosMap[c.pago_por].adiantamentos += v;
       }
     });
 
@@ -244,56 +311,47 @@ const rateioRepository = {
     `;
     const itens = (await query(itensQuery, params)).rows;
 
-    // Helper para determinar o sócio de um item
+    const defaultSocioId = sociosLista[0]?.id || 'socio_1';
     const resolverSocio = (item) => {
       // 1. Verificar pelo produto_id cadastrado
       if (item.produto_id && produtosMap[item.produto_id]?.socio) {
-        return produtosMap[item.produto_id].socio;
+        const s = produtosMap[item.produto_id].socio;
+        if (sociosMap[s]) return s;
       }
-      // 2. Análise inteligente por nome
-      const nome = (item.nome_produto || '').toLowerCase();
-      if (nome.includes('espetinho') || nome.includes('carne') || nome.includes('coração') || nome.includes('coracao') || nome.includes('frango') || nome.includes('queijo coalho')) {
-        return 'alex';
+      // 2. Análise inteligente por nome (para tenda-muller)
+      if (tenant_id === 'tenda-muller') {
+        const nome = (item.nome_produto || '').toLowerCase();
+        if (nome.includes('espetinho') || nome.includes('carne') || nome.includes('coração') || nome.includes('coracao') || nome.includes('frango') || nome.includes('queijo coalho')) {
+          return 'alex';
+        }
+        if (nome.includes('cookie')) {
+          return 'pais';
+        }
+        if (nome.includes('pão') || nome.includes('pao') || nome.includes('agua') || nome.includes('água') || nome.includes('refri') || nome.includes('refrigerante') || nome.includes('amstel') || nome.includes('heineken') || nome.includes('cerveja') || nome.includes('chopp') || nome.includes('suco') || nome.includes('soda') || nome.includes('carregamento')) {
+          return 'heitor';
+        }
       }
-      if (nome.includes('cookie')) {
-        return 'pais';
-      }
-      if (nome.includes('pão') || nome.includes('pao') || nome.includes('agua') || nome.includes('água') || nome.includes('refri') || nome.includes('refrigerante') || nome.includes('amstel') || nome.includes('heineken') || nome.includes('cerveja') || nome.includes('chopp') || nome.includes('suco') || nome.includes('soda') || nome.includes('carregamento')) {
-        return 'heitor';
-      }
-      return 'heitor'; // Default Heitor
+      return defaultSocioId;
     };
-
-    let vendasAlex = 0;
-    let vendasHeitor = 0;
-    let vendasPais = 0;
-    let itensAlex = 0;
-    let itensHeitor = 0;
-    let itensPais = 0;
 
     const detalhesPorProduto = {};
 
     itens.forEach(it => {
       const sub = parseFloat(it.subtotal) || 0;
       const qtd = parseInt(it.quantidade, 10) || 1;
-      const socio = resolverSocio(it);
+      const socioId = resolverSocio(it);
 
-      if (socio === 'alex') {
-        vendasAlex += sub;
-        itensAlex += qtd;
-      } else if (socio === 'pais') {
-        vendasPais += sub;
-        itensPais += qtd;
-      } else {
-        vendasHeitor += sub;
-        itensHeitor += qtd;
+      if (sociosMap[socioId]) {
+        sociosMap[socioId].vendas_brutas += sub;
+        sociosMap[socioId].quantidade_itens += qtd;
       }
 
-      const key = `${socio}_${it.nome_produto}`;
+      const key = `${socioId}_${it.nome_produto}`;
       if (!detalhesPorProduto[key]) {
         detalhesPorProduto[key] = {
           nome: it.nome_produto,
-          socio,
+          socio: socioId,
+          socio_nome: sociosMap[socioId]?.nome || socioId,
           quantidade: 0,
           total: 0
         };
@@ -303,137 +361,105 @@ const rateioRepository = {
     });
 
     // E. MATEMÁTICA DA CONCILIAÇÃO & POSSE FINANCEIRA
-    // Posse Atual: Onde está o dinheiro neste momento?
-    // • Cartão (Débito + Crédito): Conta do Alex
-    // • PIX: Conta dos Pais
-    // • Dinheiro: Gaveta física do Caixa
-    // • Heitor: R$ 0,00 em conta
-    const posseAlex = totalCartao;
-    const possePais = totalPix;
-    const posseHeitor = 0;
+    let cartaoAssigned = false;
+    let pixAssigned = false;
+
+    sociosLista.forEach(s => {
+      const socio = sociosMap[s.id];
+      if (socio.recebe_por === 'cartao') {
+        socio.posse_em_conta += totalCartao;
+        cartaoAssigned = true;
+      } else if (socio.recebe_por === 'pix') {
+        socio.posse_em_conta += totalPix;
+        pixAssigned = true;
+      } else if (socio.recebe_por === 'todos') {
+        socio.posse_em_conta += (totalCartao + totalPix);
+        cartaoAssigned = true;
+        pixAssigned = true;
+      }
+    });
+
+    if (!cartaoAssigned) {
+      if (sociosMap['alex']) {
+        sociosMap['alex'].posse_em_conta += totalCartao;
+      } else if (sociosLista[0] && sociosMap[sociosLista[0].id]) {
+        sociosMap[sociosLista[0].id].posse_em_conta += totalCartao;
+      }
+    }
+    if (!pixAssigned) {
+      if (sociosMap['pais']) {
+        sociosMap['pais'].posse_em_conta += totalPix;
+      } else if (sociosLista[1] && sociosMap[sociosLista[1].id]) {
+        sociosMap[sociosLista[1].id].posse_em_conta += totalPix;
+      }
+    }
+
     const dinheiroGaveta = totalDinheiro;
 
-    // Direito Líquido: O que cada um deve receber de fato (Vendas menos custos)
-    const direitoLiquidoAlex = vendasAlex - custoAlex + adiantamentos.alex;
-    const direitoLiquidoHeitor = vendasHeitor - custoHeitor + adiantamentos.heitor;
-    const direitoLiquidoPais = vendasPais - custoPais + adiantamentos.pais;
+    // Calcular Direito Líquido e Balanço para cada sócio
+    sociosLista.forEach(s => {
+      const socio = sociosMap[s.id];
+      socio.direito_liquido = socio.vendas_brutas - socio.custos_atribuidos + socio.adiantamentos;
+      socio.saldo_balanco = socio.posse_em_conta - socio.direito_liquido;
+      if (socio.saldo_balanco > 0.05) {
+        socio.status = 'deve_repassar';
+      } else if (socio.saldo_balanco < -0.05) {
+        socio.status = 'tem_a_receber';
+      } else {
+        socio.status = 'quitado';
+      }
+    });
 
-    // Balanço de Ajuste (Posse - DireitoLíquido)
-    // • Positivo (+): Tem dinheiro a mais na conta -> Deve repassar
-    // • Negativo (-): Tem dinheiro a menos na conta -> Tem a receber
-    const balancoAlex = posseAlex - direitoLiquidoAlex;
-    const balancoPais = possePais - direitoLiquidoPais;
-    const balancoHeitor = posseHeitor - direitoLiquidoHeitor; // geralmente negativo (tem a receber)
-
-    // F. ALGORITMO DE LIQUIDAÇÃO ÓTIMA (CLEARING HOUSE PASSO A PASSO)
-    // Passo 1: Distribuir o dinheiro em espécie da gaveta para quem tem crédito a receber (prioridade Heitor)
+    // F. ALGORITMO UNIVERSAL DE LIQUIDAÇÃO ÓTIMA (CLEARING HOUSE PASSO A PASSO)
     const passosLiquidacao = [];
     let gavetaDisponivel = dinheiroGaveta;
-    let creditoHeitor = Math.max(0, -balancoHeitor);
-    let creditoAlex = Math.max(0, -balancoAlex);
-    let creditoPais = Math.max(0, -balancoPais);
 
-    let devedorAlex = Math.max(0, balancoAlex);
-    let devedorPais = Math.max(0, balancoPais);
-    let devedorHeitor = Math.max(0, balancoHeitor);
+    const credores = [];
+    const devedores = [];
+
+    sociosLista.forEach(s => {
+      const socio = sociosMap[s.id];
+      if (socio.saldo_balanco < -0.05) {
+        credores.push({ id: s.id, nome: socio.nome, valorDevido: Math.abs(socio.saldo_balanco) });
+      } else if (socio.saldo_balanco > 0.05) {
+        devedores.push({ id: s.id, nome: socio.nome, valorRepassar: socio.saldo_balanco });
+      }
+    });
 
     // 1. Abatimento com o Dinheiro da Gaveta
-    if (gavetaDisponivel > 0) {
-      if (creditoHeitor > 0) {
-        const valorPagoHeitor = Math.min(gavetaDisponivel, creditoHeitor);
+    for (const cred of credores) {
+      if (gavetaDisponivel <= 0.01) break;
+      if (cred.valorDevido > 0.01) {
+        const valorPago = Math.min(gavetaDisponivel, cred.valorDevido);
         passosLiquidacao.push({
           tipo: 'dinheiro_gaveta',
           de: 'Gaveta do Caixa (Dinheiro Físico)',
-          para: 'Heitor',
-          valor: valorPagoHeitor,
-          descricao: `Entregar ${valorPagoHeitor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })} em dinheiro da gaveta diretamente para o Heitor.`
+          para: cred.nome,
+          valor: valorPago,
+          descricao: `Entregar ${valorPago.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })} em dinheiro da gaveta diretamente para ${cred.nome}.`
         });
-        gavetaDisponivel -= valorPagoHeitor;
-        creditoHeitor -= valorPagoHeitor;
+        gavetaDisponivel -= valorPago;
+        cred.valorDevido -= valorPago;
       }
+    }
 
-      if (gavetaDisponivel > 0 && creditoAlex > 0) {
-        const valorPagoAlex = Math.min(gavetaDisponivel, creditoAlex);
+    // 2. Compensações Diretas entre Devedores e Credores via Transferência / PIX
+    for (const dev of devedores) {
+      for (const cred of credores) {
+        if (dev.valorRepassar <= 0.01) break;
+        if (cred.valorDevido <= 0.01) continue;
+
+        const transfer = Math.min(dev.valorRepassar, cred.valorDevido);
         passosLiquidacao.push({
-          tipo: 'dinheiro_gaveta',
-          de: 'Gaveta do Caixa (Dinheiro Físico)',
-          para: 'Alex',
-          valor: valorPagoAlex,
-          descricao: `Entregar ${valorPagoAlex.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })} em dinheiro da gaveta diretamente para o Alex.`
+          tipo: 'transferencia_pix',
+          de: dev.nome,
+          para: cred.nome,
+          valor: transfer,
+          descricao: `${dev.nome} faz um PIX de ${transfer.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })} para ${cred.nome}.`
         });
-        gavetaDisponivel -= valorPagoAlex;
-        creditoAlex -= valorPagoAlex;
+        dev.valorRepassar -= transfer;
+        cred.valorDevido -= transfer;
       }
-
-      if (gavetaDisponivel > 0 && creditoPais > 0) {
-        const valorPagoPais = Math.min(gavetaDisponivel, creditoPais);
-        passosLiquidacao.push({
-          tipo: 'dinheiro_gaveta',
-          de: 'Gaveta do Caixa (Dinheiro Físico)',
-          para: 'Pais',
-          valor: valorPagoPais,
-          descricao: `Entregar ${valorPagoPais.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })} em dinheiro da gaveta diretamente para os Pais.`
-        });
-        gavetaDisponivel -= valorPagoPais;
-        creditoPais -= valorPagoPais;
-      }
-    }
-
-    // 2. Compensações Diretas entre os Sócios via Transferência / PIX
-    // Caso 1: Alex é devedor e Heitor ainda tem crédito
-    if (devedorAlex > 0 && creditoHeitor > 0) {
-      const transfer = Math.min(devedorAlex, creditoHeitor);
-      passosLiquidacao.push({
-        tipo: 'transferencia_pix',
-        de: 'Alex',
-        para: 'Heitor',
-        valor: transfer,
-        descricao: `Alex faz um PIX de ${transfer.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })} para o Heitor (referente a bebidas/pão recebidos na maquininha).`
-      });
-      devedorAlex -= transfer;
-      creditoHeitor -= transfer;
-    }
-
-    // Caso 2: Pais são devedores (excesso de PIX) e Heitor ainda tem crédito
-    if (devedorPais > 0 && creditoHeitor > 0) {
-      const transfer = Math.min(devedorPais, creditoHeitor);
-      passosLiquidacao.push({
-        tipo: 'transferencia_pix',
-        de: 'Pais',
-        para: 'Heitor',
-        valor: transfer,
-        descricao: `Pais fazem um PIX de ${transfer.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })} para o Heitor (referente a bebidas/pão recebidos via PIX).`
-      });
-      devedorPais -= transfer;
-      creditoHeitor -= transfer;
-    }
-
-    // Caso 3: Pais são devedores (excesso de PIX) e Alex tem crédito
-    if (devedorPais > 0 && creditoAlex > 0) {
-      const transfer = Math.min(devedorPais, creditoAlex);
-      passosLiquidacao.push({
-        tipo: 'transferencia_pix',
-        de: 'Pais',
-        para: 'Alex',
-        valor: transfer,
-        descricao: `Pais fazem um PIX de ${transfer.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })} para o Alex (referente a espetinhos recebidos via PIX).`
-      });
-      devedorPais -= transfer;
-      creditoAlex -= transfer;
-    }
-
-    // Caso 4: Alex é devedor e Pais têm crédito (caso raro onde cookies foram pagos no cartão)
-    if (devedorAlex > 0 && creditoPais > 0) {
-      const transfer = Math.min(devedorAlex, creditoPais);
-      passosLiquidacao.push({
-        tipo: 'transferencia_pix',
-        de: 'Alex',
-        para: 'Pais',
-        valor: transfer,
-        descricao: `Alex faz um PIX de ${transfer.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })} para os Pais (referente a cookies recebidos no cartão).`
-      });
-      devedorAlex -= transfer;
-      creditoPais -= transfer;
     }
 
     // Se ainda restar dinheiro na gaveta após quitar todos os créditos
@@ -450,33 +476,34 @@ const rateioRepository = {
     // Montar texto pronto para WhatsApp
     const formatCurrency = (val) => Number(val || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 
-    let textoWhatsapp = `📊 *FECHAMENTO & RATEIO - TENDA DOS MÜLLER (EXPOBAI)*\n`;
+    let textoWhatsapp = `📊 *FECHAMENTO & RATEIO - ERP EXPOBAI*\n`;
     textoWhatsapp += `━━━━━━━━━━━━━━━━━━━━━\n`;
     textoWhatsapp += `💰 *Faturamento Total:* ${formatCurrency(faturamentoTotal)} (${totalPedidosCount} vendas)\n\n`;
     
     textoWhatsapp += `📈 *FATURAMENTO BRUTO POR SÓCIO:*\n`;
-    textoWhatsapp += `🥩 *Alex (Espetinhos):* ${formatCurrency(vendasAlex)} (${itensAlex} un)\n`;
-    textoWhatsapp += `🥤 *Heitor (Bebidas/Pão):* ${formatCurrency(vendasHeitor)} (${itensHeitor} un)\n`;
-    textoWhatsapp += `🍪 *Pais (Cookies):* ${formatCurrency(vendasPais)} (${itensPais} un)\n\n`;
+    sociosLista.forEach(s => {
+      const sc = sociosMap[s.id];
+      textoWhatsapp += `• ${sc.nome}: ${formatCurrency(sc.vendas_brutas)} (${sc.quantidade_itens} un)\n`;
+    });
+    textoWhatsapp += `\n`;
 
-    textoWhatsapp += `🏢 *CUSTOS FIXOS DA TENDA:* ${formatCurrency(custoTotalEvento)}\n`;
+    textoWhatsapp += `🏢 *CUSTOS FIXOS DO EVENTO:* ${formatCurrency(custoTotalEvento)}\n`;
     custosRows.forEach(c => {
       textoWhatsapp += `• ${c.descricao}: ${formatCurrency(c.valor)}\n`;
     });
-    textoWhatsapp += `Divisão dos Custos:\n`;
-    textoWhatsapp += `• Alex (50%): -${formatCurrency(custoAlex)}\n`;
-    textoWhatsapp += `• Heitor (50%): -${formatCurrency(custoHeitor)}\n`;
-    textoWhatsapp += `• Pais: Isentos (${formatCurrency(0)})\n\n`;
+    textoWhatsapp += `\n`;
 
     textoWhatsapp += `💳 *ONDE ESTÁ O DINHEIRO AGORA:*\n`;
-    textoWhatsapp += `• Maquininha Alex (Débito + Crédito): ${formatCurrency(totalCartao)}\n`;
-    textoWhatsapp += `• Conta PIX Pais: ${formatCurrency(totalPix)}\n`;
+    textoWhatsapp += `• Cartão (Débito + Crédito): ${formatCurrency(totalCartao)}\n`;
+    textoWhatsapp += `• PIX: ${formatCurrency(totalPix)}\n`;
     textoWhatsapp += `• Dinheiro na Gaveta: ${formatCurrency(totalDinheiro)}\n\n`;
 
     textoWhatsapp += `⚖️ *DIREITO LÍQUIDO FINAL (Para o bolso de cada um):*\n`;
-    textoWhatsapp += `• Alex: *${formatCurrency(direitoLiquidoAlex)}*\n`;
-    textoWhatsapp += `• Heitor: *${formatCurrency(direitoLiquidoHeitor)}*\n`;
-    textoWhatsapp += `• Pais: *${formatCurrency(direitoLiquidoPais)}*\n\n`;
+    sociosLista.forEach(s => {
+      const sc = sociosMap[s.id];
+      textoWhatsapp += `• ${sc.nome}: *${formatCurrency(sc.direito_liquido)}*\n`;
+    });
+    textoWhatsapp += `\n`;
 
     textoWhatsapp += `⚡ *PASSO A PASSO PARA ACERTAR AS CONTAS:*\n`;
     if (passosLiquidacao.length === 0) {
@@ -504,47 +531,8 @@ const rateioRepository = {
         custo_total_evento: custoTotalEvento,
         lucro_liquido_total: faturamentoTotal - custoTotalEvento
       },
-      socios: {
-        alex: {
-          nome: 'Alex',
-          papel: 'Espetinhos',
-          icone: 'beef',
-          vendas_brutas: vendasAlex,
-          quantidade_itens: itensAlex,
-          custos_atribuidos: custoAlex,
-          adiantamentos: adiantamentos.alex,
-          direito_liquido: direitoLiquidoAlex,
-          posse_em_conta: posseAlex,
-          saldo_balanco: balancoAlex, // > 0 deve repassar, < 0 tem a receber
-          status: balancoAlex > 0.05 ? 'deve_repassar' : balancoAlex < -0.05 ? 'tem_a_receber' : 'quitado'
-        },
-        heitor: {
-          nome: 'Heitor',
-          papel: 'Bebidas & Pão de Queijo',
-          icone: 'cup-soda',
-          vendas_brutas: vendasHeitor,
-          quantidade_itens: itensHeitor,
-          custos_atribuidos: custoHeitor,
-          adiantamentos: adiantamentos.heitor,
-          direito_liquido: direitoLiquidoHeitor,
-          posse_em_conta: posseHeitor,
-          saldo_balanco: balancoHeitor,
-          status: balancoHeitor > 0.05 ? 'deve_repassar' : balancoHeitor < -0.05 ? 'tem_a_receber' : 'quitado'
-        },
-        pais: {
-          nome: 'Pais do Heitor',
-          papel: 'Cookies',
-          icone: 'cake',
-          vendas_brutas: vendasPais,
-          quantidade_itens: itensPais,
-          custos_atribuidos: custoPais, // 0 por padrão
-          adiantamentos: adiantamentos.pais,
-          direito_liquido: direitoLiquidoPais,
-          posse_em_conta: possePais,
-          saldo_balanco: balancoPais,
-          status: balancoPais > 0.05 ? 'deve_repassar' : balancoPais < -0.05 ? 'tem_a_receber' : 'quitado'
-        }
-      },
+      socios: sociosMap,
+      socios_lista: Object.values(sociosMap),
       posse_caixa: {
         dinheiro_gaveta: dinheiroGaveta,
         custos_pagos_caixa: custosPagosDoCaixa

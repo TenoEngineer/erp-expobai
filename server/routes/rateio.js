@@ -5,9 +5,39 @@ const { requireRole, requireModule } = require('../middlewares/auth');
 
 // Apenas Administrador da Tenda e SuperAdmin podem acessar custos e rateio de sócios
 router.use(requireRole('admin', 'superadmin'));
+// Blindagem de Segurança: Exige que a empresa tenha contratado o módulo mod_rateio_socios
+router.use(requireModule('mod_rateio_socios'));
 
-// 1. Relatório consolidado de Rateio e Liquidação (Exige Módulo de Sócios)
-router.get('/', requireModule('mod_rateio_socios'), async (req, res) => {
+// 0. Listar sócios configurados para a empresa/estande
+router.get('/socios', async (req, res) => {
+  try {
+    const tenantId = req.tenantId || req.user?.tenant_id || 'tenda-muller';
+    const socios = await rateioRepo.getSociosLista(tenantId);
+    res.json(socios);
+  } catch (err) {
+    console.error('Erro ao buscar lista de sócios:', err);
+    res.status(500).json({ error: 'Erro ao buscar sócios' });
+  }
+});
+
+// 0.1 Atualizar/Configurar lista de sócios da empresa/estande
+router.post('/socios', async (req, res) => {
+  try {
+    const tenantId = req.tenantId || req.user?.tenant_id || 'tenda-muller';
+    const { socios } = req.body;
+    if (!Array.isArray(socios) || socios.length === 0) {
+      return res.status(400).json({ error: 'A lista de sócios deve ser um array com pelo menos 1 sócio.' });
+    }
+    const atualizados = await rateioRepo.saveSociosLista(socios, tenantId);
+    res.json(atualizados);
+  } catch (err) {
+    console.error('Erro ao salvar lista de sócios:', err);
+    res.status(500).json({ error: 'Erro ao salvar sócios' });
+  }
+});
+
+// 1. Relatório consolidado de Rateio e Liquidação
+router.get('/', async (req, res) => {
   try {
     const { data_inicio, data_fim, periodo } = req.query;
     const tenantId = req.tenantId || req.user?.tenant_id || 'tenda-muller';
@@ -95,10 +125,11 @@ router.put('/produtos-socios/:id', async (req, res) => {
   try {
     const { id } = req.params;
     const { socio } = req.body;
-    if (!socio || !['alex', 'heitor', 'pais'].includes(socio)) {
-      return res.status(400).json({ error: 'Sócio inválido. Valores aceitos: alex, heitor, pais' });
+    if (!socio || typeof socio !== 'string' || socio.trim().length === 0) {
+      return res.status(400).json({ error: 'Identificador do sócio é obrigatório' });
     }
-    const atualizado = await rateioRepo.updateProductSocio(id, socio);
+    const tenantId = req.tenantId || req.user?.tenant_id || 'tenda-muller';
+    const atualizado = await rateioRepo.updateProductSocio(id, socio.trim(), tenantId);
     res.json(atualizado);
   } catch (err) {
     console.error('Erro ao atualizar sócio do produto:', err);

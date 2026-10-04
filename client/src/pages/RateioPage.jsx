@@ -20,7 +20,10 @@ import {
   Banknote, 
   Layers,
   ChevronRight,
-  Edit2
+  Edit2,
+  Settings,
+  UserPlus,
+  X
 } from 'lucide-react';
 import { 
   getRateio, 
@@ -30,7 +33,9 @@ import {
   deleteCustoEvento,
   getProdutosSocios,
   updateProdutoSocio,
-  autoAtribuirSocios
+  autoAtribuirSocios,
+  getSociosLista,
+  saveSociosLista
 } from '../services/api';
 
 export default function RateioPage() {
@@ -40,13 +45,19 @@ export default function RateioPage() {
   const [activeSubTab, setActiveSubTab] = useState('resumo'); // 'resumo', 'custos', 'produtos', 'itens'
   const [copied, setCopied] = useState(false);
 
+  // Sócios Dinâmicos do Tenant
+  const [sociosLista, setSociosLista] = useState([]);
+  const [isSociosModalOpen, setIsSociosModalOpen] = useState(false);
+  const [editingSociosLista, setEditingSociosLista] = useState([]);
+  const [savingSocios, setSavingSocios] = useState(false);
+
   // Estados do Modal de Novo/Editar Custo
   const [isCustoModalOpen, setIsCustoModalOpen] = useState(false);
   const [editingCusto, setEditingCusto] = useState(null);
   const [custoForm, setCustoForm] = useState({
     descricao: '',
     valor: '',
-    divisao: 'alex_heitor',
+    divisao: 'todos',
     pago_por: 'caixa',
     observacoes: ''
   });
@@ -58,8 +69,13 @@ export default function RateioPage() {
   const carregarDados = async () => {
     try {
       setLoading(true);
-      const res = await getRateio({ periodo });
+      const [res, sociosRes] = await Promise.all([
+        getRateio({ periodo }),
+        getSociosLista().catch(() => [])
+      ]);
       setData(res);
+      const socios = sociosRes && sociosRes.length > 0 ? sociosRes : (res?.socios_lista || []);
+      setSociosLista(socios);
 
       if (activeSubTab === 'produtos') {
         const prods = await getProdutosSocios();
@@ -137,6 +153,61 @@ export default function RateioPage() {
       carregarDados();
     } catch (err) {
       alert('Erro ao excluir custo: ' + (err.response?.data?.error || err.message));
+    }
+  };
+
+  const handleOpenSociosModal = () => {
+    setEditingSociosLista(JSON.parse(JSON.stringify(sociosLista)));
+    setIsSociosModalOpen(true);
+  };
+
+  const handleAddSocio = () => {
+    const newId = `socio_${Date.now()}`;
+    const colors = ['#a855f7', '#10b981', '#f59e0b', '#3b82f6', '#ec4899', '#06b6d4', '#f97316'];
+    const nextColor = colors[editingSociosLista.length % colors.length];
+    setEditingSociosLista([
+      ...editingSociosLista,
+      {
+        id: newId,
+        nome: `Sócio ${editingSociosLista.length + 1}`,
+        papel: 'Geral',
+        recebe_por: 'nenhum',
+        cor: nextColor,
+        icone: 'users'
+      }
+    ]);
+  };
+
+  const handleRemoveSocio = (index) => {
+    if (editingSociosLista.length <= 1) {
+      alert('É necessário manter ao menos 1 sócio cadastrado.');
+      return;
+    }
+    const target = editingSociosLista[index];
+    if (!confirm(`Remover o sócio "${target.nome}"? Os produtos vinculados a ele precisarão ser reatribuídos.`)) return;
+    setEditingSociosLista(editingSociosLista.filter((_, idx) => idx !== index));
+  };
+
+  const handleUpdateEditingSocio = (index, field, value) => {
+    setEditingSociosLista(prev => {
+      const copy = [...prev];
+      copy[index] = { ...copy[index], [field]: value };
+      return copy;
+    });
+  };
+
+  const handleSaveSocios = async (e) => {
+    e.preventDefault();
+    try {
+      setSavingSocios(true);
+      const updated = await saveSociosLista(editingSociosLista);
+      setSociosLista(updated);
+      setIsSociosModalOpen(false);
+      await carregarDados();
+    } catch (err) {
+      alert('Erro ao salvar sócios: ' + (err.response?.data?.error || err.message));
+    } finally {
+      setSavingSocios(false);
     }
   };
 
@@ -243,6 +314,16 @@ export default function RateioPage() {
                 <span>Copiar WhatsApp</span>
               </>
             )}
+          </button>
+
+          {/* Botão Gerenciar Sócios */}
+          <button
+            onClick={handleOpenSociosModal}
+            className="h-10 px-3.5 rounded-xl font-black text-xs flex items-center gap-1.5 transition-all active:scale-95 shadow border bg-purple-600/20 hover:bg-purple-600/30 text-purple-300 border-purple-500/40 hover:border-purple-400"
+            title="Adicionar, editar e organizar os sócios do evento"
+          >
+            <Users className="w-4 h-4" />
+            <span>Sócios ({sociosLista.length})</span>
           </button>
 
           {/* Botão Atualizar */}
@@ -396,254 +477,110 @@ export default function RateioPage() {
           </div>
 
           {/* ========================================================================= */}
-          {/* 2. OS 3 SÓCIOS: RAIO-X INDIVIDUAL DE CADA UM */}
+          {/* 2. SÓCIOS DO EVENTO: RAIO-X INDIVIDUAL */}
           {/* ========================================================================= */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            
-            {/* CARD 1: ALEX (ESPETINHOS) */}
-            <div className="bg-slate-900/95 border-2 border-purple-500/40 rounded-3xl p-5 flex flex-col justify-between shadow-xl relative overflow-hidden">
-              <div className="absolute top-0 right-0 w-24 h-24 bg-purple-600/10 rounded-full blur-2xl pointer-events-none" />
-              
-              <div>
-                <div className="flex items-center justify-between pb-3 border-b border-slate-800">
-                  <div className="flex items-center gap-2.5">
-                    <div className="w-10 h-10 rounded-xl bg-purple-950 border border-purple-400/50 flex items-center justify-center text-purple-300">
-                      <Beef className="w-5 h-5" />
-                    </div>
-                    <div>
-                      <h2 className="font-black text-lg text-white">Alex</h2>
-                      <span className="text-xs font-bold text-purple-400">Espetinhos</span>
-                    </div>
-                  </div>
-                  <span className="text-xs px-2.5 py-1 bg-purple-950/90 text-purple-300 border border-purple-500/40 rounded-full font-mono font-bold">
-                    {data?.socios?.alex?.quantidade_itens || 0} un
-                  </span>
-                </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {(data?.socios_lista || []).map((socio, idx) => {
+              const borderCor = socio.id === 'alex' ? 'border-purple-500/40' : socio.id === 'pais' ? 'border-amber-500/40' : socio.id === 'heitor' ? 'border-emerald-500/40' : idx % 3 === 0 ? 'border-purple-500/40' : idx % 3 === 1 ? 'border-emerald-500/40' : 'border-amber-500/40';
+              const textCor = socio.id === 'alex' ? 'text-purple-400' : socio.id === 'pais' ? 'text-amber-400' : socio.id === 'heitor' ? 'text-emerald-400' : idx % 3 === 0 ? 'text-purple-400' : idx % 3 === 1 ? 'text-emerald-400' : 'text-amber-400';
+              const bgCor = socio.id === 'alex' ? 'bg-purple-950' : socio.id === 'pais' ? 'bg-amber-950' : socio.id === 'heitor' ? 'bg-emerald-950' : idx % 3 === 0 ? 'bg-purple-950' : idx % 3 === 1 ? 'bg-emerald-950' : 'bg-amber-950';
 
-                <div className="space-y-2 mt-4 text-xs font-mono">
-                  <div className="flex items-center justify-between text-slate-300">
-                    <span>Vendas Espetinhos:</span>
-                    <span className="font-bold text-white font-sans text-sm">
-                      {formatPrice(data?.socios?.alex?.vendas_brutas)}
-                    </span>
-                  </div>
-                  <div className="flex items-center justify-between text-rose-400">
-                    <span>Custo Tenda (50%):</span>
-                    <span>-{formatPrice(data?.socios?.alex?.custos_atribuidos)}</span>
-                  </div>
-                  <div className="pt-2 border-t border-slate-800/80 flex items-center justify-between font-bold text-sm">
-                    <span className="text-slate-300">Direito Líquido:</span>
-                    <span className="text-emerald-400 font-black">
-                      {formatPrice(data?.socios?.alex?.direito_liquido)}
-                    </span>
-                  </div>
-                </div>
-
-                {/* O que caiu na conta dele */}
-                <div className="mt-4 p-3 rounded-xl bg-slate-950/80 border border-slate-800 space-y-1 text-xs">
-                  <div className="flex items-center justify-between text-slate-400">
-                    <span>Caiu na Maquininha (Cartão):</span>
-                    <span className="font-mono font-bold text-purple-300">
-                      {formatPrice(data?.socios?.alex?.posse_em_conta)}
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Status do Balanço do Alex */}
-              <div className="mt-4 pt-3 border-t border-slate-800">
-                {data?.socios?.alex?.saldo_balanco > 0.05 ? (
-                  <div className="p-3 rounded-2xl bg-rose-950/40 border border-rose-500/40 flex items-center justify-between">
-                    <div>
-                      <span className="text-[10px] uppercase font-black tracking-wider text-rose-400 block">
-                        Diferença a Repassar
-                      </span>
-                      <p className="text-xs text-rose-300 font-medium">
-                        Alex recebeu a mais na maquininha
-                      </p>
-                    </div>
-                    <span className="text-base font-black text-rose-400 font-mono">
-                      Repassa {formatPrice(data?.socios?.alex?.saldo_balanco)}
-                    </span>
-                  </div>
-                ) : data?.socios?.alex?.saldo_balanco < -0.05 ? (
-                  <div className="p-3 rounded-2xl bg-emerald-950/40 border border-emerald-500/40 flex items-center justify-between">
-                    <div>
-                      <span className="text-[10px] uppercase font-black tracking-wider text-emerald-400 block">
-                        Saldo a Receber
-                      </span>
-                      <p className="text-xs text-emerald-300 font-medium">
-                        Alex tem crédito a receber
-                      </p>
-                    </div>
-                    <span className="text-base font-black text-emerald-400 font-mono">
-                      Recebe {formatPrice(Math.abs(data?.socios?.alex?.saldo_balanco))}
-                    </span>
-                  </div>
-                ) : (
-                  <div className="p-3 rounded-2xl bg-emerald-950/30 border border-emerald-500/30 text-center text-xs text-emerald-300 font-bold">
-                    ✓ Contas 100% quitadas
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* CARD 2: HEITOR (BEBIDAS & PÃO DE QUEIJO) */}
-            <div className="bg-slate-900/95 border-2 border-emerald-500/40 rounded-3xl p-5 flex flex-col justify-between shadow-xl relative overflow-hidden">
-              <div className="absolute top-0 right-0 w-24 h-24 bg-emerald-600/10 rounded-full blur-2xl pointer-events-none" />
-
-              <div>
-                <div className="flex items-center justify-between pb-3 border-b border-slate-800">
-                  <div className="flex items-center gap-2.5">
-                    <div className="w-10 h-10 rounded-xl bg-emerald-950 border border-emerald-400/50 flex items-center justify-center text-emerald-300">
-                      <CupSoda className="w-5 h-5" />
-                    </div>
-                    <div>
-                      <h2 className="font-black text-lg text-white">Heitor</h2>
-                      <span className="text-xs font-bold text-emerald-400">Bebidas & Pão de Queijo</span>
-                    </div>
-                  </div>
-                  <span className="text-xs px-2.5 py-1 bg-emerald-950/90 text-emerald-300 border border-emerald-500/40 rounded-full font-mono font-bold">
-                    {data?.socios?.heitor?.quantidade_itens || 0} un
-                  </span>
-                </div>
-
-                <div className="space-y-2 mt-4 text-xs font-mono">
-                  <div className="flex items-center justify-between text-slate-300">
-                    <span>Vendas Bebidas/Pão:</span>
-                    <span className="font-bold text-white font-sans text-sm">
-                      {formatPrice(data?.socios?.heitor?.vendas_brutas)}
-                    </span>
-                  </div>
-                  <div className="flex items-center justify-between text-rose-400">
-                    <span>Custo Tenda (50%):</span>
-                    <span>-{formatPrice(data?.socios?.heitor?.custos_atribuidos)}</span>
-                  </div>
-                  <div className="pt-2 border-t border-slate-800/80 flex items-center justify-between font-bold text-sm">
-                    <span className="text-slate-300">Direito Líquido:</span>
-                    <span className="text-emerald-400 font-black">
-                      {formatPrice(data?.socios?.heitor?.direito_liquido)}
-                    </span>
-                  </div>
-                </div>
-
-                {/* O que caiu na conta dele */}
-                <div className="mt-4 p-3 rounded-xl bg-slate-950/80 border border-slate-800 space-y-1 text-xs">
-                  <div className="flex items-center justify-between text-slate-400">
-                    <span>Recebido Direto em Conta:</span>
-                    <span className="font-mono font-bold text-slate-300">
-                      {formatPrice(0)}
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Status do Balanço do Heitor */}
-              <div className="mt-4 pt-3 border-t border-slate-800">
-                <div className="p-3 rounded-2xl bg-emerald-950/50 border border-emerald-500/50 flex items-center justify-between shadow-lg">
+              return (
+                <div key={socio.id} className={`bg-slate-900/95 border-2 ${borderCor} rounded-3xl p-5 flex flex-col justify-between shadow-xl relative overflow-hidden`}>
                   <div>
-                    <span className="text-[10px] uppercase font-black tracking-wider text-emerald-400 block">
-                      Saldo Total a Receber
-                    </span>
-                    <p className="text-xs text-emerald-300 font-medium">
-                      Via gaveta + transferências
-                    </p>
-                  </div>
-                  <span className="text-base font-black text-emerald-300 font-mono">
-                    Recebe {formatPrice(Math.abs(data?.socios?.heitor?.saldo_balanco || 0))}
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            {/* CARD 3: PAIS (COOKIES) */}
-            <div className="bg-slate-900/95 border-2 border-amber-500/40 rounded-3xl p-5 flex flex-col justify-between shadow-xl relative overflow-hidden">
-              <div className="absolute top-0 right-0 w-24 h-24 bg-amber-600/10 rounded-full blur-2xl pointer-events-none" />
-
-              <div>
-                <div className="flex items-center justify-between pb-3 border-b border-slate-800">
-                  <div className="flex items-center gap-2.5">
-                    <div className="w-10 h-10 rounded-xl bg-amber-950 border border-amber-400/50 flex items-center justify-center text-amber-300">
-                      <Cake className="w-5 h-5" />
-                    </div>
-                    <div>
-                      <h2 className="font-black text-lg text-white">Pais</h2>
-                      <span className="text-xs font-bold text-amber-400">Cookies Artesanais</span>
-                    </div>
-                  </div>
-                  <span className="text-xs px-2.5 py-1 bg-amber-950/90 text-amber-300 border border-amber-500/40 rounded-full font-mono font-bold">
-                    {data?.socios?.pais?.quantidade_itens || 0} un
-                  </span>
-                </div>
-
-                <div className="space-y-2 mt-4 text-xs font-mono">
-                  <div className="flex items-center justify-between text-slate-300">
-                    <span>Vendas de Cookies:</span>
-                    <span className="font-bold text-white font-sans text-sm">
-                      {formatPrice(data?.socios?.pais?.vendas_brutas)}
-                    </span>
-                  </div>
-                  <div className="flex items-center justify-between text-slate-400">
-                    <span>Custo Tenda:</span>
-                    <span className="text-emerald-400 font-bold">R$ 0,00 (Isentos)</span>
-                  </div>
-                  <div className="pt-2 border-t border-slate-800/80 flex items-center justify-between font-bold text-sm">
-                    <span className="text-slate-300">Direito Líquido:</span>
-                    <span className="text-emerald-400 font-black">
-                      {formatPrice(data?.socios?.pais?.direito_liquido)}
-                    </span>
-                  </div>
-                </div>
-
-                {/* O que caiu na conta deles */}
-                <div className="mt-4 p-3 rounded-xl bg-slate-950/80 border border-slate-800 space-y-1 text-xs">
-                  <div className="flex items-center justify-between text-slate-400">
-                    <span>Recebido na Conta PIX:</span>
-                    <span className="font-mono font-bold text-emerald-300">
-                      {formatPrice(data?.socios?.pais?.posse_em_conta)}
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Status do Balanço dos Pais */}
-              <div className="mt-4 pt-3 border-t border-slate-800">
-                {data?.socios?.pais?.saldo_balanco > 0.05 ? (
-                  <div className="p-3 rounded-2xl bg-rose-950/40 border border-rose-500/40 flex items-center justify-between">
-                    <div>
-                      <span className="text-[10px] uppercase font-black tracking-wider text-rose-400 block">
-                        Diferença a Repassar
+                    <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+                      <div className="flex items-center gap-2.5">
+                        <div className={`w-10 h-10 rounded-xl ${bgCor} border border-slate-700/60 flex items-center justify-center ${textCor}`}>
+                          {socio.icone === 'beef' ? <Beef className="w-5 h-5" /> :
+                           socio.icone === 'cupsoda' || socio.icone === 'cup-soda' ? <CupSoda className="w-5 h-5" /> :
+                           socio.icone === 'cake' ? <Cake className="w-5 h-5" /> :
+                           <Users className="w-5 h-5" />}
+                        </div>
+                        <div>
+                          <h2 className="font-black text-lg text-white">{socio.nome}</h2>
+                          <span className={`text-xs font-bold ${textCor}`}>{socio.papel || 'Sócio'}</span>
+                        </div>
+                      </div>
+                      <span className={`text-xs px-2.5 py-1 ${bgCor}/90 ${textCor} border border-slate-700/60 rounded-full font-mono font-bold`}>
+                        {socio.quantidade_itens || 0} un
                       </span>
-                      <p className="text-xs text-rose-300 font-medium">
-                        Excesso de PIX de outros itens
-                      </p>
                     </div>
-                    <span className="text-base font-black text-rose-400 font-mono">
-                      Repassam {formatPrice(data?.socios?.pais?.saldo_balanco)}
-                    </span>
-                  </div>
-                ) : data?.socios?.pais?.saldo_balanco < -0.05 ? (
-                  <div className="p-3 rounded-2xl bg-emerald-950/40 border border-emerald-500/40 flex items-center justify-between">
-                    <div>
-                      <span className="text-[10px] uppercase font-black tracking-wider text-emerald-400 block">
-                        Saldo a Receber
-                      </span>
-                      <p className="text-xs text-emerald-300 font-medium">
-                        Têm crédito a receber
-                      </p>
-                    </div>
-                    <span className="text-base font-black text-emerald-400 font-mono">
-                      Recebem {formatPrice(Math.abs(data?.socios?.pais?.saldo_balanco))}
-                    </span>
-                  </div>
-                ) : (
-                  <div className="p-3 rounded-2xl bg-emerald-950/30 border border-emerald-500/30 text-center text-xs text-emerald-300 font-bold">
-                    ✓ Contas 100% quitadas
-                  </div>
-                )}
-              </div>
-            </div>
 
+                    <div className="space-y-2 mt-4 text-xs font-mono">
+                      <div className="flex items-center justify-between text-slate-300">
+                        <span>Vendas Brutas:</span>
+                        <span className="font-bold text-white font-sans text-sm">
+                          {formatPrice(socio.vendas_brutas)}
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between text-rose-400">
+                        <span>Custos Atribuídos:</span>
+                        <span>-{formatPrice(socio.custos_atribuidos)}</span>
+                      </div>
+                      {socio.adiantamentos > 0 && (
+                        <div className="flex items-center justify-between text-blue-400">
+                          <span>Adiantamentos (Reembolso):</span>
+                          <span>+{formatPrice(socio.adiantamentos)}</span>
+                        </div>
+                      )}
+                      <div className="pt-2 border-t border-slate-800/80 flex items-center justify-between font-bold text-sm">
+                        <span className="text-slate-300">Direito Líquido:</span>
+                        <span className="text-emerald-400 font-black">
+                          {formatPrice(socio.direito_liquido)}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* O que caiu na conta dele */}
+                    <div className="mt-4 p-3 rounded-xl bg-slate-950/80 border border-slate-800 space-y-1 text-xs">
+                      <div className="flex items-center justify-between text-slate-400">
+                        <span>Recebido em Conta ({socio.recebe_por === 'cartao' ? 'Cartão' : socio.recebe_por === 'pix' ? 'PIX' : socio.recebe_por === 'todos' ? 'Cartão + PIX' : 'Nenhum'}):</span>
+                        <span className={`font-mono font-bold ${textCor}`}>
+                          {formatPrice(socio.posse_em_conta)}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Status do Balanço */}
+                  <div className="mt-4 pt-3 border-t border-slate-800">
+                    {socio.saldo_balanco > 0.05 ? (
+                      <div className="p-3 rounded-2xl bg-rose-950/40 border border-rose-500/40 flex items-center justify-between">
+                        <div>
+                          <span className="text-[10px] uppercase font-black tracking-wider text-rose-400 block">
+                            Diferença a Repassar
+                          </span>
+                          <p className="text-xs text-rose-300 font-medium">
+                            Recebeu a mais na conta
+                          </p>
+                        </div>
+                        <span className="text-base font-black text-rose-400 font-mono">
+                          Repassa {formatPrice(socio.saldo_balanco)}
+                        </span>
+                      </div>
+                    ) : socio.saldo_balanco < -0.05 ? (
+                      <div className="p-3 rounded-2xl bg-emerald-950/40 border border-emerald-500/40 flex items-center justify-between">
+                        <div>
+                          <span className="text-[10px] uppercase font-black tracking-wider text-emerald-400 block">
+                            Saldo a Receber
+                          </span>
+                          <p className="text-xs text-emerald-300 font-medium">
+                            Tem crédito a receber
+                          </p>
+                        </div>
+                        <span className="text-base font-black text-emerald-400 font-mono">
+                          Recebe {formatPrice(Math.abs(socio.saldo_balanco))}
+                        </span>
+                      </div>
+                    ) : (
+                      <div className="p-3 rounded-2xl bg-emerald-950/30 border border-emerald-500/30 text-center text-xs text-emerald-300 font-bold">
+                        ✓ Contas 100% quitadas
+                      </div>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
           </div>
 
           {/* ========================================================================= */}
@@ -744,10 +681,8 @@ export default function RateioPage() {
                 >
                   <div className="min-w-0 pr-2">
                     <span className="font-bold text-white block truncate">{it.nome}</span>
-                    <span className={`text-[10px] font-black uppercase ${
-                      it.socio === 'alex' ? 'text-purple-400' : it.socio === 'pais' ? 'text-amber-400' : 'text-emerald-400'
-                    }`}>
-                      {it.socio === 'alex' ? '🥩 Alex' : it.socio === 'pais' ? '🍪 Pais' : '🥤 Heitor'}
+                    <span className="text-[10px] font-black uppercase text-amber-400">
+                      👤 {it.socio_nome || it.socio}
                     </span>
                   </div>
                   <div className="text-right shrink-0 font-mono">
@@ -768,7 +703,7 @@ export default function RateioPage() {
             <div>
               <h2 className="text-xl font-black text-white">Custos de Exposição da Tenda</h2>
               <p className="text-xs text-slate-400 mt-0.5">
-                Custos compartilhados entre Alex e Heitor (conforme combinado na feira).
+                Custos operacionais e despesas compartilhadas entre os sócios.
               </p>
             </div>
 
@@ -809,16 +744,15 @@ export default function RateioPage() {
                     </td>
                     <td className="py-3.5 px-3">
                       <span className="px-2.5 py-1 rounded-lg bg-purple-950/80 text-purple-300 border border-purple-500/40 text-[11px] font-bold">
-                        {c.divisao === 'alex_heitor' ? '🤝 Alex & Heitor (50% cada)' :
-                         c.divisao === 'todos' ? '👥 Todos (1/3 cada)' :
-                         c.divisao === 'somente_alex' ? '🥩 Somente Alex' :
-                         c.divisao === 'somente_heitor' ? '🥤 Somente Heitor' : '🍪 Somente Pais'}
+                        {c.divisao === 'todos' ? '👥 Todos os Sócios' :
+                         c.divisao === 'alex_heitor' ? '🤝 Alex & Heitor (50% cada)' :
+                         typeof c.divisao === 'string' && c.divisao.startsWith('somente_') ? `👤 Somente ${sociosLista.find(s => s.id === c.divisao.replace('somente_', ''))?.nome || c.divisao.replace('somente_', '')}` :
+                         `👤 ${sociosLista.find(s => s.id === c.divisao)?.nome || c.divisao}`}
                       </span>
                     </td>
                     <td className="py-3.5 px-3 text-slate-300 font-medium">
                       {c.pago_por === 'caixa' ? '💵 Gaveta do Caixa' :
-                       c.pago_por === 'alex' ? '🥩 Adiantado por Alex' :
-                       c.pago_por === 'heitor' ? '🥤 Adiantado por Heitor' : '🍪 Adiantado pelos Pais'}
+                       `👤 ${sociosLista.find(s => s.id === c.pago_por)?.nome || c.pago_por}`}
                     </td>
                     <td className="py-3.5 px-3 text-right">
                       <div className="flex items-center justify-end gap-1.5">
@@ -880,20 +814,16 @@ export default function RateioPage() {
 
                 <div className="shrink-0">
                   <select
-                    value={prod.socio || 'alex'}
+                    value={prod.socio || sociosLista[0]?.id || 'socio_1'}
                     disabled={savingProductId === prod.id}
                     onChange={(e) => handleChangeProductSocio(prod.id, e.target.value)}
-                    className={`text-xs font-black px-3 py-2 rounded-xl border focus:outline-none transition-all ${
-                      prod.socio === 'alex'
-                        ? 'bg-purple-950/80 text-purple-300 border-purple-500/50'
-                        : prod.socio === 'pais'
-                          ? 'bg-amber-950/80 text-amber-300 border-amber-500/50'
-                          : 'bg-emerald-950/80 text-emerald-300 border-emerald-500/50'
-                    }`}
+                    className="text-xs font-black px-3 py-2 rounded-xl border bg-slate-900 border-slate-700 text-white focus:outline-none"
                   >
-                    <option value="alex">🥩 Alex (Espetinho)</option>
-                    <option value="heitor">🥤 Heitor (Bebidas/Pão)</option>
-                    <option value="pais">🍪 Pais (Cookies)</option>
+                    {sociosLista.map((s) => (
+                      <option key={s.id} value={s.id}>
+                        👤 {s.nome}
+                      </option>
+                    ))}
                   </select>
                 </div>
               </div>
@@ -951,11 +881,13 @@ export default function RateioPage() {
                   onChange={(e) => setCustoForm({ ...custoForm, divisao: e.target.value })}
                   className="w-full h-11 bg-slate-950 border border-slate-700 rounded-xl px-3 text-xs text-white font-bold focus:border-amber-500 focus:outline-none"
                 >
-                  <option value="alex_heitor">🤝 Alex & Heitor (50% cada - Padrão da Tenda)</option>
-                  <option value="todos">👥 Todos (1/3 Alex, 1/3 Heitor, 1/3 Pais)</option>
-                  <option value="somente_alex">🥩 Somente Alex (100%)</option>
-                  <option value="somente_heitor">🥤 Somente Heitor (100%)</option>
-                  <option value="somente_pais">🍪 Somente Pais (100%)</option>
+                  <option value="todos">👥 Todos os Sócios (Divisão Igualitária)</option>
+                  {sociosLista.map(s => (
+                    <option key={s.id} value={`somente_${s.id}`}>👤 Somente {s.nome} (100%)</option>
+                  ))}
+                  {sociosLista.some(s => s.id === 'alex') && sociosLista.some(s => s.id === 'heitor') && (
+                    <option value="alex_heitor">🤝 Alex & Heitor (50% cada - Legado)</option>
+                  )}
                 </select>
               </div>
 
@@ -969,9 +901,9 @@ export default function RateioPage() {
                   className="w-full h-11 bg-slate-950 border border-slate-700 rounded-xl px-3 text-xs text-white font-bold focus:border-amber-500 focus:outline-none"
                 >
                   <option value="caixa">💵 Saiu da Gaveta do Caixa (Dinheiro)</option>
-                  <option value="alex">🥩 Adiantado por Alex do próprio bolso</option>
-                  <option value="heitor">🥤 Adiantado por Heitor do próprio bolso</option>
-                  <option value="pais">🍪 Adiantado pelos Pais do próprio bolso</option>
+                  {sociosLista.map(s => (
+                    <option key={s.id} value={s.id}>👤 Adiantado por {s.nome} do próprio bolso</option>
+                  ))}
                 </select>
               </div>
 
@@ -1004,6 +936,150 @@ export default function RateioPage() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* MODAL DE GERENCIAMENTO DE SÓCIOS */}
+      {/* ========================================================================= */}
+      {isSociosModalOpen && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in">
+          <div className="bg-slate-900 border-2 border-purple-500/60 rounded-3xl max-w-lg w-full p-5 sm:p-6 shadow-2xl space-y-4 max-h-[90vh] flex flex-col">
+            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-xl bg-purple-950 border border-purple-500/40 flex items-center justify-center text-purple-300">
+                  <Users className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="font-black text-lg text-white">Gerenciar Sócios</h3>
+                  <p className="text-xs text-slate-400">Adicione, edite ou remova sócios e defina onde recebem</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setIsSociosModalOpen(false)}
+                className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto space-y-3 pr-1">
+              {editingSociosLista.map((s, idx) => (
+                <div key={s.id || idx} className="p-3.5 rounded-2xl bg-slate-950 border border-slate-800 space-y-2.5">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-xs font-black uppercase tracking-wider text-purple-400">
+                      Sócio #{idx + 1}
+                    </span>
+                    {editingSociosLista.length > 1 && (
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveSocio(idx)}
+                        className="p-1 text-rose-400 hover:text-rose-300 rounded hover:bg-rose-950/40 text-xs flex items-center gap-1"
+                        title="Remover sócio"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                        <span>Remover</span>
+                      </button>
+                    )}
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                    <div>
+                      <label className="block text-[11px] font-bold text-slate-400 mb-1">
+                        Nome do Sócio:
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        value={s.nome}
+                        onChange={(e) => handleUpdateEditingSocio(idx, 'nome', e.target.value)}
+                        placeholder="Ex: Mateus, Alex, etc."
+                        className="w-full h-9 bg-slate-900 border border-slate-700 rounded-lg px-2.5 text-xs text-white font-bold focus:border-purple-500 focus:outline-none"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-[11px] font-bold text-slate-400 mb-1">
+                        Papel / Produtos:
+                      </label>
+                      <input
+                        type="text"
+                        value={s.papel || ''}
+                        onChange={(e) => handleUpdateEditingSocio(idx, 'papel', e.target.value)}
+                        placeholder="Ex: Espetinhos, Bebidas..."
+                        className="w-full h-9 bg-slate-900 border border-slate-700 rounded-lg px-2.5 text-xs text-white focus:border-purple-500 focus:outline-none"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                    <div>
+                      <label className="block text-[11px] font-bold text-slate-400 mb-1">
+                        Onde recebe vendas?
+                      </label>
+                      <select
+                        value={s.recebe_por || 'nenhum'}
+                        onChange={(e) => handleUpdateEditingSocio(idx, 'recebe_por', e.target.value)}
+                        className="w-full h-9 bg-slate-900 border border-slate-700 rounded-lg px-2 text-xs text-white font-bold focus:border-purple-500 focus:outline-none"
+                      >
+                        <option value="nenhum">Nenhum (Recebe no acerto final)</option>
+                        <option value="cartao">Cartão (Débito + Crédito na maquininha)</option>
+                        <option value="pix">PIX (Chave direta na conta)</option>
+                        <option value="todos">Todos (Cartão + PIX)</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-[11px] font-bold text-slate-400 mb-1">
+                        Cor de Destaque:
+                      </label>
+                      <div className="flex items-center gap-1.5 h-9">
+                        {['#a855f7', '#10b981', '#f59e0b', '#3b82f6', '#ec4899', '#06b6d4'].map((cor) => (
+                          <button
+                            key={cor}
+                            type="button"
+                            onClick={() => handleUpdateEditingSocio(idx, 'cor', cor)}
+                            style={{ backgroundColor: cor }}
+                            className={`w-6 h-6 rounded-full border-2 transition-all ${
+                              s.cor === cor ? 'border-white scale-110 shadow-lg' : 'border-transparent opacity-60 hover:opacity-100'
+                            }`}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+
+              <button
+                type="button"
+                onClick={handleAddSocio}
+                className="w-full py-2.5 rounded-xl border border-dashed border-purple-500/50 hover:border-purple-400 hover:bg-purple-950/20 text-purple-300 font-bold text-xs flex items-center justify-center gap-2 transition-all"
+              >
+                <Plus className="w-4 h-4 stroke-[3]" />
+                <span>Adicionar Mais Um Sócio</span>
+              </button>
+            </div>
+
+            <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-800">
+              <button
+                type="button"
+                onClick={() => setIsSociosModalOpen(false)}
+                className="h-10 px-4 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl font-bold text-xs"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                disabled={savingSocios}
+                onClick={handleSaveSocios}
+                className="h-10 px-5 bg-purple-600 hover:bg-purple-500 active:scale-95 text-white rounded-xl font-black text-xs shadow-lg flex items-center gap-1.5"
+              >
+                {savingSocios && <RefreshCw className="w-4 h-4 animate-spin" />}
+                <span>Salvar Sócios</span>
+              </button>
+            </div>
           </div>
         </div>
       )}
