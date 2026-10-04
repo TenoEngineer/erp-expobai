@@ -1061,6 +1061,485 @@ const relatoriosRepository = {
       top_monoproduto: topMonoproduto,
       top_compras_unitarias: topComprasUnitarias
     };
+  },
+
+  /**
+   * 2. Velocidade & Vazão do Caixa (Speed of Service / Throughput)
+   */
+  async getVazaoCaixa({ periodo, data_inicio, data_fim, sessao_id, tenant_id = 'tenda-muller' } = {}) {
+    const tz = await getTenantTimezone(tenant_id);
+    let whereConditions = ["p.status = 'concluido'", "p.tenant_id = $1"];
+    const params = [tenant_id];
+
+    if (sessao_id) {
+      const sessRes = await query('SELECT * FROM expobai.sessoes_caixa WHERE id = $1 AND tenant_id = $2', [sessao_id, tenant_id]);
+      if (sessRes.rows.length > 0) {
+        const sessao = sessRes.rows[0];
+        params.push(sessao.aberto_em);
+        whereConditions.push(`p.data_hora >= $${params.length}`);
+        if (sessao.fechado_em) {
+          params.push(sessao.fechado_em);
+          whereConditions.push(`p.data_hora <= $${params.length}`);
+        }
+      }
+    } else if (data_inicio && data_fim) {
+      params.push(data_inicio.includes(':') ? data_inicio.replace('T', ' ') : `${data_inicio} 00:00:00`);
+      params.push(data_fim.includes(':') ? data_fim.replace('T', ' ') : `${data_fim} 23:59:59.999`);
+      whereConditions.push(`(p.data_hora AT TIME ZONE '${tz}') >= $${params.length - 1}::timestamp AND (p.data_hora AT TIME ZONE '${tz}') <= $${params.length}::timestamp`);
+    } else if (periodo === 'hoje') {
+      whereConditions.push(`((p.data_hora AT TIME ZONE '${tz}') - INTERVAL '6 hours')::date = ((NOW() AT TIME ZONE '${tz}') - INTERVAL '6 hours')::date`);
+    } else if (periodo === '7dias') {
+      whereConditions.push(`((p.data_hora AT TIME ZONE '${tz}') - INTERVAL '6 hours')::date >= (((NOW() AT TIME ZONE '${tz}') - INTERVAL '6 hours') - INTERVAL '7 days')::date`);
+    }
+
+    const whereClause = `WHERE ${whereConditions.join(' AND ')}`;
+
+    // Busca pedidos ordenados no tempo
+    const pedidosRes = await query(`
+      SELECT 
+        p.id,
+        p.numero_pedido,
+        p.total,
+        p.data_hora,
+        EXTRACT(EPOCH FROM p.data_hora) as epoch_sec,
+        TO_CHAR(p.data_hora AT TIME ZONE '${tz}', 'HH24:MI:SS') as horario_fmt,
+        EXTRACT(HOUR FROM p.data_hora AT TIME ZONE '${tz}')::int as hora,
+        TO_CHAR((p.data_hora AT TIME ZONE '${tz}') - INTERVAL '6 hours', 'YYYY-MM-DD') as dia_evento,
+        (SELECT COALESCE(SUM(pi.quantidade), 1)::int FROM expobai.pedido_itens pi WHERE pi.pedido_id = p.id) as total_itens
+      FROM expobai.pedidos p
+      ${whereClause}
+      ORDER BY p.data_hora ASC
+    `, params);
+
+    const rows = pedidosRes.rows;
+    const totalPedidos = rows.length;
+    let totalSegundosOperacao = 0;
+    let intervalCount = 0;
+    const hourlyMap = {};
+
+    for (let h = 0; h < 24; h++) {
+      hourlyMap[h] = {
+        hora: h,
+        hora_label: `${String(h).padStart(2, '0')}:00`,
+        total_pedidos: 0,
+        total_itens: 0,
+        faturamento: 0,
+        delta_seconds_sum: 0,
+        delta_count: 0
+      };
+    }
+
+    let fastestBurst = { seconds: 999999, pedido_a: null, pedido_b: null };
+    let maxThroughputHour = { hora: null, pedidos: 0, faturamento: 0 };
+
+    for (let i = 0; i < rows.length; i++) {
+      const cur = rows[i];
+      const hora = cur.hora;
+      const totalVal = parseFloat(cur.total) || 0;
+      const itensCount = parseInt(cur.total_itens, 10) || 1;
+
+      if (!hourlyMap[hora]) {
+        hourlyMap[hora] = { hora, hora_label: `${String(hora).padStart(2, '0')}:00`, total_pedidos: 0, total_itens: 0, faturamento: 0, delta_seconds_sum: 0, delta_count: 0 };
+      }
+
+      hourlyMap[hora].total_pedidos++;
+      hourlyMap[hora].total_itens += itensCount;
+      hourlyMap[hora].faturamento += totalVal;
+
+      if (i > 0) {
+        const prev = rows[i - 1];
+        if (prev.dia_evento === cur.dia_evento) {
+          const deltaSec = cur.epoch_sec - prev.epoch_sec;
+          if (deltaSec > 0 && deltaSec <= 600) {
+            totalSegundosOperacao += deltaSec;
+            intervalCount++;
+            hourlyMap[hora].delta_seconds_sum += deltaSec;
+            hourlyMap[hora].delta_count++;
+
+            if (deltaSec < fastestBurst.seconds && deltaSec >= 5) {
+              fastestBurst = {
+                seconds: deltaSec,
+                pedido_a: prev.numero_pedido,
+                pedido_b: cur.numero_pedido
+              };
+            }
+          }
+        }
+      }
+    }
+
+    const tempoMedioSegundosGeral = intervalCount > 0 ? Math.round(totalSegundosOperacao / intervalCount) : 0;
+    const pedidosPorMinutoPico = tempoMedioSegundosGeral > 0 ? Number((60 / tempoMedioSegundosGeral).toFixed(1)) : 0;
+
+    const cicloHoras = [16, 17, 18, 19, 20, 21, 22, 23, 0, 1, 2, 3, 4];
+    const rankingHoras = cicloHoras.map(h => {
+      const entry = hourlyMap[h] || { hora: h, hora_label: `${String(h).padStart(2, '0')}:00`, total_pedidos: 0, total_itens: 0, faturamento: 0, delta_seconds_sum: 0, delta_count: 0 };
+      const avgSec = entry.delta_count > 0 ? Math.round(entry.delta_seconds_sum / entry.delta_count) : 0;
+      
+      let statusFila = 'calmo';
+      let descricaoFila = 'Fluxo Tranquilo (Sem Fila)';
+      if (entry.total_pedidos >= 50 || (avgSec > 0 && avgSec <= 45)) {
+        statusFila = 'critico_gargalo';
+        descricaoFila = 'Alta Pressão / Gargalo de Fila';
+      } else if (entry.total_pedidos >= 25 || (avgSec > 0 && avgSec <= 90)) {
+        statusFila = 'alta_demanda';
+        descricaoFila = 'Fluxo Intenso / Ágil';
+      } else if (entry.total_pedidos > 5) {
+        statusFila = 'moderado';
+        descricaoFila = 'Fluxo Contínuo';
+      }
+
+      if (entry.total_pedidos > maxThroughputHour.pedidos) {
+        maxThroughputHour = {
+          hora: h,
+          hora_label: `${String(h).padStart(2, '0')}:00`,
+          pedidos: entry.total_pedidos,
+          faturamento: entry.faturamento
+        };
+      }
+
+      return {
+        ...entry,
+        tempo_medio_segundos: avgSec,
+        pedidos_por_minuto: avgSec > 0 ? Number((60 / avgSec).toFixed(1)) : 0,
+        status_fila: statusFila,
+        descricao_fila: descricaoFila
+      };
+    });
+
+    return {
+      indicadores: {
+        total_pedidos: totalPedidos,
+        tempo_medio_segundos_por_pedido: tempoMedioSegundosGeral,
+        pedidos_por_minuto_medio: pedidosPorMinutoPico,
+        capacidade_maxima_hora: tempoMedioSegundosGeral > 0 ? Math.round(3600 / tempoMedioSegundosGeral) : 0,
+        venda_mais_rapida_segundos: fastestBurst.seconds === 999999 ? 0 : fastestBurst.seconds,
+        pico_vazao: maxThroughputHour
+      },
+      ranking_horas: rankingHoras,
+      diagnostico_fila: {
+        nivel_estresse: tempoMedioSegundosGeral <= 45 ? 'alto' : tempoMedioSegundosGeral <= 90 ? 'moderado' : 'baixo',
+        recomendacao: tempoMedioSegundosGeral <= 50
+          ? 'Recomenda-se adicionar 1 operador volante ou totem para evitar abandono de fila nos horários de pico (22h às 01h).'
+          : 'Tempo de atendimento dentro do padrão ótimo de fluidez.'
+      }
+    };
+  },
+
+  /**
+   * 3. Dreno de Taxas por Meio de Pagamento & Economia PIX
+   */
+  async getDrenoTaxas({ taxa_debito = 1.99, taxa_credito = 3.49, periodo, data_inicio, data_fim, sessao_id, tenant_id = 'tenda-muller' } = {}) {
+    const tz = await getTenantTimezone(tenant_id);
+    let whereConditions = ["p.status = 'concluido'", "p.tenant_id = $1"];
+    const params = [tenant_id];
+
+    if (sessao_id) {
+      const sessRes = await query('SELECT * FROM expobai.sessoes_caixa WHERE id = $1 AND tenant_id = $2', [sessao_id, tenant_id]);
+      if (sessRes.rows.length > 0) {
+        params.push(sessRes.rows[0].aberto_em);
+        whereConditions.push(`p.data_hora >= $${params.length}`);
+        if (sessRes.rows[0].fechado_em) {
+          params.push(sessRes.rows[0].fechado_em);
+          whereConditions.push(`p.data_hora <= $${params.length}`);
+        }
+      }
+    } else if (data_inicio && data_fim) {
+      params.push(data_inicio.includes(':') ? data_inicio.replace('T', ' ') : `${data_inicio} 00:00:00`);
+      params.push(data_fim.includes(':') ? data_fim.replace('T', ' ') : `${data_fim} 23:59:59.999`);
+      whereConditions.push(`(p.data_hora AT TIME ZONE '${tz}') >= $${params.length - 1}::timestamp AND (p.data_hora AT TIME ZONE '${tz}') <= $${params.length}::timestamp`);
+    } else if (periodo === 'hoje') {
+      whereConditions.push(`((p.data_hora AT TIME ZONE '${tz}') - INTERVAL '6 hours')::date = ((NOW() AT TIME ZONE '${tz}') - INTERVAL '6 hours')::date`);
+    } else if (periodo === '7dias') {
+      whereConditions.push(`((p.data_hora AT TIME ZONE '${tz}') - INTERVAL '6 hours')::date >= (((NOW() AT TIME ZONE '${tz}') - INTERVAL '6 hours') - INTERVAL '7 days')::date`);
+    }
+
+    const whereClause = `WHERE ${whereConditions.join(' AND ')}`;
+
+    const pagamentosRes = await query(`
+      SELECT 
+        COUNT(p.id)::int as total_pedidos,
+        COALESCE(SUM(p.total), 0)::numeric as faturamento_total,
+        COALESCE(SUM(
+          CASE 
+            WHEN p.pagamentos IS NOT NULL AND jsonb_typeof(p.pagamentos) = 'array'
+            THEN COALESCE((SELECT SUM((elem->>'valor')::numeric) FROM jsonb_array_elements(p.pagamentos) elem WHERE elem->>'forma' = 'pix'), 0)
+            WHEN p.forma_pagamento = 'pix' THEN p.total
+            ELSE 0
+          END
+        ), 0)::numeric as total_pix,
+        COALESCE(SUM(
+          CASE 
+            WHEN p.pagamentos IS NOT NULL AND jsonb_typeof(p.pagamentos) = 'array'
+            THEN COALESCE((SELECT SUM((elem->>'valor')::numeric) FROM jsonb_array_elements(p.pagamentos) elem WHERE elem->>'forma' = 'dinheiro'), 0)
+            WHEN p.forma_pagamento = 'dinheiro' THEN p.total
+            ELSE 0
+          END
+        ), 0)::numeric as total_dinheiro,
+        COALESCE(SUM(
+          CASE 
+            WHEN p.pagamentos IS NOT NULL AND jsonb_typeof(p.pagamentos) = 'array'
+            THEN COALESCE((SELECT SUM((elem->>'valor')::numeric) FROM jsonb_array_elements(p.pagamentos) elem WHERE elem->>'forma' = 'debito'), 0)
+            WHEN p.forma_pagamento = 'debito' THEN p.total
+            ELSE 0
+          END
+        ), 0)::numeric as total_debito,
+        COALESCE(SUM(
+          CASE 
+            WHEN p.pagamentos IS NOT NULL AND jsonb_typeof(p.pagamentos) = 'array'
+            THEN COALESCE((SELECT SUM((elem->>'valor')::numeric) FROM jsonb_array_elements(p.pagamentos) elem WHERE elem->>'forma' = 'credito'), 0)
+            WHEN p.forma_pagamento = 'credito' THEN p.total
+            ELSE 0
+          END
+        ), 0)::numeric as total_credito
+      FROM expobai.pedidos p
+      ${whereClause}
+    `, params);
+
+    const r = pagamentosRes.rows[0];
+    const totalFat = parseFloat(r.faturamento_total) || 0;
+    const totalPix = parseFloat(r.total_pix) || 0;
+    const totalDin = parseFloat(r.total_dinheiro) || 0;
+    const totalDeb = parseFloat(r.total_debito) || 0;
+    const totalCred = parseFloat(r.total_credito) || 0;
+
+    const txDeb = parseFloat(taxa_debito) || 1.99;
+    const txCred = parseFloat(taxa_credito) || 3.49;
+
+    const custoDebito = Math.round(totalDeb * (txDeb / 100) * 100) / 100;
+    const custoCredito = Math.round(totalCred * (txCred / 100) * 100) / 100;
+    const drenoTotal = Math.round((custoDebito + custoCredito) * 100) / 100;
+    const totalCartao = totalDeb + totalCred;
+    const fatLiquido = Math.round((totalFat - drenoTotal) * 100) / 100;
+
+    const pctDrenoFat = totalFat > 0 ? Number(((drenoTotal / totalFat) * 100).toFixed(2)) : 0;
+    const pctCartaoFat = totalFat > 0 ? Number(((totalCartao / totalFat) * 100).toFixed(1)) : 0;
+
+    const taxaMediaCartao = totalCartao > 0 ? (drenoTotal / totalCartao) : 0.025;
+    const economia25 = Math.round((totalCartao * 0.25 * taxaMediaCartao) * 100) / 100;
+    const economia50 = Math.round((totalCartao * 0.50 * taxaMediaCartao) * 100) / 100;
+    const economia100 = drenoTotal;
+
+    return {
+      parametros: {
+        taxa_debito_pct: txDeb,
+        taxa_credito_pct: txCred
+      },
+      resumo: {
+        faturamento_bruto: totalFat,
+        faturamento_liquido: fatLiquido,
+        dreno_total_taxas: drenoTotal,
+        pct_dreno_sobre_faturamento: pctDrenoFat,
+        total_volume_cartao: totalCartao,
+        pct_volume_cartao: pctCartaoFat
+      },
+      formas: [
+        { forma: 'PIX (0% Taxa)', faturado: totalPix, taxa_pct: 0, taxa_reais: 0, liquido: totalPix, cor: '#10B981' },
+        { forma: 'Dinheiro Espécie', faturado: totalDin, taxa_pct: 0, taxa_reais: 0, liquido: totalDin, cor: '#059669' },
+        { forma: 'Cartão de Débito', faturado: totalDeb, taxa_pct: txDeb, taxa_reais: custoDebito, liquido: totalDeb - custoDebito, cor: '#3B82F6' },
+        { forma: 'Cartão de Crédito', faturado: totalCred, taxa_pct: txCred, taxa_reais: custoCredito, liquido: totalCred - custoCredito, cor: '#8B5CF6' }
+      ],
+      simulacao_pix: {
+        conversao_25_pct: economia25,
+        conversao_50_pct: economia50,
+        conversao_total_cartao: economia100,
+        pitch_roi: `Você gastou ${drenoTotal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })} em taxas bancárias. Estimulando o PIX, você economiza até ${economia50.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })} líquidos!`
+      }
+    };
+  },
+
+  /**
+   * 4. Velocidade de Queima & Previsão de Esgotamento (Stockout & Burn-Rate Forecast)
+   */
+  async getPrevisaoEsgotamento({ tenant_id = 'tenda-muller' } = {}) {
+    const tz = await getTenantTimezone(tenant_id);
+
+    const prodsRes = await query(`
+      SELECT 
+        pr.id,
+        pr.nome,
+        c.nome as categoria,
+        pr.preco,
+        pr.preco_custo,
+        COALESCE(SUM(pi.quantidade), 0)::int as total_vendido,
+        COALESCE(SUM(pi.subtotal), 0)::numeric as faturamento_total
+      FROM expobai.produtos pr
+      JOIN expobai.categorias c ON c.id = pr.categoria_id
+      LEFT JOIN expobai.pedido_itens pi ON pi.produto_id = pr.id
+      LEFT JOIN expobai.pedidos p ON p.id = pi.pedido_id AND p.status = 'concluido' AND p.tenant_id = $1
+      WHERE pr.ativo = 1 AND pr.tenant_id = $1
+      GROUP BY pr.id, pr.nome, c.nome, pr.preco, pr.preco_custo
+      ORDER BY total_vendido DESC
+    `, [tenant_id]);
+
+    const picoRes = await query(`
+      SELECT 
+        pi.produto_id,
+        COALESCE(SUM(pi.quantidade), 0)::int as qtd_pico
+      FROM expobai.pedido_itens pi
+      JOIN expobai.pedidos p ON p.id = pi.pedido_id
+      WHERE p.status = 'concluido' AND p.tenant_id = $1
+        AND EXTRACT(HOUR FROM p.data_hora AT TIME ZONE '${tz}') IN (20, 21, 22, 23, 0, 1)
+      GROUP BY pi.produto_id
+    `, [tenant_id]);
+
+    const picoMap = new Map();
+    picoRes.rows.forEach(r => picoMap.set(Number(r.produto_id), parseInt(r.qtd_pico, 10)));
+
+    const horasPicoReferencia = 6;
+
+    const produtosAnalise = prodsRes.rows.map(p => {
+      const id = Number(p.id);
+      const totalVendido = parseInt(p.total_vendido, 10);
+      const qtdPico = picoMap.get(id) || Math.round(totalVendido * 0.7);
+      const velocidadeQueimaPico = Number((qtdPico / horasPicoReferencia).toFixed(1));
+      const velocidadeMediaGeral = Number((totalVendido / 24).toFixed(1));
+
+      return {
+        id,
+        nome: p.nome,
+        categoria: p.categoria,
+        preco: parseFloat(p.preco) || 0,
+        preco_custo: parseFloat(p.preco_custo) || 0,
+        total_vendido: totalVendido,
+        faturamento_total: parseFloat(p.faturamento_total) || 0,
+        velocidade_queima_pico_hora: velocidadeQueimaPico,
+        velocidade_media_geral_hora: velocidadeMediaGeral,
+        sugestao_estoque_minimo_noite: Math.ceil(velocidadeQueimaPico * 5)
+      };
+    });
+
+    return {
+      parametros: {
+        janela_pico_horas: horasPicoReferencia,
+        descricao: 'Calculado com base na cadência de consumo nos horários de pico (20h às 02h).'
+      },
+      produtos: produtosAnalise
+    };
+  },
+
+  /**
+   * 5. Auditoria de Cancelamentos & Prevenção de Perdas (Loss Prevention / Fraud & Anti-Theft)
+   */
+  async getAuditoriaPerdas({ periodo, data_inicio, data_fim, sessao_id, tenant_id = 'tenda-muller' } = {}) {
+    const tz = await getTenantTimezone(tenant_id);
+
+    // 1. Pedidos Cancelados
+    const canceladosRes = await query(`
+      SELECT 
+        p.id,
+        p.numero_pedido,
+        p.codigo_identificador,
+        p.total,
+        p.forma_pagamento,
+        p.observacoes,
+        TO_CHAR(p.data_hora AT TIME ZONE '${tz}', 'DD/MM/YYYY HH24:MI:SS') as data_hora_fmt,
+        (
+          SELECT string_agg(i.quantidade || 'x ' || i.nome_produto, ', ')
+          FROM expobai.pedido_itens i
+          WHERE i.pedido_id = p.id
+        ) as itens_cancelados
+      FROM expobai.pedidos p
+      WHERE p.status = 'cancelado' AND p.tenant_id = $1
+      ORDER BY p.data_hora DESC
+      LIMIT 50
+    `, [tenant_id]);
+
+    // 2. Pedidos Editados / Alterados Após Registro
+    const editadosRes = await query(`
+      SELECT 
+        p.id,
+        p.numero_pedido,
+        p.codigo_identificador,
+        p.total,
+        p.forma_pagamento,
+        p.motivo_edicao,
+        TO_CHAR(p.data_hora AT TIME ZONE '${tz}', 'DD/MM/YYYY HH24:MI') as data_venda_fmt,
+        TO_CHAR(p.editado_em AT TIME ZONE '${tz}', 'DD/MM/YYYY HH24:MI:SS') as editado_em_fmt,
+        (
+          SELECT string_agg(i.quantidade || 'x ' || i.nome_produto, ', ')
+          FROM expobai.pedido_itens i
+          WHERE i.pedido_id = p.id
+        ) as itens_finais
+      FROM expobai.pedidos p
+      WHERE p.editado = TRUE AND p.tenant_id = $1
+      ORDER BY p.editado_em DESC
+      LIMIT 50
+    `, [tenant_id]);
+
+    // 3. Auditoria de Quebra de Caixa (Diferença entre dinheiro declarado vs registrado)
+    const caixasRes = await query(`
+      SELECT 
+        s.id,
+        s.operador,
+        s.valor_abertura,
+        s.valor_fechamento_dinheiro,
+        s.status,
+        TO_CHAR(s.aberto_em AT TIME ZONE '${tz}', 'DD/MM/YYYY HH24:MI') as aberto_em_fmt,
+        TO_CHAR(s.fechado_em AT TIME ZONE '${tz}', 'DD/MM/YYYY HH24:MI') as fechado_em_fmt,
+        COALESCE((
+          SELECT SUM(p.total)
+          FROM expobai.pedidos p
+          WHERE p.status = 'concluido' AND p.tenant_id = $1
+            AND p.data_hora >= s.aberto_em
+            AND (s.fechado_em IS NULL OR p.data_hora <= s.fechado_em)
+            AND (p.forma_pagamento = 'dinheiro' OR (p.pagamentos IS NOT NULL AND jsonb_path_exists(p.pagamentos, '$[*] ? (@.forma == "dinheiro")')))
+        ), 0)::numeric as total_dinheiro_sistema
+      FROM expobai.sessoes_caixa s
+      WHERE s.tenant_id = $1
+      ORDER BY s.id DESC
+      LIMIT 15
+    `, [tenant_id]);
+
+    let totalQuebraGeral = 0;
+    const auditoriaSessoes = caixasRes.rows.map(s => {
+      const abertura = parseFloat(s.valor_abertura) || 0;
+      const vendasDinheiro = parseFloat(s.total_dinheiro_sistema) || 0;
+      const esperadoGaveta = Math.round((abertura + vendasDinheiro) * 100) / 100;
+      const declarado = s.valor_fechamento_dinheiro !== null ? parseFloat(s.valor_fechamento_dinheiro) : null;
+      const diferenca = declarado !== null ? Math.round((declarado - esperadoGaveta) * 100) / 100 : null;
+
+      if (diferenca !== null && diferenca < 0) {
+        totalQuebraGeral += Math.abs(diferenca);
+      }
+
+      return {
+        id: s.id,
+        operador: s.operador,
+        status: s.status,
+        aberto_em: s.aberto_em_fmt,
+        fechado_em: s.fechado_em_fmt,
+        valor_abertura: abertura,
+        vendas_dinheiro: vendasDinheiro,
+        saldo_esperado: esperadoGaveta,
+        valor_declarado: declarado,
+        diferenca_quebra: diferenca,
+        status_auditoria: diferenca === null ? 'em_andamento' : diferenca === 0 ? 'perfeito' : diferenca > 0 ? 'sobra' : 'quebra'
+      };
+    });
+
+    const totalCanceladoReais = canceladosRes.rows.reduce((acc, c) => acc + (parseFloat(c.total) || 0), 0);
+
+    let score = 100;
+    if (totalQuebraGeral > 50) score -= 15;
+    if (totalQuebraGeral > 200) score -= 25;
+    if (canceladosRes.rows.length > 5) score -= 10;
+    if (editadosRes.rows.length > 5) score -= 10;
+    score = Math.max(0, Math.min(100, score));
+
+    return {
+      indicadores: {
+        score_seguranca: score,
+        nivel_risco: score >= 90 ? 'baixo' : score >= 70 ? 'moderado' : 'alto',
+        total_pedidos_cancelados: canceladosRes.rows.length,
+        valor_total_cancelado: Math.round(totalCanceladoReais * 100) / 100,
+        total_pedidos_editados: editadosRes.rows.length,
+        total_quebra_caixa_dinheiro: Math.round(totalQuebraGeral * 100) / 100
+      },
+      pedidos_cancelados: canceladosRes.rows,
+      pedidos_editados: editadosRes.rows,
+      auditoria_caixas: auditoriaSessoes
+    };
   }
 };
 

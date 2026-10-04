@@ -97,4 +97,75 @@ router.get('/analise-cesta', requireModule('mod_bi_horarios'), async (req, res) 
   }
 });
 
+// 2. Velocidade & Vazão do Caixa (Speed of Service / Throughput) (Exige Módulo BI)
+router.get('/vazao-caixa', requireModule('mod_bi_horarios'), async (req, res) => {
+  try {
+    const { periodo, data_inicio, data_fim, sessao_id } = req.query;
+    const tenantId = req.tenantId || 'tenda-muller';
+    const dados = await relatoriosRepo.getVazaoCaixa({
+      periodo,
+      data_inicio,
+      data_fim,
+      sessao_id,
+      tenant_id: tenantId
+    });
+    res.json(dados);
+  } catch (err) {
+    console.error('Erro ao gerar relatório de vazão do caixa:', err);
+    res.status(500).json({ error: 'Erro ao gerar métricas de velocidade e vazão do caixa' });
+  }
+});
+
+// 3. Dreno de Taxas por Meio de Pagamento & Economia PIX (Exige Módulo Custos & CMV)
+router.get('/dreno-taxas', requireModule('mod_custos_cmv'), async (req, res) => {
+  try {
+    const { taxa_debito, taxa_credito, periodo, data_inicio, data_fim, sessao_id } = req.query;
+    const tenantId = req.tenantId || 'tenda-muller';
+    const dados = await relatoriosRepo.getDrenoTaxas({
+      taxa_debito,
+      taxa_credito,
+      periodo,
+      data_inicio,
+      data_fim,
+      sessao_id,
+      tenant_id: tenantId
+    });
+    res.json(dados);
+  } catch (err) {
+    console.error('Erro ao gerar relatório de dreno de taxas:', err);
+    res.status(500).json({ error: 'Erro ao calcular dreno de taxas bancárias' });
+  }
+});
+
+// 4. Velocidade de Queima & Previsão de Esgotamento (Stockout & Burn-Rate) (Exige Módulo BI)
+router.get('/previsao-esgotamento', requireModule('mod_bi_horarios'), async (req, res) => {
+  try {
+    const tenantId = req.tenantId || 'tenda-muller';
+    const dados = await relatoriosRepo.getPrevisaoEsgotamento({ tenant_id: tenantId });
+    res.json(dados);
+  } catch (err) {
+    console.error('Erro ao gerar previsão de esgotamento:', err);
+    res.status(500).json({ error: 'Erro ao calcular velocidade de queima de estoque' });
+  }
+});
+
+// 5. Auditoria de Cancelamentos & Prevenção de Perdas (Exige Módulo Custos & CMV)
+router.get('/auditoria-perdas', requireModule('mod_custos_cmv'), async (req, res) => {
+  try {
+    const { periodo, data_inicio, data_fim, sessao_id } = req.query;
+    const tenantId = req.tenantId || 'tenda-muller';
+    const dados = await relatoriosRepo.getAuditoriaPerdas({
+      periodo,
+      data_inicio,
+      data_fim,
+      sessao_id,
+      tenant_id: tenantId
+    });
+    res.json(dados);
+  } catch (err) {
+    console.error('Erro ao gerar auditoria de perdas e cancelamentos:', err);
+    res.status(500).json({ error: 'Erro ao gerar auditoria de cancelamentos' });
+  }
+});
+
 module.exports = router;

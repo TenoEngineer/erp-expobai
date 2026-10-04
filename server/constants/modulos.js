@@ -19,8 +19,8 @@ const MODULOS_CATALOGO = [
   },
   {
     id: 'mod_bi_horarios',
-    nome: 'Análise de Vendas por Horário (BI)',
-    descricao: 'Relatórios de horários de pico, comparativo de dias de feira, mapa de calor e desempenho de vendas por período.',
+    nome: 'Business Intelligence & Horários (BI)',
+    descricao: 'Horários de pico, velocidade e vazão do caixa (segundos/venda), previsão de esgotamento de estoque e inteligência de cesta de SKUs.',
     preco_base: 150.00,
     obrigatorio: false,
     icone: 'Clock',
@@ -37,8 +37,8 @@ const MODULOS_CATALOGO = [
   },
   {
     id: 'mod_custos_cmv',
-    nome: 'Controle de Custos & CMV do Evento',
-    descricao: 'Lançamento de custos fixos e variáveis da feira (aluguel de tenda, gelo, frete, gerador) e margem de contribuição real.',
+    nome: 'Custos, CMV & Prevenção de Perdas',
+    descricao: 'Margem bruta real, dreno de taxas de maquininha com economia PIX e auditoria antifraude de quebra de caixa.',
     preco_base: 150.00,
     obrigatorio: false,
     icone: 'TrendingUp',

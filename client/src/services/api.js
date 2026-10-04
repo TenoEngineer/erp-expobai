@@ -371,4 +371,27 @@ export const desconectarOutrosDispositivos = async () => {
   return data;
 };
 
+// =========================================================================
+// NOVAS ANÁLISES DE ALTO IMPACTO (BI & FINANCEIRO)
+// =========================================================================
+export const getVazaoCaixa = async (params) => {
+  const { data } = await api.get('/relatorios/vazao-caixa', { params });
+  return data;
+};
+
+export const getDrenoTaxas = async (params) => {
+  const { data } = await api.get('/relatorios/dreno-taxas', { params });
+  return data;
+};
+
+export const getPrevisaoEsgotamento = async () => {
+  const { data } = await api.get('/relatorios/previsao-esgotamento');
+  return data;
+};
+
+export const getAuditoriaPerdas = async (params) => {
+  const { data } = await api.get('/relatorios/auditoria-perdas', { params });
+  return data;
+};
+
 export default api;
